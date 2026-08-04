@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Comunidad</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="app">
+  <!-- ============ TOP NAV ============ -->
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar"><a href="dashboard.html" class="sidebar-logo"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA</a><nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><i class="bi bi-grid-fill"></i> Dashboard</a><a href="visitas.html" class="nav-item"><i class="bi bi-person-plus-fill"></i> Mis visitas</a><a href="accesos.html" class="nav-item"><i class="bi bi-door-open-fill"></i> Mis accesos</a><a href="incidencias.html" class="nav-item"><i class="bi bi-flag-fill"></i> Incidencias</a><a href="notificaciones.html" class="nav-item"><i class="bi bi-bell-fill"></i> Notificaciones</a><a href="comunidad.html" class="nav-item active"><i class="bi bi-people-fill"></i> Comunidad</a><a href="chat.html" class="nav-item"><i class="bi bi-chat-dots-fill"></i> Chat</a><a href="camaras.html" class="nav-item"><i class="bi bi-camera-video-fill"></i> Cámaras</a><a href="autorizados.html" class="nav-item"><i class="bi bi-person-check-fill"></i> Autorizados</a><a href="vetos.html" class="nav-item"><i class="bi bi-shield-x"></i> Vetos</a><a href="emergencias.html" class="nav-item"><i class="bi bi-telephone-fill"></i> Emergencias</a><a href="seguridad.html" class="nav-item"><i class="bi bi-shield-lock-fill"></i> Seguridad</a><a href="perfil.html" class="nav-item"><i class="bi bi-person-circle"></i> Perfil</a><a href="config.html" class="nav-item"><i class="bi bi-gear-fill"></i> Configuración</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><a href="notificaciones.html" class="icon-btn" id="bellLink"><i class="bi bi-bell"></i><span class="dot" id="bellDot"></span></a><a href="perfil.html" class="topnav-user"><div class="av">VG</div><span class="uname">Usuario</span></a><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="content">
+      <div class="page">
+        <div class="page-banner">
+          <div class="page-banner-bg" style="background-image:url('https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1400&auto=format&fit=crop');"></div>
+          <div class="page-banner-glow"></div>
+          <div class="page-banner-content">
+            <div><span class="mono-tag">COMUNIDAD</span><h1>Muro de vecinos</h1><p>Comparte avisos, objetos perdidos o mensajes con los demás residentes de tu torre.</p></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <form id="postForm" novalidate>
+            <div class="form-group">
+              <label for="postText">¿Qué quieres compartir?</label>
+              <textarea class="form-control" id="postText" maxlength="300" rows="4" placeholder="Escribe un mensaje breve..." required></textarea><div class="field-help"><span id="postCount">0/300</span><span>Máximo 4 líneas</span></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+              <select class="form-control" id="postCategory" style="max-width:220px;">
+                <option value="General">General</option>
+                <option value="Objetos perdidos">Objetos perdidos</option>
+                <option value="Compra-venta">Compra-venta</option>
+                <option value="Aviso importante">Aviso importante</option>
+              </select>
+              <label class="privacy-check" style="margin:0;flex:1;max-width:260px"><input type="checkbox" id="postPrivate"><span><b>Publicación privada</b><small>Solo administración podrá verla</small></span></label><button type="submit" class="btn btn-solid"><i class="bi bi-send-fill"></i> Publicar</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="postsFeed" style="margin-top:1.6rem;display:flex;flex-direction:column;gap:1.1rem;">
+          <div class="panel post-card" data-likes="3" data-liked="false">
+            <div class="post-head">
+              <div class="post-av">MF</div>
+              <div class="post-who"><b>María Flores</b><span class="mono">Torre B · hace 2 horas</span></div>
+              <span class="badge neutral post-category">General</span>
+            </div>
+            <p class="post-text">¿Alguien más escuchó ruido en el área de piscina anoche? Quiero saber si debo reportarlo como incidencia.</p>
+            <div class="post-actions">
+              <button type="button" class="post-like"><i class="bi bi-heart"></i> <span class="like-count">3</span></button>
+            </div>
+          </div>
+
+          <div class="panel post-card" data-likes="7" data-liked="false">
+            <div class="post-head">
+              <div class="post-av">DP</div>
+              <div class="post-who"><b>Diego Paz</b><span class="mono">Torre A · hace 5 horas</span></div>
+              <span class="badge warn post-category">Objetos perdidos</span>
+            </div>
+            <p class="post-text">Encontré unas llaves con un llavero de perrito cerca del portón vehicular. Las tengo en mi unidad, escríbanme si son suyas.</p>
+            <div class="post-actions">
+              <button type="button" class="post-like"><i class="bi bi-heart"></i> <span class="like-count">7</span></button>
+            </div>
+          </div>
+
+          <div class="panel post-card" data-likes="12" data-liked="false">
+            <div class="post-head">
+              <div class="post-av">AD</div>
+              <div class="post-who"><b>Administración</b><span class="mono">Altavista Residencial · hace 1 día</span></div>
+              <span class="badge alert post-category">Aviso importante</span>
+            </div>
+            <p class="post-text">Este sábado se hará mantenimiento a la cisterna de 8:00 AM a 12:00 PM. Habrá corte de agua temporal en todas las torres.</p>
+            <div class="post-actions">
+              <button type="button" class="post-like"><i class="bi bi-heart"></i> <span class="like-count">12</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/comunidad.js"></script>
+</body>
+</html>

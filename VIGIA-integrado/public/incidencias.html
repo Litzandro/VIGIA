@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Mis incidencias</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="app">
+  <!-- ============ TOP NAV ============ -->
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar"><a href="dashboard.html" class="sidebar-logo"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA</a><nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><i class="bi bi-grid-fill"></i> Dashboard</a><a href="visitas.html" class="nav-item"><i class="bi bi-person-plus-fill"></i> Mis visitas</a><a href="accesos.html" class="nav-item"><i class="bi bi-door-open-fill"></i> Mis accesos</a><a href="incidencias.html" class="nav-item active"><i class="bi bi-flag-fill"></i> Incidencias</a><a href="notificaciones.html" class="nav-item"><i class="bi bi-bell-fill"></i> Notificaciones</a><a href="comunidad.html" class="nav-item"><i class="bi bi-people-fill"></i> Comunidad</a><a href="chat.html" class="nav-item"><i class="bi bi-chat-dots-fill"></i> Chat</a><a href="camaras.html" class="nav-item"><i class="bi bi-camera-video-fill"></i> Cámaras</a><a href="autorizados.html" class="nav-item"><i class="bi bi-person-check-fill"></i> Autorizados</a><a href="vetos.html" class="nav-item"><i class="bi bi-shield-x"></i> Vetos</a><a href="emergencias.html" class="nav-item"><i class="bi bi-telephone-fill"></i> Emergencias</a><a href="seguridad.html" class="nav-item"><i class="bi bi-shield-lock-fill"></i> Seguridad</a><a href="perfil.html" class="nav-item"><i class="bi bi-person-circle"></i> Perfil</a><a href="config.html" class="nav-item"><i class="bi bi-gear-fill"></i> Configuración</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><a href="notificaciones.html" class="icon-btn" id="bellLink"><i class="bi bi-bell"></i><span class="dot" id="bellDot"></span></a><a href="perfil.html" class="topnav-user"><div class="av">VG</div><span class="uname">Usuario</span></a><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="content">
+      <div class="page">
+        <div class="page-banner">
+          <div class="page-banner-bg" style="background-image:url('https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1400&auto=format&fit=crop');"></div>
+          <div class="page-banner-glow"></div>
+          <div class="page-banner-content">
+            <div><span class="mono-tag">MIS INCIDENCIAS</span><h1>Incidencias reportadas</h1><p>Da seguimiento al estado de cada reporte.</p></div>
+            <button type="button" class="btn btn-solid incident-main-btn" data-open-report><i class="bi bi-plus-circle-fill"></i> Nueva incidencia</button>
+          </div>
+        </div>
+
+        <div class="incident-quickbar">
+          <div><b>Solo tus reportes</b><span>Por privacidad, aquí únicamente aparecen las incidencias creadas por tu cuenta.</span></div>
+          <button class="btn btn-ghost" id="emergencyContactsBtn"><i class="bi bi-telephone-fill"></i> Contactos de emergencia</button>
+        </div>
+
+        <div class="incidencias-toolbar">
+          <div class="filter-chips">
+            <button class="filter-chip active" data-filter="todas">Todas</button>
+            <button class="filter-chip" data-filter="alta">Urgentes</button>
+            <button class="filter-chip" data-filter="semana">Recientes</button>
+          </div>
+          <div class="toolbar-search"><i class="bi bi-search"></i><input placeholder="Buscar en mis incidencias..."></div>
+        </div>
+
+        <div class="kanban">
+          <div>
+            <div class="kanban-col-head"><span class="dot warn"></span>Abierta <span class="count">1</span></div>
+            <div class="kcard bracket" data-priority="media" data-days="1"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+              <div class="kcard-top">
+                <span class="kcard-icon warn"><i class="bi bi-lightbulb-fill"></i></span>
+                <span class="priority media">Prioridad media</span>
+              </div>
+              <h4>Luminaria dañada — pasillo B3</h4>
+              <p>Reportada ayer a las 8:40 PM. Sin luz desde hace tres días, zona de acceso peatonal.</p>
+              <div class="kcard-footer">
+                <div class="kcard-assignee"><span class="mini-av">MT</span> Mantenimiento</div>
+                <span class="kcard-updated mono">#INC-0231 · 1 día</span>
+              </div>
+            </div>
+            <div class="kcard-add" data-open-report><i class="bi bi-plus-lg"></i> Reportar otra incidencia</div>
+          </div>
+          <div>
+            <div class="kanban-col-head"><span class="dot ok"></span>En progreso <span class="count">1</span></div>
+            <div class="kcard" data-priority="baja" data-days="5">
+              <div class="kcard-top">
+                <span class="kcard-icon ok"><i class="bi bi-door-closed-fill"></i></span>
+                <span class="priority baja">Prioridad baja</span>
+              </div>
+              <h4>Portón peatonal con ruido al abrir</h4>
+              <p>Mantenimiento fue notificado y revisará el mecanismo esta semana.</p>
+              <div class="kcard-progress-lbl"><span>Avance</span><span>60%</span></div>
+              <div class="kcard-progress"><span style="width:60%;"></span></div>
+              <div class="kcard-footer">
+                <div class="kcard-assignee"><span class="mini-av">MT</span> Mantenimiento</div>
+                <span class="kcard-updated mono">#INC-0219 · 5 días</span>
+              </div>
+            </div>
+          </div>
+          <div class="closed-compact">
+            <div class="kanban-col-head"><span class="dot neutral"></span>Historial <span class="count">0</span></div>
+            <div class="incident-empty-note"><i class="bi bi-archive"></i><span>Las incidencias cerradas se guardan aquí sin saturar la pantalla.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panic-group">
+  <div class="panic-fab-wrap">
+    <span class="panic-fab-label">Alertar al guardia</span>
+    <button class="panic-fab guard" id="panicGuardBtn" title="Alertar solo al guardia"><i class="bi bi-shield-fill-exclamation"></i></button>
+  </div>
+  <div class="panic-fab-wrap">
+    <span class="panic-fab-label">Alertar a residentes</span>
+    <button class="panic-fab residents" id="panicResidentsBtn" title="Alertar a los demás residentes"><i class="bi bi-megaphone-fill"></i></button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="panicGuardModal">
+  <div class="modal-box" id="panicGuardModalBox">
+    <div class="modal-icon"><i class="bi bi-shield-fill-exclamation"></i></div>
+    <h3>¿Alertar al guardia?</h3>
+    <p>Se enviará una alerta directa y privada al guardia en turno de Altavista Residencial. Úsalo solo en caso de emergencia real.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="panicGuardCancel">Cancelar</button>
+      <button class="btn btn-alert" id="panicGuardConfirm"><i class="bi bi-broadcast"></i> Confirmar alerta</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="panicResidentsModal">
+  <div class="modal-box" id="panicResidentsModalBox">
+    <div class="modal-icon warn"><i class="bi bi-megaphone-fill"></i></div>
+    <h3>¿Alertar a los demás residentes?</h3>
+    <p>Se enviará una notificación a todos los residentes de tu torre para que tomen precaución. Úsalo solo en caso de emergencia real.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="panicResidentsCancel">Cancelar</button>
+      <button class="btn btn-warn" id="panicResidentsConfirm"><i class="bi bi-broadcast"></i> Confirmar alerta</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reportModal">
+  <div class="modal-box form-modal" id="reportModalBox">
+    <div class="modal-icon"><i class="bi bi-flag-fill"></i></div>
+    <h3>Reportar incidencia</h3>
+    <p>Cuéntanos qué sucede para darle seguimiento cuanto antes.</p>
+    <form id="reportForm" novalidate>
+      <div class="form-group">
+        <label for="reportTitle">Título</label>
+        <input type="text" class="form-control" id="reportTitle" maxlength="80" placeholder="Ej. Fuga de agua en pasillo A" required>
+      </div>
+      <div class="form-group">
+        <label for="reportDesc">Descripción</label>
+        <textarea class="form-control" id="reportDesc" maxlength="350" rows="4" placeholder="Describe lo esencial (máx. 350 caracteres)" required></textarea><div class="field-help"><span id="reportDescCount">0/350</span><span>Máximo 4 líneas</span></div>
+      </div>
+      <div class="ai-assist-box" id="aiAssistBox">
+        <i class="bi bi-stars"></i><div><b>Asistente de clasificación</b><span id="aiAssistText">Escribe la descripción y VIGIA sugerirá prioridad y categoría automáticamente.</span></div>
+      </div>
+      <div class="form-group">
+        <label for="reportPriority">Prioridad</label>
+        <select class="form-control" id="reportPriority">
+          <option value="alta">Alta</option>
+          <option value="media" selected>Media</option>
+          <option value="baja">Baja</option>
+        </select>
+      </div>
+      <label class="privacy-check"><input type="checkbox" id="reportPrivate" checked><span><b>Reporte privado</b><small>Solo tú, administración y el guardia asignado podrán verlo.</small></span></label>
+      <div class="form-group">
+        <label for="reportPhoto">Evidencia fotográfica (opcional)</label>
+        <input type="file" class="form-control" id="reportPhoto" accept="image/*" capture="environment">
+        <div id="reportPhotoPreviewWrap" style="display:none;margin-top:.7rem;">
+          <img id="reportPhotoPreview" alt="Vista previa de la evidencia" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="reportCancel">Cancelar</button>
+        <button type="submit" class="btn btn-solid"><i class="bi bi-send-fill"></i> Enviar reporte</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="emergencyContactsModal">
+  <div class="modal-box emergency-modal">
+    <div class="modal-icon warn"><i class="bi bi-telephone-fill"></i></div>
+    <h3>Contactos de emergencia</h3>
+    <div class="emergency-list">
+      <a href="tel:911"><b>Emergencias</b><span>911</span></a>
+      <div><b>Garita de seguridad</b><span>Ext. 101</span></div>
+      <div><b>Administración</b><span>Ext. 102</span></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-solid" id="emergencyContactsClose">Cerrar</button></div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/panic-store.js"></script>
+<script src="js/incidencias.js"></script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Configuración</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="app">
+  <!-- ============ TOP NAV ============ -->
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar"><a href="dashboard.html" class="sidebar-logo"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA</a><nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><i class="bi bi-grid-fill"></i> Dashboard</a><a href="visitas.html" class="nav-item"><i class="bi bi-person-plus-fill"></i> Mis visitas</a><a href="accesos.html" class="nav-item"><i class="bi bi-door-open-fill"></i> Mis accesos</a><a href="incidencias.html" class="nav-item"><i class="bi bi-flag-fill"></i> Incidencias</a><a href="notificaciones.html" class="nav-item"><i class="bi bi-bell-fill"></i> Notificaciones</a><a href="comunidad.html" class="nav-item"><i class="bi bi-people-fill"></i> Comunidad</a><a href="chat.html" class="nav-item"><i class="bi bi-chat-dots-fill"></i> Chat</a><a href="camaras.html" class="nav-item"><i class="bi bi-camera-video-fill"></i> Cámaras</a><a href="autorizados.html" class="nav-item"><i class="bi bi-person-check-fill"></i> Autorizados</a><a href="vetos.html" class="nav-item"><i class="bi bi-shield-x"></i> Vetos</a><a href="emergencias.html" class="nav-item"><i class="bi bi-telephone-fill"></i> Emergencias</a><a href="seguridad.html" class="nav-item"><i class="bi bi-shield-lock-fill"></i> Seguridad</a><a href="perfil.html" class="nav-item"><i class="bi bi-person-circle"></i> Perfil</a><a href="config.html" class="nav-item active"><i class="bi bi-gear-fill"></i> Configuración</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><a href="notificaciones.html" class="icon-btn" id="bellLink"><i class="bi bi-bell"></i><span class="dot" id="bellDot"></span></a><a href="perfil.html" class="topnav-user"><div class="av">VG</div><span class="uname">Usuario</span></a><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="content">
+      <div class="page">
+        <div class="page-banner">
+          <div class="page-banner-bg" style="background-image:url('https://images.unsplash.com/photo-1558002038-bc4165e5aad1?q=80&w=1400&auto=format&fit=crop');"></div>
+          <div class="page-banner-glow"></div>
+          <div class="page-banner-content">
+            <div><span class="mono-tag">CONFIGURACIÓN</span><h1>Preferencias</h1><p>Controla cómo VIGIA te mantiene informado.</p></div>
+          </div>
+        </div>
+        <div class="panel accessibility-settings">
+          <div class="panel-head">
+            <div><h3>Accesibilidad y apariencia</h3><p class="config-section-note">Personaliza VIGIA para que sea más cómodo de leer y utilizar. Los cambios se aplican en todo el sistema.</p></div>
+            <i class="bi bi-universal-access" style="font-size:1.35rem;color:var(--accent)"></i>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-copy"><b>Paleta de colores</b><span>Elige el nivel de luminosidad y contraste que prefieras.</span></div>
+            <div class="choice-grid" id="themeChoices">
+              <button type="button" class="setting-choice" data-theme="light"><span class="palette-preview light"></span><b>Claro</b><small>Fondo luminoso</small></button>
+              <button type="button" class="setting-choice" data-theme="soft"><span class="palette-preview soft"></span><b>Verde suave</b><small>Menos oscuro</small></button>
+              <button type="button" class="setting-choice" data-theme="dark"><span class="palette-preview dark"></span><b>Oscuro</b><small>Diseño original</small></button>
+              <button type="button" class="setting-choice" data-theme="high"><span class="palette-preview high"></span><b>Alto contraste</b><small>Mayor definición</small></button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-copy"><b>Visualización de color</b><span>Filtros opcionales para distintas necesidades visuales.</span></div>
+            <div class="choice-row" id="filterChoices">
+              <button type="button" class="btn btn-ghost setting-pill" data-filter="none"><i class="bi bi-palette"></i> Color normal</button>
+              <button type="button" class="btn btn-ghost setting-pill" data-filter="grayscale"><i class="bi bi-circle-half"></i> Blanco y negro</button>
+              <button type="button" class="btn btn-ghost setting-pill" data-filter="deuteranopia"><i class="bi bi-eye"></i> Deuteranopia</button>
+              <button type="button" class="btn btn-ghost setting-pill" data-filter="protanopia"><i class="bi bi-eye"></i> Protanopia</button>
+              <button type="button" class="btn btn-ghost setting-pill" data-filter="tritanopia"><i class="bi bi-eye"></i> Tritanopia</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-copy"><b>Tamaño del texto</b><span>Aumenta la lectura de menús, botones y contenido.</span></div>
+            <div class="choice-row" id="fontChoices">
+              <button type="button" class="btn btn-ghost setting-pill" data-font="normal">A&nbsp; Normal</button>
+              <button type="button" class="btn btn-ghost setting-pill" data-font="large"><span style="font-size:1.08em">A</span>&nbsp; Grande</button>
+              <button type="button" class="btn btn-ghost setting-pill" data-font="xl"><span style="font-size:1.2em">A</span>&nbsp; Extra grande</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-copy"><b>Uso simplificado</b><span>Reduce elementos visuales y movimiento para una experiencia más amigable con adultos mayores.</span></div>
+            <div class="choice-row"><button type="button" class="btn btn-ghost setting-pill" id="simpleModeBtn"><i class="bi bi-layout-text-window"></i> Modo simple</button><button type="button" class="btn btn-ghost setting-pill" id="reduceMotionBtn"><i class="bi bi-universal-access"></i> Reducir movimiento</button><button type="button" class="btn btn-ghost setting-pill" id="readPageBtn"><i class="bi bi-volume-up-fill"></i> Leer esta página</button></div>
+          </div>
+
+          <div class="settings-footer">
+            <span id="accessibilityStatus"><i class="bi bi-check-circle"></i> Preferencias guardadas automáticamente</span>
+            <button type="button" class="btn btn-ghost" id="resetAccessibility"><i class="bi bi-arrow-counterclockwise"></i> Restablecer</button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:1.2rem;">
+          <div class="panel-head"><h3>Notificaciones</h3></div>
+          <div class="config-list">
+            <div class="config-row"><div class="l"><b>Visitas confirmadas</b><span>Recibe un aviso cuando una visita ingresa al residencial</span></div><div class="toggle on"><div class="knob"></div></div></div>
+            <div class="config-row"><div class="l"><b>Actualizaciones de incidencias</b><span>Avisos cuando cambie el estado de un reporte tuyo</span></div><div class="toggle on"><div class="knob"></div></div></div>
+            <div class="config-row"><div class="l"><b>Avisos de administración</b><span>Comunicados generales del residencial</span></div><div class="toggle"><div class="knob"></div></div></div>
+            <div class="config-row"><div class="l"><b>Alertas de seguridad</b><span>Intentos de acceso no autorizado cerca de tu unidad</span></div><div class="toggle on"><div class="knob"></div></div></div>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:1.2rem;">
+          <div class="panel-head"><h3>Seguridad de la cuenta</h3></div>
+          <div class="config-list">
+            <div class="config-row"><div class="l"><b>Verificación en dos pasos</b><span>Protege tu cuenta con un código adicional al iniciar sesión</span></div><div class="toggle on"><div class="knob"></div></div></div>
+            <div class="config-row"><div class="l"><b>Sesiones activas</b><span>1 dispositivo conectado actualmente</span></div><a class="btn btn-ghost" id="viewSessionsBtn" href="seguridad.html">Ver sesiones y dispositivos</a></div>
+            <div class="config-row"><div class="l"><b>Cerrar sesión</b><span>Saldrás de tu cuenta en este dispositivo</span></div><button type="button" class="btn btn-ghost" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sessionsModal">
+  <div class="modal-box" id="sessionsModalBox">
+    <div class="modal-icon"><i class="bi bi-laptop"></i></div>
+    <h3>Sesiones activas</h3>
+    <p>Tienes 1 dispositivo conectado actualmente a tu cuenta VIGIA.</p>
+    <div style="text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:1.6rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <b style="color:var(--bone);font-size:.88rem;">Este dispositivo</b>
+          <div class="mono" style="font-size:.72rem;color:var(--mist);margin-top:.25rem;">Última actividad: ahora mismo</div>
+        </div>
+        <span class="badge ok">ACTIVA</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-solid" id="sessionsClose" style="flex:1;">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/config.js"></script>
+</body>
+</html>

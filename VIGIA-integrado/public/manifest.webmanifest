@@ -1,0 +1,11 @@
+{
+  "name": "VIGIA — Seguridad residencial",
+  "short_name": "VIGIA",
+  "description": "Control de accesos, visitas e incidencias para residenciales.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0d1712",
+  "theme_color": "#12e8a0",
+  "lang": "es-HN"
+}

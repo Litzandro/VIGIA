@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Verificación Inteligente de Gestión de Incidencias y Accesos</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+
+<style>
+:root{
+  --ink:#0A0F0C;
+  --panel:#101B15;
+  --forest:#16281F;
+  --bone:#EDE7D6;
+  --bone-dim:#B9B2A0;
+  --mist:#767065;
+  --brass:#00FF9D;
+  --brass-dim:#0FAE6E;
+  --verified:#8FD9BD;
+  --alert:#B4463A;
+  --line:rgba(237,231,214,0.14);
+  --line-strong:rgba(237,231,214,0.28);
+
+  --f-display:'Fraunces', serif;
+  --f-body:'Manrope', sans-serif;
+  --f-mono:'Space Mono', monospace;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--ink);color:var(--bone);
+  font-family:var(--f-body);font-weight:400;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--brass);color:var(--ink);}
+h1,h2,h3,h4,.display-font{font-family:var(--f-display);letter-spacing:-0.01em;font-weight:500;}
+a{text-decoration:none;color:inherit;}
+.container-xl{max-width:1240px;margin:0 auto;padding:0 1.75rem;}
+.section-pad{padding:7rem 0;}
+@media (max-width:768px){.section-pad{padding:4rem 0;}}
+
+.mono-tag{
+  font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--brass);display:inline-flex;align-items:center;gap:.5rem;
+}
+.mono-tag::before{content:"";width:16px;height:1px;background:var(--brass);}
+
+/* ============ CORNER BRACKETS (signature motif — camera viewfinder) ============ */
+.bracket{position:relative;}
+.bracket .cn{position:absolute;width:16px;height:16px;pointer-events:none;}
+.bracket .cn.tl{top:-1px;left:-1px;border-top:1.5px solid var(--brass);border-left:1.5px solid var(--brass);}
+.bracket .cn.tr{top:-1px;right:-1px;border-top:1.5px solid var(--brass);border-right:1.5px solid var(--brass);}
+.bracket .cn.bl{bottom:-1px;left:-1px;border-bottom:1.5px solid var(--brass);border-left:1.5px solid var(--brass);}
+.bracket .cn.br{bottom:-1px;right:-1px;border-bottom:1.5px solid var(--brass);border-right:1.5px solid var(--brass);}
+
+/* ================= NAVBAR ================= */
+.vg-nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1.5rem 0;transition:all .4s ease;border-bottom:1px solid transparent;}
+.vg-nav.scrolled{padding:.9rem 0;background:rgba(10,15,12,.75);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);}
+.vg-nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1240px;margin:0 auto;padding:0 1.75rem;}
+.vg-logo{display:flex;align-items:center;gap:.7rem;font-family:var(--f-display);font-weight:600;font-size:1.3rem;color:var(--bone);}
+.vg-logo .mark{width:32px;height:32px;position:relative;display:flex;align-items:center;justify-content:center;}
+.vg-logo .mark .cn{width:11px;height:11px;}
+.vg-logo .mark .cn.tl,.vg-logo .mark .cn.tr{border-width:1.5px;}
+.vg-logo .mark i{color:var(--brass);font-size:.95rem;}
+.vg-links{display:flex;gap:2.3rem;font-size:.85rem;color:var(--bone-dim);font-family:var(--f-mono);}
+.vg-links a{position:relative;transition:color .25s;letter-spacing:.02em;}
+.vg-links a:hover{color:var(--bone);}
+.vg-actions{display:flex;align-items:center;gap:1rem;}
+.btn-vg{font-family:var(--f-body);font-weight:600;font-size:.86rem;padding:.6rem 1.3rem;transition:all .3s ease;border:1px solid transparent;white-space:nowrap;}
+.btn-vg-ghost{color:var(--bone);border-color:var(--line-strong);background:transparent;}
+.btn-vg-ghost:hover{background:rgba(237,231,214,.06);}
+.btn-vg-solid{color:var(--ink);background:var(--brass);}
+.btn-vg-solid:hover{background:#6BFFC0;}
+.btn-vg-lg{padding:.9rem 1.8rem;font-size:.94rem;}
+.nav-toggle{display:none;background:none;border:none;color:var(--bone);font-size:1.5rem;}
+@media (max-width:920px){.vg-links{display:none;}.nav-toggle{display:block;}.vg-actions .btn-vg-ghost{display:none;}}
+
+/* ================= HERO ================= */
+.hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;padding-top:8rem;padding-bottom:0;overflow:hidden;background:var(--ink);}
+.hero-bg{
+  position:absolute;inset:0;z-index:0;
+  background-image:
+    linear-gradient(0deg, var(--ink) 0%, rgba(10,15,12,.55) 38%, rgba(10,15,12,.25) 65%, rgba(10,15,12,.55) 100%),
+    url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop');
+  background-size:cover;background-position:center 58%;filter:saturate(70%) brightness(.75) contrast(1.05);
+}
+.hero-bars{position:absolute;inset:0;z-index:1;background-image:repeating-linear-gradient(90deg, rgba(237,231,214,.05) 0px, rgba(237,231,214,.05) 1px, transparent 1px, transparent 130px);}
+.hero-scanline{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg, transparent, rgba(0,255,157,.85), transparent);z-index:2;animation:scan 7s linear infinite;box-shadow:0 0 12px rgba(0,255,157,.7);}
+@keyframes scan{0%{top:6%;}50%{top:92%;}100%{top:6%;}}
+.hero-meta{position:relative;z-index:3;display:flex;justify-content:space-between;align-items:center;max-width:1240px;margin:0 auto 2.5rem;padding:0 1.75rem;font-family:var(--f-mono);font-size:.72rem;color:var(--bone-dim);letter-spacing:.08em;}
+.hero-meta .live{display:flex;align-items:center;gap:.5rem;color:var(--brass);}
+.hero-meta .live .d{width:6px;height:6px;border-radius:50%;background:var(--alert);animation:pulseDot 1.6s infinite;}
+@keyframes pulseDot{0%,100%{opacity:1;}50%{opacity:.25;}}
+.hero-inner{position:relative;z-index:3;max-width:1240px;margin:0 auto;padding:0 1.75rem 5rem;width:100%;}
+.hero-row{display:grid;grid-template-columns:1.3fr .9fr;gap:3rem;align-items:end;}
+@media (max-width:992px){.hero-row{grid-template-columns:1fr;}}
+.hero h1{font-size:clamp(2.6rem,6vw,5.3rem);line-height:.98;color:var(--bone);font-weight:500;}
+.hero h1 .cut{display:block;}
+.hero h1 .accent{color:var(--brass);font-style:italic;}
+.hero p.lead-vg{font-size:1.08rem;color:var(--bone-dim);max-width:460px;margin:1.8rem 0 2.3rem;line-height:1.65;}
+.hero-cta{display:flex;gap:1rem;flex-wrap:wrap;}
+
+.console{
+  background:rgba(16,27,21,.72);backdrop-filter:blur(10px);
+  padding:1.5rem 1.4rem;position:relative;overflow:hidden;
+}
+.console-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;font-family:var(--f-mono);font-size:.7rem;color:var(--bone-dim);letter-spacing:.1em;text-transform:uppercase;}
+.console-line{display:flex;justify-content:space-between;padding:.6rem 0;border-top:1px solid var(--line);font-family:var(--f-mono);font-size:.78rem;}
+.console-line:first-of-type{border-top:none;}
+.console-line .k{color:var(--bone-dim);}
+.console-line .v{color:var(--bone);}
+.console-line .v.ok{color:var(--verified);}
+.console-line .v.warn{color:var(--brass);}
+
+/* ================= TICKER STRIP ================= */
+.ticker{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel);overflow:hidden;padding:1.4rem 0;}
+.ticker-track{display:flex;gap:4rem;white-space:nowrap;animation:tickerScroll 28s linear infinite;width:max-content;}
+.ticker-item{font-family:var(--f-mono);font-size:.86rem;color:var(--bone-dim);display:flex;align-items:center;gap:.6rem;}
+.ticker-item b{color:var(--brass);font-weight:700;}
+@keyframes tickerScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+/* ================= SECTION HEADS ================= */
+.sec-head{max-width:620px;margin-bottom:3.4rem;}
+.sec-head h2{font-size:clamp(1.9rem,3.4vw,2.8rem);color:var(--bone);margin-top:.7rem;line-height:1.12;font-weight:500;}
+.sec-head p{color:var(--bone-dim);margin-top:1.1rem;font-size:1.02rem;line-height:1.65;}
+
+/* ================= CLIENTES ================= */
+.clients-row{display:flex;flex-wrap:wrap;gap:2.6rem;align-items:center;padding:1.6rem 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.clients-row .cl{font-family:var(--f-display);font-style:italic;font-weight:500;font-size:1.15rem;color:var(--bone-dim);}
+
+/* ================= BENEFICIOS (editorial asimetrico) ================= */
+.benefits-wrap{display:grid;grid-template-columns:.85fr 1.15fr;gap:3.5rem;align-items:start;}
+@media (max-width:900px){.benefits-wrap{grid-template-columns:1fr;gap:2.5rem;}}
+.benefit-row{display:flex;gap:1.5rem;padding:1.7rem 0;border-top:1px solid var(--line);}
+.benefit-row:last-child{border-bottom:1px solid var(--line);}
+.benefit-num{font-family:var(--f-mono);font-size:.8rem;color:var(--brass);flex-shrink:0;padding-top:.2rem;width:32px;}
+.benefit-row h3{color:var(--bone);font-size:1.15rem;margin-bottom:.5rem;font-weight:500;}
+.benefit-row p{color:var(--bone-dim);font-size:.92rem;line-height:1.65;margin:0;}
+.benefit-visual{position:relative;height:100%;min-height:420px;overflow:hidden;}
+.benefit-visual img{width:100%;height:100%;object-fit:cover;filter:saturate(75%) brightness(.82);}
+.benefit-visual .tag{position:absolute;bottom:1.2rem;left:1.2rem;font-family:var(--f-mono);font-size:.68rem;color:var(--bone);background:rgba(10,15,12,.55);padding:.4rem .7rem;backdrop-filter:blur(6px);letter-spacing:.06em;}
+
+/* ================= SERVICIOS ================= */
+.services-bg{background:var(--panel);}
+.services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+@media (max-width:900px){.services-grid{grid-template-columns:1fr 1fr;}}
+@media (max-width:600px){.services-grid{grid-template-columns:1fr;}}
+.service-card{background:var(--ink);padding:2.1rem 1.7rem;position:relative;transition:background .3s ease;}
+.service-card:hover{background:var(--forest);}
+.service-card .cn{border-color:var(--brass-dim);}
+.service-card:hover .cn{border-color:var(--brass);}
+.service-card .num{font-family:var(--f-mono);font-size:.72rem;color:var(--brass);letter-spacing:.08em;}
+.service-card i.svc-icon{font-size:1.4rem;color:var(--bone-dim);margin:1rem 0 .9rem;display:block;}
+.service-card h4{color:var(--bone);font-size:1.05rem;margin-bottom:.55rem;font-weight:500;}
+.service-card p{color:var(--bone-dim);font-size:.87rem;line-height:1.55;margin:0;}
+
+/* ================= COMO FUNCIONA (numerales arquitectonicos) ================= */
+.step-block{display:grid;grid-template-columns:auto 1fr;gap:1.8rem;padding:2.4rem 0;border-top:1px solid var(--line);align-items:start;}
+.step-block:last-child{border-bottom:1px solid var(--line);}
+.step-block .big-num{font-family:var(--f-display);font-size:4.5rem;line-height:1;color:transparent;-webkit-text-stroke:1px var(--brass-dim);font-weight:500;width:110px;}
+@media (max-width:600px){.step-block{grid-template-columns:1fr;gap:.6rem;}.step-block .big-num{font-size:2.6rem;-webkit-text-stroke:1px var(--brass);}}
+.step-block h4{color:var(--bone);font-size:1.2rem;margin-bottom:.5rem;font-weight:500;}
+.step-block p{color:var(--bone-dim);font-size:.95rem;line-height:1.65;margin:0;max-width:560px;}
+
+/* ================= TESTIMONIOS (editorial, uno a la vez) ================= */
+.testi-wrap{position:relative;max-width:760px;}
+.testi-quote-mark{font-family:var(--f-display);font-style:italic;font-size:5rem;color:var(--brass-dim);line-height:1;margin-bottom:-1.5rem;}
+.testi-slide{display:none;}
+.testi-slide.active{display:block;animation:fadeInTesti .5s ease;}
+@keyframes fadeInTesti{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.testi-slide p.quote{font-family:var(--f-display);font-size:1.5rem;line-height:1.5;color:var(--bone);font-weight:400;}
+.testi-person{margin-top:1.6rem;font-family:var(--f-mono);font-size:.8rem;color:var(--bone-dim);}
+.testi-person b{color:var(--brass);display:block;font-size:.85rem;margin-bottom:.2rem;}
+.testi-dots{display:flex;gap:.6rem;margin-top:2.4rem;}
+.testi-dots button{width:26px;height:2px;background:var(--line-strong);border:none;cursor:pointer;transition:background .3s;}
+.testi-dots button.active{background:var(--brass);}
+
+/* ================= FAQ ================= */
+.faq-wrap{max-width:800px;}
+.faq-item{border-top:1px solid var(--line);padding:1.5rem 0;}
+.faq-item:last-child{border-bottom:1px solid var(--line);}
+.faq-q{display:flex;align-items:center;justify-content:space-between;cursor:pointer;color:var(--bone);font-family:var(--f-display);font-size:1.05rem;font-weight:500;gap:1rem;}
+.faq-q .idx{font-family:var(--f-mono);color:var(--brass);font-size:.78rem;margin-right:.9rem;}
+.faq-q i{transition:transform .3s;color:var(--brass);flex-shrink:0;}
+.faq-item.open .faq-q i{transform:rotate(45deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease;color:var(--bone-dim);font-size:.92rem;line-height:1.65;padding-left:2.2rem;}
+.faq-item.open .faq-a{max-height:220px;padding-top:.9rem;}
+
+/* ================= CTA FINAL ================= */
+.cta-final{background:var(--forest);padding:4.5rem 3rem;position:relative;}
+@media (max-width:768px){.cta-final{padding:3rem 1.6rem;}}
+.cta-final h2{color:var(--bone);font-size:clamp(1.8rem,3.4vw,2.6rem);max-width:600px;font-weight:500;}
+.cta-final p{color:var(--bone-dim);max-width:480px;margin-top:1rem;}
+
+/* ================= FOOTER ================= */
+footer{background:var(--ink);border-top:1px solid var(--line);padding:4.5rem 0 2rem;}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:2rem;margin-bottom:3rem;}
+@media (max-width:900px){.footer-grid{grid-template-columns:1fr 1fr;}}
+@media (max-width:560px){.footer-grid{grid-template-columns:1fr;}}
+.footer-col h5{color:var(--bone);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:1.1rem;font-family:var(--f-mono);}
+.footer-col a{display:block;color:var(--bone-dim);font-size:.88rem;margin-bottom:.7rem;transition:color .2s;}
+.footer-col a:hover{color:var(--brass);}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;padding-top:2rem;border-top:1px solid var(--line);color:var(--mist);font-size:.8rem;font-family:var(--f-mono);}
+.footer-social{display:flex;gap:1rem;}
+.footer-social a{color:var(--bone-dim);font-size:1.1rem;}
+.footer-social a:hover{color:var(--brass);}
+</style>
+</head>
+<body>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="vg-nav" id="vgNav">
+  <div class="vg-nav-inner">
+    <a href="#" class="vg-logo">
+      <span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>
+      VIGIA
+    </a>
+    <div class="vg-links">
+      <a href="#producto">PRODUCTO</a>
+      <a href="#como-funciona">PROCESO</a>
+      <a href="#servicios">SERVICIOS</a>
+      <a href="#clientes">CLIENTES</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="vg-actions">
+      <a href="login.html" class="btn-vg btn-vg-ghost">Iniciar sesión</a>
+      <a href="register.html" class="btn-vg btn-vg-solid">Registrarse</a>
+      <button class="nav-toggle"><i class="bi bi-list"></i></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-bars"></div>
+  <div class="hero-scanline"></div>
+  <div class="hero-meta">
+    <span>SISTEMA VIGIA · SECTOR RESIDENCIAL · REV. 2026</span>
+    <span class="live"><span class="d"></span> EN LÍNEA</span>
+  </div>
+  <div class="hero-inner">
+    <div class="hero-row">
+      <div data-aos="fade-up">
+        <h1><span class="cut">Cada acceso,</span><span class="cut">cada visita,</span><span class="cut accent">verificado.</span></h1>
+        <p class="lead-vg">VIGIA es el sistema de verificación que confirma quién entra, cuándo y por qué, antes de que un descuido se convierta en una incidencia.</p>
+        <div class="hero-cta">
+          <a href="#" class="btn-vg btn-vg-solid btn-vg-lg">Solicitar una demo</a>
+          <a href="#como-funciona" class="btn-vg btn-vg-ghost btn-vg-lg">Ver el proceso <i class="bi bi-arrow-down ms-1"></i></a>
+        </div>
+      </div>
+      <div class="console bracket" data-aos="fade-up" data-aos-delay="150">
+        <span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <div class="console-head"><span>CAM_04 · PORTÓN PRINCIPAL</span><span>12:04:22</span></div>
+        <div class="console-line"><span class="k">Últimos 24h</span><span class="v">248 accesos</span></div>
+        <div class="console-line"><span class="k">Verificación</span><span class="v ok">99.8% exitosa</span></div>
+        <div class="console-line"><span class="k">Tiempo de respuesta</span><span class="v">1.2s promedio</span></div>
+        <div class="console-line"><span class="k">Incidencias abiertas</span><span class="v warn">1 en revisión</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TICKER ============ -->
+<section class="ticker">
+  <div class="ticker-track">
+    <span class="ticker-item"><b>128</b> residenciales activos</span>
+    <span class="ticker-item"><b>42,000+</b> accesos verificados al mes</span>
+    <span class="ticker-item"><b>99.8%</b> de verificación exitosa</span>
+    <span class="ticker-item"><b>1.2s</b> tiempo de respuesta promedio</span>
+    <span class="ticker-item"><b>35</b> equipos de guardias coordinados</span>
+    <span class="ticker-item"><b>128</b> residenciales activos</span>
+    <span class="ticker-item"><b>42,000+</b> accesos verificados al mes</span>
+    <span class="ticker-item"><b>99.8%</b> de verificación exitosa</span>
+    <span class="ticker-item"><b>1.2s</b> tiempo de respuesta promedio</span>
+    <span class="ticker-item"><b>35</b> equipos de guardias coordinados</span>
+  </div>
+</section>
+
+<!-- ============ CLIENTES ============ -->
+<section class="section-pad" id="clientes" style="padding-bottom:2rem;">
+  <div class="container-xl">
+    <span class="mono-tag" data-aos="fade-up">CONFÍAN EN NOSOTROS</span>
+    <div class="clients-row" data-aos="fade-up" data-aos-delay="100" style="margin-top:1.6rem;">
+      <span class="cl">Altavista Residencial</span>
+      <span class="cl">Grupo Custodia</span>
+      <span class="cl">Los Robles</span>
+      <span class="cl">Zafiro Corp</span>
+      <span class="cl">Cumbres del Valle</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BENEFICIOS ============ -->
+<section class="section-pad" id="producto">
+  <div class="container-xl">
+    <div class="sec-head" data-aos="fade-up">
+      <span class="mono-tag">BENEFICIOS</span>
+      <h2>Menos incertidumbre,<br>más control.</h2>
+    </div>
+    <div class="benefits-wrap">
+      <div class="benefit-visual bracket" data-aos="fade-up">
+        <span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <img src="https://images.unsplash.com/photo-1558002038-1055907df827?q=80&w=1200&auto=format&fit=crop" alt="Guardia verificando acceso residencial">
+        <span class="tag">SECTOR B · VERIFICACIÓN ACTIVA</span>
+      </div>
+      <div data-aos="fade-up" data-aos-delay="100">
+        <div class="benefit-row">
+          <span class="benefit-num">01</span>
+          <div><h3>Verificación instantánea</h3><p>Cada visitante y vehículo se valida con QR antes de ingresar, sin filas ni llamadas de confirmación al residente.</p></div>
+        </div>
+        <div class="benefit-row">
+          <span class="benefit-num">02</span>
+          <div><h3>Visibilidad total</h3><p>El estado del residencial se ve en tiempo real: accesos del día, incidencias abiertas y actividad de cada guardia.</p></div>
+        </div>
+        <div class="benefit-row">
+          <span class="benefit-num">03</span>
+          <div><h3>Alertas que sí llegan</h3><p>Notificaciones inmediatas ante incidencias, botón de pánico o accesos no autorizados, sin depender de un radio.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SERVICIOS ============ -->
+<section class="section-pad services-bg" id="servicios">
+  <div class="container-xl">
+    <div class="sec-head" data-aos="fade-up">
+      <span class="mono-tag">SERVICIOS</span>
+      <h2>Todo lo que necesita un residencial moderno.</h2>
+    </div>
+    <div class="services-grid" data-aos="fade-up">
+      <div class="service-card bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <span class="num">N.01</span><i class="bi bi-door-open-fill svc-icon"></i>
+        <h4>Control de accesos</h4><p>Portones peatonales y vehiculares con registro automático de cada movimiento.</p>
+      </div>
+      <div class="service-card bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <span class="num">N.02</span><i class="bi bi-person-badge-fill svc-icon"></i>
+        <h4>Gestión de visitas</h4><p>Los residentes autorizan visitas desde la app; los guardias las verifican al instante.</p>
+      </div>
+      <div class="service-card bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <span class="num">N.03</span><i class="bi bi-exclamation-octagon-fill svc-icon"></i>
+        <h4>Incidencias</h4><p>Reporte, seguimiento y cierre con evidencia fotográfica y responsables asignados.</p>
+      </div>
+      <div class="service-card bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <span class="num">N.04</span><i class="bi bi-camera-video-fill svc-icon"></i>
+        <h4>Videovigilancia integrada</h4><p>Conecta tus cámaras existentes y visualiza el estado de seguridad desde un solo panel.</p>
+      </div>
+      <div class="service-card bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <span class="num">N.05</span><i class="bi bi-file-earmark-bar-graph-fill svc-icon"></i>
+        <h4>Reportes y auditoría</h4><p>Historiales exportables de accesos, incidencias y desempeño de guardias por periodo.</p>
+      </div>
+      <div class="service-card bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+        <span class="num">N.06</span><i class="bi bi-phone-fill svc-icon"></i>
+        <h4>App móvil</h4><p>Residentes y guardias operan desde el celular, con botón de pánico integrado.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMO FUNCIONA ============ -->
+<section class="section-pad" id="como-funciona">
+  <div class="container-xl">
+    <div class="sec-head" data-aos="fade-up">
+      <span class="mono-tag">CÓMO FUNCIONA</span>
+      <h2>De la solicitud al acceso,<br>en cuatro pasos.</h2>
+    </div>
+    <div>
+      <div class="step-block" data-aos="fade-up">
+        <span class="big-num">01</span>
+        <div><h4>Configuramos tu residencial</h4><p>Cargamos torres, casas, residentes y guardias, y definimos los puntos de acceso que necesitas monitorear.</p></div>
+      </div>
+      <div class="step-block" data-aos="fade-up" data-aos-delay="60">
+        <span class="big-num">02</span>
+        <div><h4>Residentes autorizan visitas</h4><p>Desde la app, cada residente registra a sus visitas y vehículos esperados con un código de acceso único.</p></div>
+      </div>
+      <div class="step-block" data-aos="fade-up" data-aos-delay="120">
+        <span class="big-num">03</span>
+        <div><h4>El guardia verifica en segundos</h4><p>Con el escáner QR o la búsqueda manual, el guardia confirma la identidad y registra el ingreso al instante.</p></div>
+      </div>
+      <div class="step-block" data-aos="fade-up" data-aos-delay="180">
+        <span class="big-num">04</span>
+        <div><h4>Todo queda visible para el administrador</h4><p>El panel se actualiza en tiempo real con cada acceso, incidencia o alerta, sin necesidad de pedir reportes.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TESTIMONIOS ============ -->
+<section class="section-pad services-bg">
+  <div class="container-xl">
+    <span class="mono-tag" data-aos="fade-up">TESTIMONIOS</span>
+    <div class="testi-wrap" data-aos="fade-up" data-aos-delay="80" style="margin-top:1.6rem;">
+      <span class="testi-quote-mark">"</span>
+      <div id="testiSlides">
+        <div class="testi-slide active">
+          <p class="quote">Antes dependíamos de bitácoras en papel. Con VIGIA sabemos exactamente quién entró, cuándo y quién lo autorizó.</p>
+          <div class="testi-person"><b>MARIO RODRÍGUEZ</b>Administrador, Cumbres del Valle</div>
+        </div>
+        <div class="testi-slide">
+          <p class="quote">El botón de pánico y las alertas en tiempo real cambiaron por completo el tiempo de respuesta de nuestros guardias.</p>
+          <div class="testi-person"><b>LAURA CÁCERES</b>Gerente de seguridad, Grupo Custodia</div>
+        </div>
+        <div class="testi-slide">
+          <p class="quote">Como residente, autorizar una visita toma diez segundos desde el celular. Se siente como una app moderna de verdad.</p>
+          <div class="testi-person"><b>JORGE PAZ</b>Residente, Altavista Residencial</div>
+        </div>
+      </div>
+      <div class="testi-dots" id="testiDots">
+        <button class="active" data-i="0"></button>
+        <button data-i="1"></button>
+        <button data-i="2"></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section-pad" id="faq">
+  <div class="container-xl">
+    <span class="mono-tag" data-aos="fade-up">PREGUNTAS FRECUENTES</span>
+    <div class="faq-wrap" data-aos="fade-up" data-aos-delay="80" style="margin-top:1.8rem;">
+      <div class="faq-item">
+        <div class="faq-q"><span><span class="idx">01</span>¿VIGIA funciona con las cámaras que ya tenemos instaladas?</span><i class="bi bi-plus"></i></div>
+        <div class="faq-a">Sí. VIGIA se integra con la mayoría de sistemas de videovigilancia existentes, para centralizar la visibilidad sin reemplazar tu infraestructura actual.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span><span class="idx">02</span>¿Cuánto tiempo toma implementarlo en un residencial?</span><i class="bi bi-plus"></i></div>
+        <div class="faq-a">La mayoría de residenciales quedan operando en menos de dos semanas, incluyendo la carga de residentes, guardias y capacitación del equipo.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span><span class="idx">03</span>¿Los residentes necesitan instalar una app?</span><i class="bi bi-plus"></i></div>
+        <div class="faq-a">Sí, una app ligera para autorizar visitas, recibir notificaciones y activar el botón de pánico. Los guardias usan una versión enfocada en verificación.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span><span class="idx">04</span>¿Qué pasa si se cae la conexión a internet?</span><i class="bi bi-plus"></i></div>
+        <div class="faq-a">El módulo de guardia mantiene un registro local temporal de accesos que se sincroniza automáticamente al restablecerse la conexión.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span><span class="idx">05</span>¿Puedo administrar más de un residencial desde la misma cuenta?</span><i class="bi bi-plus"></i></div>
+        <div class="faq-a">Sí. Las cuentas de administrador y super administrador permiten gestionar múltiples residenciales, sucursales y equipos de guardias desde un solo panel.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA FINAL ============ -->
+<section class="section-pad" style="padding-top:0;">
+  <div class="container-xl">
+    <div class="cta-final bracket d-flex flex-wrap align-items-center justify-content-between gap-4" data-aos="fade-up">
+      <span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+      <div>
+        <span class="mono-tag">EMPECEMOS</span>
+        <h2 class="mt-2">Lleva la seguridad de tu residencial al siguiente nivel.</h2>
+        <p>Agenda una demo y te mostramos cómo VIGIA se adapta a tu residencial en menos de 30 minutos.</p>
+      </div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+        <a href="#" class="btn-vg btn-vg-solid btn-vg-lg">Solicitar una demo</a>
+        <a href="#" class="btn-vg btn-vg-ghost btn-vg-lg">Hablar con ventas</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container-xl">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <a href="#" class="vg-logo mb-3" style="display:inline-flex;"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA</a>
+        <p style="color:var(--mist);font-size:.88rem;line-height:1.6;max-width:260px;margin-top:1rem;">Verificación Inteligente de Gestión de Incidencias y Accesos.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Producto</h5>
+        <a href="#producto">Beneficios</a><a href="#servicios">Servicios</a><a href="#como-funciona">Cómo funciona</a><a href="#">Precios</a>
+      </div>
+      <div class="footer-col">
+        <h5>Roles</h5>
+        <a href="#">Residentes</a><a href="#">Guardias</a><a href="#">Administradores</a><a href="#">Super administrador</a>
+      </div>
+      <div class="footer-col">
+        <h5>Compañía</h5>
+        <a href="#clientes">Clientes</a><a href="#faq">Preguntas frecuentes</a><a href="#">Contacto</a><a href="#">Soporte</a>
+      </div>
+      <div class="footer-col">
+        <h5>Legal</h5>
+        <a href="#">Privacidad</a><a href="#">Términos</a><a href="#">Seguridad de datos</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 VIGIA</span>
+      <div class="footer-social"><a href="#"><i class="bi bi-linkedin"></i></a><a href="#"><i class="bi bi-instagram"></i></a><a href="#"><i class="bi bi-envelope-fill"></i></a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+AOS.init({duration:800, once:true, easing:'ease-out-cubic'});
+const nav=document.getElementById('vgNav');
+window.addEventListener('scroll',()=>{
+  if(window.scrollY>40){nav.classList.add('scrolled');}else{nav.classList.remove('scrolled');}
+});
+
+// FAQ accordion
+document.querySelectorAll('.faq-item').forEach(item=>{
+  item.querySelector('.faq-q').addEventListener('click',()=>{
+    const isOpen=item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+    if(!isOpen) item.classList.add('open');
+  });
+});
+
+// Testimonial slider
+const slides=document.querySelectorAll('.testi-slide');
+const dots=document.querySelectorAll('#testiDots button');
+let testiIndex=0;
+function showTesti(i){
+  slides.forEach(s=>s.classList.remove('active'));
+  dots.forEach(d=>d.classList.remove('active'));
+  slides[i].classList.add('active');
+  dots[i].classList.add('active');
+  testiIndex=i;
+}
+dots.forEach(d=>d.addEventListener('click',()=>showTesti(parseInt(d.dataset.i,10))));
+setInterval(()=>{ showTesti((testiIndex+1)%slides.length); },6000);
+</script>
+</body>
+</html>

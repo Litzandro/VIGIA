@@ -1,0 +1,38 @@
+{
+  "name": "vigia-backend",
+  "version": "1.0.0",
+  "description": "Backend de VIGIA (Verificacion Inteligente de Gestion de Incidencias y Accesos)",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "generate:models": "node scripts/generate-models.js",
+    "seed:admin": "node scripts/seed-admin.js",
+    "test:offline": "node scripts/test-offline.js",
+    "seed:demo": "node scripts/seed-demo.js"
+  },
+  "keywords": [
+    "vigia",
+    "seguridad-residencial",
+    "express",
+    "sequelize"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.11.0",
+    "nodemailer": "^6.9.14",
+    "qrcode": "^1.5.4",
+    "sequelize": "^6.37.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "sqlite3": "^5.1.7"
+  }
+}

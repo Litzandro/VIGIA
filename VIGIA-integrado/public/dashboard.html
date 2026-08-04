@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="app">
+  <!-- ============ TOP NAV ============ -->
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar"><a href="dashboard.html" class="sidebar-logo"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA</a><nav class="sidebar-nav"><a href="dashboard.html" class="nav-item active"><i class="bi bi-grid-fill"></i> Dashboard</a><a href="visitas.html" class="nav-item"><i class="bi bi-person-plus-fill"></i> Mis visitas</a><a href="accesos.html" class="nav-item"><i class="bi bi-door-open-fill"></i> Mis accesos</a><a href="incidencias.html" class="nav-item"><i class="bi bi-flag-fill"></i> Incidencias</a><a href="notificaciones.html" class="nav-item"><i class="bi bi-bell-fill"></i> Notificaciones</a><a href="comunidad.html" class="nav-item"><i class="bi bi-people-fill"></i> Comunidad</a><a href="chat.html" class="nav-item"><i class="bi bi-chat-dots-fill"></i> Chat</a><a href="camaras.html" class="nav-item"><i class="bi bi-camera-video-fill"></i> Cámaras</a><a href="autorizados.html" class="nav-item"><i class="bi bi-person-check-fill"></i> Autorizados</a><a href="vetos.html" class="nav-item"><i class="bi bi-shield-x"></i> Vetos</a><a href="emergencias.html" class="nav-item"><i class="bi bi-telephone-fill"></i> Emergencias</a><a href="seguridad.html" class="nav-item"><i class="bi bi-shield-lock-fill"></i> Seguridad</a><a href="perfil.html" class="nav-item"><i class="bi bi-person-circle"></i> Perfil</a><a href="config.html" class="nav-item"><i class="bi bi-gear-fill"></i> Configuración</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><a href="notificaciones.html" class="icon-btn" id="bellLink"><i class="bi bi-bell"></i><span class="dot" id="bellDot"></span></a><a href="perfil.html" class="topnav-user"><div class="av">VG</div><span class="uname">Usuario</span></a><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="content">
+      <div class="page">
+        <div class="dash-hero bracket">
+          <span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
+          <div class="dash-hero-bg"></div>
+          <div class="dash-hero-scan"></div>
+          <div class="dash-hero-glow"></div>
+          <div class="dash-hero-content">
+            <span class="mono-tag">TORRE B · DEPTO 402</span>
+            <h1>Hola, <em>Jorge.</em></h1>
+            <p>Esto es lo que está pasando en tu residencial hoy: 3 visitas programadas, 1 incidencia en revisión y todo lo demás en orden.</p>
+            <div class="dash-hero-actions">
+              <a href="visitas.html" class="btn btn-solid"><i class="bi bi-plus-lg"></i> Autorizar visita</a>
+              <a href="incidencias.html" class="btn btn-ghost"><i class="bi bi-flag-fill"></i> Reportar incidencia</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h3>Accesos de la semana</h3><a href="accesos.html">VER TODO</a></div>
+            <div class="chart-wrap"><canvas id="accessChart"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Julio 2026</h3><span class="mono" style="font-size:.7rem;color:var(--mist)">Torre B</span></div>
+            <div class="mini-cal">
+              <div class="mini-cal-grid">
+                <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                <span class="day muted">29</span><span class="day muted">30</span><span class="day">1</span><span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span>
+                <span class="day">6</span><span class="day">7</span><span class="day">8</span><span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day">12</span>
+                <span class="day">13</span><span class="day">14</span><span class="day">15</span><span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day event">19</span>
+                <span class="day today">19</span>
+              </div>
+            </div>
+            <div class="quick-actions">
+              <a href="visitas.html" class="btn btn-ghost"><i class="bi bi-calendar-plus"></i> Agendar visita</a>
+              <a href="incidencias.html" class="btn btn-ghost"><i class="bi bi-flag-fill"></i> Reportar incidencia</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:1.3rem;">
+          <div class="panel">
+            <div class="panel-head"><h3>Actividad reciente</h3></div>
+            <div class="activity-item">
+              <span class="ic ok"><i class="bi bi-qr-code-scan"></i></span>
+              <div class="txt">Tu visita <b>María Flores</b> ingresó por el portón principal<small>Hace 22 minutos</small></div>
+            </div>
+            <div class="activity-item">
+              <span class="ic warn"><i class="bi bi-exclamation-triangle-fill"></i></span>
+              <div class="txt">Reportaste una incidencia: <b>Luminaria dañada — pasillo B3</b><small>Ayer, 8:40 PM</small></div>
+            </div>
+            <div class="activity-item">
+              <span class="ic ok"><i class="bi bi-car-front-fill"></i></span>
+              <div class="txt">Vehículo autorizado <b>HN-4521</b> verificado en portón vehicular<small>Ayer, 6:12 PM</small></div>
+            </div>
+            <div class="activity-item">
+              <span class="ic alert"><i class="bi bi-shield-x"></i></span>
+              <div class="txt">Intento de acceso no autorizado fue bloqueado por el guardia<small>Lunes, 11:03 PM</small></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Próxima visita</h3></div>
+            <div style="display:flex;flex-direction:column;gap:.9rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div><b style="font-family:var(--f-display);color:var(--bone);font-size:1.05rem;">María Flores</b><div class="mono" style="font-size:.72rem;color:var(--mist);margin-top:.2rem;">Hoy · 4:30 PM</div></div>
+                <span class="badge ok">CONFIRMADA</span>
+              </div>
+              <div style="border-top:1px solid var(--line);padding-top:.9rem;font-size:.85rem;color:var(--bone-dim);line-height:1.6;">
+                Código de acceso: <b class="mono" id="nextVisitCode" style="color:var(--accent);">VG-2291</b><br>
+                Vehículo: HN-8832 · Motivo: Visita familiar
+              </div>
+              <button type="button" class="btn btn-ghost" style="justify-content:center;" id="shareCodeBtn"><i class="bi bi-share-fill"></i> Compartir código</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/dashboard.js"></script>
+<script>
+const ctx=document.getElementById('accessChart');
+if(ctx){
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
+      datasets:[{
+        data:[3,5,2,6,4,8,3],
+        backgroundColor:'#12E8A0',
+        borderRadius:6,
+        maxBarThickness:26
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#B9B2A0',font:{family:'Space Mono',size:10}}},
+        y:{grid:{color:'rgba(237,231,214,0.08)'},ticks:{color:'#B9B2A0',font:{family:'Space Mono',size:10}}}
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+[
+  {
+    "table": "roles_permisos",
+    "column": "rol_id",
+    "refTable": "roles",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "roles_permisos",
+    "column": "permiso_id",
+    "refTable": "permisos",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "usuarios",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "usuarios",
+    "column": "rol_id",
+    "refTable": "roles",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "usuarios",
+    "column": "creado_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "sesiones",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "viviendas",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "residentes",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "residentes",
+    "column": "vivienda_id",
+    "refTable": "viviendas",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "guardias",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "guardias",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "puntos_acceso",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "camaras",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "camaras",
+    "column": "punto_acceso_id",
+    "refTable": "puntos_acceso",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "grabaciones",
+    "column": "camara_id",
+    "refTable": "camaras",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "visitantes_frecuentes",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "visitantes_frecuentes",
+    "column": "residente_id",
+    "refTable": "residentes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "visitantes_frecuentes",
+    "column": "visitante_id",
+    "refTable": "visitantes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "invitaciones",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "invitaciones",
+    "column": "residente_id",
+    "refTable": "residentes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "invitaciones",
+    "column": "visitante_id",
+    "refTable": "visitantes",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "vehiculos",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "vehiculos",
+    "column": "residente_id",
+    "refTable": "residentes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "vehiculos",
+    "column": "visitante_id",
+    "refTable": "visitantes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "accesos",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "accesos",
+    "column": "punto_acceso_id",
+    "refTable": "puntos_acceso",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "accesos",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "accesos",
+    "column": "visitante_id",
+    "refTable": "visitantes",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "accesos",
+    "column": "invitacion_id",
+    "refTable": "invitaciones",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "accesos",
+    "column": "vehiculo_id",
+    "refTable": "vehiculos",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "accesos",
+    "column": "camara_id",
+    "refTable": "camaras",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "accesos",
+    "column": "guardia_id",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "tipos_incidencia",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "incidencias",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "incidencias",
+    "column": "tipo_incidencia_id",
+    "refTable": "tipos_incidencia",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "incidencias",
+    "column": "reportado_por",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "incidencias",
+    "column": "asignado_a",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "incidencias",
+    "column": "cerrada_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "incidencias_evidencias",
+    "column": "incidencia_id",
+    "refTable": "incidencias",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "incidencias_evidencias",
+    "column": "camara_id",
+    "refTable": "camaras",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "incidencias_evidencias",
+    "column": "grabacion_id",
+    "refTable": "grabaciones",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "incidencias_seguimiento",
+    "column": "incidencia_id",
+    "refTable": "incidencias",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "incidencias_seguimiento",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "alertas_panico",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "alertas_panico",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "alertas_panico",
+    "column": "tipo_alerta_id",
+    "refTable": "tipos_alerta",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "alertas_panico",
+    "column": "atendida_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "llegadas_seguras",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "llegadas_seguras",
+    "column": "residente_id",
+    "refTable": "residentes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "paquetes",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "paquetes",
+    "column": "vivienda_id",
+    "refTable": "viviendas",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "paquetes",
+    "column": "recibido_por",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "paquetes",
+    "column": "entregado_a",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "notificaciones",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "conversaciones",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "conversaciones_participantes",
+    "column": "conversacion_id",
+    "refTable": "conversaciones",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "conversaciones_participantes",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "mensajes",
+    "column": "conversacion_id",
+    "refTable": "conversaciones",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "mensajes",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "reportes_generados",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "reportes_generados",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "bitacora",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "bitacora",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "configuraciones_residencial",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "personas_autorizadas",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "personas_autorizadas",
+    "column": "residente_id",
+    "refTable": "residentes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "vetos_acceso",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "vetos_acceso",
+    "column": "solicitado_por",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "vetos_acceso",
+    "column": "aprobado_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "vetos_acceso",
+    "column": "visitante_id",
+    "refTable": "visitantes",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "conflictos_permisos",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "conflictos_permisos",
+    "column": "persona_autorizada_id",
+    "refTable": "personas_autorizadas",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "conflictos_permisos",
+    "column": "veto_id",
+    "refTable": "vetos_acceso",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "conflictos_permisos",
+    "column": "detectado_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "conflictos_permisos",
+    "column": "resuelto_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "turnos_guardia",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "turnos_guardia",
+    "column": "punto_acceso_id",
+    "refTable": "puntos_acceso",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "turnos_guardia",
+    "column": "guardia_original_id",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "turnos_guardia",
+    "column": "guardia_relevo_id",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "punto_acceso_id",
+    "refTable": "puntos_acceso",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "invitacion_id",
+    "refTable": "invitaciones",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "persona_autorizada_id",
+    "refTable": "personas_autorizadas",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "visitante_id",
+    "refTable": "visitantes",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "guardia_original_id",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "guardia_actual_id",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "cola_acceso",
+    "column": "turno_guardia_id",
+    "refTable": "turnos_guardia",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "evidencias_acceso",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "evidencias_acceso",
+    "column": "cola_acceso_id",
+    "refTable": "cola_acceso",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "evidencias_acceso",
+    "column": "acceso_id",
+    "refTable": "accesos",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "evidencias_acceso",
+    "column": "guardia_id",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "integraciones",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "eventos_integracion",
+    "column": "integracion_id",
+    "refTable": "integraciones",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "eventos_integracion",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "suscripciones",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "suscripciones",
+    "column": "plan_id",
+    "refTable": "planes_servicio",
+    "onDelete": "RESTRICT"
+  },
+  {
+    "table": "contactos_emergencia",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "contactos_emergencia",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "preferencias_usuario",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "acciones_offline",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "acciones_offline",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "publicaciones_comunidad",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "publicaciones_comunidad",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "moderacion_mensajes",
+    "column": "mensaje_id",
+    "refTable": "mensajes",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "moderacion_mensajes",
+    "column": "revisado_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "dispositivos_usuario",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  }
+]

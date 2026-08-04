@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Cámaras</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="camaras-page-fix">
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar"><a href="dashboard.html" class="sidebar-logo"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA</a><nav class="sidebar-nav"><a href="dashboard.html" class="nav-item"><i class="bi bi-grid-fill"></i> Dashboard</a><a href="visitas.html" class="nav-item"><i class="bi bi-person-plus-fill"></i> Mis visitas</a><a href="accesos.html" class="nav-item"><i class="bi bi-door-open-fill"></i> Mis accesos</a><a href="incidencias.html" class="nav-item"><i class="bi bi-flag-fill"></i> Incidencias</a><a href="notificaciones.html" class="nav-item"><i class="bi bi-bell-fill"></i> Notificaciones</a><a href="comunidad.html" class="nav-item"><i class="bi bi-people-fill"></i> Comunidad</a><a href="chat.html" class="nav-item"><i class="bi bi-chat-dots-fill"></i> Chat</a><a href="camaras.html" class="nav-item active"><i class="bi bi-camera-video-fill"></i> Cámaras</a><a href="autorizados.html" class="nav-item"><i class="bi bi-person-check-fill"></i> Autorizados</a><a href="vetos.html" class="nav-item"><i class="bi bi-shield-x"></i> Vetos</a><a href="emergencias.html" class="nav-item"><i class="bi bi-telephone-fill"></i> Emergencias</a><a href="seguridad.html" class="nav-item"><i class="bi bi-shield-lock-fill"></i> Seguridad</a><a href="perfil.html" class="nav-item"><i class="bi bi-person-circle"></i> Perfil</a><a href="config.html" class="nav-item"><i class="bi bi-gear-fill"></i> Configuración</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><a href="notificaciones.html" class="icon-btn" id="bellLink"><i class="bi bi-bell"></i><span class="dot" id="bellDot"></span></a><a href="perfil.html" class="topnav-user"><div class="av">VG</div><span class="uname">Usuario</span></a><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="content">
+      <div class="page">
+        <div class="page-banner">
+          <div class="page-banner-bg" style="background-image:url('https://images.unsplash.com/photo-1557597774-9d273605dfa9?q=80&w=1400&auto=format&fit=crop');"></div>
+          <div class="page-banner-glow"></div>
+          <div class="page-banner-content">
+            <div><span class="mono-tag">CÁMARAS</span><h1>Cámaras de seguridad</h1><p>Vista en vivo de los puntos de monitoreo del residencial.</p></div>
+          </div>
+        </div>
+
+        <div class="cam-disclaimer">
+          <i class="bi bi-info-circle-fill"></i>
+          <div>
+            <b>Sobre estas transmisiones</b>
+            <p>VIGIA todavía no tiene cámaras físicas instaladas en un residencial real. Los servicios comerciales de cámaras en vivo (EarthCam, SkylineWebcams, etc.) prohíben expresamente insertar su video en otros sitios, y agregadores como insecam muestran cámaras privadas expuestas sin el consentimiento de quienes aparecen en ellas — por eso no se usan aquí. En su lugar, cada tarjeta muestra una <b>imagen real que se actualiza sola cada 60 segundos</b>, publicada directamente por organismos de gobierno que sí permiten este uso: el Servicio de Parques Nacionales de EE. UU. y la Oficina Meteorológica de Islandia. No es video fluido, pero es una imagen real y actual, sin depender de un reproductor que puede bloquearse. Cuando se integren cámaras reales del residencial, estas se reemplazan sin cambiar el diseño.</p>
+          </div>
+        </div>
+
+        <div class="cam-grid" id="camGrid">
+          <div class="cam-card" id="cam-porton-principal" data-img="https://www.nps.gov/webcams-yell/mammoth_arch.jpg">
+            <div class="cam-video-wrap">
+              <img class="cam-live-img" alt="Portón principal">
+              <div class="cam-error">
+                <i class="bi bi-camera-video-off-fill"></i>
+                <span>Cámara no disponible en este momento</span>
+                <button type="button" class="btn btn-ghost cam-retry-btn">Reintentar</button>
+              </div>
+              <span class="cam-live-badge"><span class="cam-live-dot"></span> EN VIVO</span>
+              <button type="button" class="cam-fullscreen-btn"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div class="cam-card-info">
+              <b>Portón principal</b>
+              <span class="mono">Vista de referencia · Yellowstone (Roosevelt Arch), EE. UU. · se actualiza cada 60s</span>
+              <a href="https://www.nps.gov/media/webcam/view.htm?id=81B468BC-1DD8-B71B-0BBA4C383E179188" target="_blank" rel="noopener" class="cam-external-link">Ver fuente oficial <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+          </div>
+
+          <div class="cam-card" id="cam-area-comun" data-img="https://www.nps.gov/webcams-yell/mammoth_parade.jpg">
+            <div class="cam-video-wrap">
+              <img class="cam-live-img" alt="Área común">
+              <div class="cam-error">
+                <i class="bi bi-camera-video-off-fill"></i>
+                <span>Cámara no disponible en este momento</span>
+                <button type="button" class="btn btn-ghost cam-retry-btn">Reintentar</button>
+              </div>
+              <span class="cam-live-badge"><span class="cam-live-dot"></span> EN VIVO</span>
+              <button type="button" class="cam-fullscreen-btn"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div class="cam-card-info">
+              <b>Área común</b>
+              <span class="mono">Vista de referencia · Mammoth Hot Springs, EE. UU. · se actualiza cada 60s</span>
+              <a href="https://www.nps.gov/media/webcam/view.htm?id=696F20E1-F421-B232-FE72D6D85B157422" target="_blank" rel="noopener" class="cam-external-link">Ver fuente oficial <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+          </div>
+
+          <div class="cam-card" id="cam-vista-panoramica" data-img="https://www.nps.gov/webcams-yell/washburn_ne.jpg">
+            <div class="cam-video-wrap">
+              <img class="cam-live-img" alt="Vista panorámica / azotea">
+              <div class="cam-error">
+                <i class="bi bi-camera-video-off-fill"></i>
+                <span>Cámara no disponible en este momento</span>
+                <button type="button" class="btn btn-ghost cam-retry-btn">Reintentar</button>
+              </div>
+              <span class="cam-live-badge"><span class="cam-live-dot"></span> EN VIVO</span>
+              <button type="button" class="cam-fullscreen-btn"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div class="cam-card-info">
+              <b>Vista panorámica / azotea</b>
+              <span class="mono">Vista de referencia · Mount Washburn, EE. UU. · se actualiza cada 60s</span>
+              <a href="https://www.nps.gov/media/webcam/view.htm?id=81B46891-1DD8-B71B-0B6575944D4DECD5" target="_blank" rel="noopener" class="cam-external-link">Ver fuente oficial <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+          </div>
+
+          <div class="cam-card" id="cam-porton-vehicular" data-img="https://www.nps.gov/webcams-yell/west_gate.jpg">
+            <div class="cam-video-wrap">
+              <img class="cam-live-img" alt="Portón vehicular">
+              <div class="cam-error">
+                <i class="bi bi-camera-video-off-fill"></i>
+                <span>Cámara no disponible en este momento</span>
+                <button type="button" class="btn btn-ghost cam-retry-btn">Reintentar</button>
+              </div>
+              <span class="cam-live-badge"><span class="cam-live-dot"></span> EN VIVO</span>
+              <button type="button" class="cam-fullscreen-btn"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div class="cam-card-info">
+              <b>Portón vehicular</b>
+              <span class="mono">Vista de referencia · West Entrance, EE. UU. · se actualiza cada 60s</span>
+              <a href="https://www.nps.gov/media/webcam/view.htm?id=81B468C8-1DD8-B71B-0BFE5983E4D2E421" target="_blank" rel="noopener" class="cam-external-link">Ver fuente oficial <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+          </div>
+
+          <div class="cam-card" id="cam-vista-ciudad" data-img="https://en.vedur.is/weather/observations/webcams/reykjavik/7">
+            <div class="cam-video-wrap">
+              <img class="cam-live-img" alt="Vista de la ciudad">
+              <div class="cam-error">
+                <i class="bi bi-camera-video-off-fill"></i>
+                <span>Cámara no disponible en este momento</span>
+                <button type="button" class="btn btn-ghost cam-retry-btn">Reintentar</button>
+              </div>
+              <span class="cam-live-badge"><span class="cam-live-dot"></span> EN VIVO</span>
+              <button type="button" class="cam-fullscreen-btn"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div class="cam-card-info">
+              <b>Vista de la ciudad</b>
+              <span class="mono">Vista de referencia · Reykjavík, Islandia</span>
+              <a href="https://en.vedur.is/weather/observations/webcams/reykjavik/" target="_blank" rel="noopener" class="cam-external-link">Ver fuente oficial <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+          </div>
+
+          <div class="cam-card" id="cam-area-jardines" data-img="https://en.vedur.is/weather/observations/webcams/myvatn/7">
+            <div class="cam-video-wrap">
+              <img class="cam-live-img" alt="Área de jardines">
+              <div class="cam-error">
+                <i class="bi bi-camera-video-off-fill"></i>
+                <span>Cámara no disponible en este momento</span>
+                <button type="button" class="btn btn-ghost cam-retry-btn">Reintentar</button>
+              </div>
+              <span class="cam-live-badge"><span class="cam-live-dot"></span> EN VIVO</span>
+              <button type="button" class="cam-fullscreen-btn"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div class="cam-card-info">
+              <b>Área de jardines</b>
+              <span class="mono">Vista de referencia · Mývatn, Islandia</span>
+              <a href="https://en.vedur.is/weather/observations/webcams/myvatn/" target="_blank" rel="noopener" class="cam-external-link">Ver fuente oficial <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/camaras.js"></script>
+</body>
+</html>

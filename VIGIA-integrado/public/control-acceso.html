@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Acceso rápido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="css/style.css"><link rel="manifest" href="manifest.webmanifest">
+</head>
+<body data-protect-demo="true"><div class="bg-photo"></div><canvas id="bgCanvas"></canvas>
+<div class="app">
+<aside class="sidebar"><a href="superadmin.html" class="sidebar-logo" id="staffHomeLink"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA <span class="mono" style="font-size:.62rem;color:var(--mist);margin-left:.3rem;letter-spacing:.08em;">STAFF</span></a><nav class="sidebar-nav"><a href="guardia.html" class="nav-item" data-role="guardia,admin,superadmin"><i class="bi bi-exclamation-octagon-fill"></i> Alertas</a><a href="control-acceso.html" class="nav-item active" data-role="guardia,admin"><i class="bi bi-person-bounding-box"></i> Acceso rápido</a><a href="conflictos.html" class="nav-item" data-role="guardia,admin,superadmin"><i class="bi bi-shield-exclamation"></i> Conflictos y vetos</a><a href="operaciones.html" class="nav-item" data-role="guardia,admin,superadmin"><i class="bi bi-clock-history"></i> Operación</a><a href="mensajeria.html" class="nav-item" data-role="guardia,admin,superadmin"><i class="bi bi-chat-dots-fill"></i> Mensajería</a><a href="integraciones.html" class="nav-item" data-role="admin,superadmin"><i class="bi bi-diagram-3-fill"></i> Integraciones</a><a href="superadmin.html" class="nav-item" data-role="admin,superadmin"><i class="bi bi-people-fill"></i> Administración</a><a href="suscripciones.html" class="nav-item" data-role="superadmin"><i class="bi bi-credit-card-fill"></i> Suscripciones</a><a href="benchmark.html" class="nav-item" data-role="superadmin"><i class="bi bi-bar-chart-fill"></i> Benchmark</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><div class="topnav-user"><div class="av">VG</div><span class="uname">Personal</span></div><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside><div class="main"><div class="content"><div class="page">
+<div class="page-head"><div><span class="mono-tag">REGISTRO EN MENOS PASOS</span><h1>Control de acceso rápido</h1><p>Fotografía, documento o QR. La cola mide el tiempo de atención y bloquea vetos automáticamente.</p></div><button class="btn btn-ghost" id="refreshQueue"><i class="bi bi-arrow-clockwise"></i> Actualizar</button></div>
+<div class="metric-grid">
+<div class="metric-card"><span class="metric-value" id="mWaiting">0</span><span class="metric-label">En espera</span></div>
+<div class="metric-card"><span class="metric-value" id="mValidating">0</span><span class="metric-label">En validación</span></div>
+<div class="metric-card"><span class="metric-value" id="mAverage">0 s</span><span class="metric-label">Tiempo promedio</span></div>
+<div class="metric-card" id="mTargetCard"><span class="metric-value" id="mTarget">90 s</span><span class="metric-label">Objetivo</span></div>
+</div>
+<div class="split-layout">
+<div class="panel"><div class="panel-head"><div><h3>Nuevo ingreso</h3><p class="config-section-note">Solo pide los datos indispensables. Lo demás puede completarse después.</p></div><span class="badge info">MÓVIL</span></div>
+<form id="quickAccessForm" novalidate>
+<div class="form-grid">
+<div class="form-group"><label>Punto de acceso</label><select id="qaPoint" class="form-control" required><option value="">Cargando...</option></select></div>
+<div class="form-group"><label>Método</label><select id="qaOrigin" class="form-control"><option value="foto">Fotografía</option><option value="documento">Documento</option><option value="qr">Código QR</option><option value="manual">Manual</option></select></div>
+<div class="form-group span-2"><label>Nombre completo</label><input id="qaName" class="form-control" maxlength="180" required placeholder="Ej. María Flores"></div>
+<div class="form-group"><label>Documento</label><input id="qaDocument" class="form-control" maxlength="50" placeholder="Identidad o pasaporte"></div>
+<div class="form-group"><label>Casa / apartamento</label><input id="qaHome" class="form-control" maxlength="60" placeholder="Torre B · 402"></div>
+<div class="form-group"><label>Placa</label><input id="qaPlate" class="form-control" maxlength="20" placeholder="HAA 1234"></div>
+<div class="form-group"><label>Motivo</label><input id="qaReason" class="form-control" maxlength="180" placeholder="Visita familiar"></div>
+<div class="form-group span-2"><label>Prioridad de atención</label><select id="qaPriority" class="form-control"><option value="normal">Normal</option><option value="adulto_mayor">Adulto mayor / accesibilidad</option><option value="servicio_esencial">Servicio esencial</option><option value="emergencia">Emergencia</option></select></div>
+<div class="form-group span-2"><div class="capture-box"><i class="bi bi-camera-fill" style="font-size:1.5rem;color:var(--accent)"></i><p style="margin:.4rem 0 .8rem;color:var(--mist);font-size:.78rem">La fotografía es obligatoria y queda asociada al guardia y al turno original.</p><label class="btn btn-ghost" for="qaPhoto"><i class="bi bi-camera"></i> Tomar fotografía obligatoria</label><input id="qaPhoto" type="file" accept="image/*" capture="environment" hidden><img id="qaPreview" class="capture-preview" alt="Vista previa"></div></div>
+</div>
+<div id="qaMessage" class="status-line" style="display:none"></div>
+<button class="btn btn-solid" type="submit" style="width:100%;justify-content:center"><i class="bi bi-check2-circle"></i> Agregar a la cola</button>
+</form></div>
+<div class="panel"><div class="panel-head"><div><h3>Cola actual</h3><p class="config-section-note">Atiende por orden de llegada o prioridad.</p></div><span class="mono" id="queueCount">0 registros</span></div><div id="queueList" class="queue-list"><div class="empty-state">Cargando cola...</div></div></div>
+</div>
+</div></div></div></div>
+<script src="js/common.js"></script><script src="js/control-acceso.js"></script>
+</body></html>
