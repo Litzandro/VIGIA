@@ -227,7 +227,13 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('contextmenu',e=>{if(document.body.dataset.protectDemo==='true')e.preventDefault()});
 
-
+// ---- Evita que el boton del asistente se sobreponga a los botones de
+// panico (ambos flotan en la esquina inferior derecha en incidencias.html)
+(function(){
+  if(document.querySelector('.panic-group')){
+    document.body.classList.add('has-panic-fab');
+  }
+})();
 // ---- Asistente VIGIA local (reglas, no envía conversaciones a terceros) ----
 (function(){
   if(document.getElementById('vigiaAssistantBtn'))return;
