@@ -1250,3 +1250,47 @@ body.has-panic-fab .assistant-panel{
 .assistant-fab i{
   color:#082217;
 }
+/* =========================================================
+   ICONOS VISIBLES EN BOTONES FLOTANTES DE INCIDENCIAS
+   ========================================================= */
+
+.panic-fab{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+
+.panic-fab i{
+  display:inline-block !important;
+  font-family:"bootstrap-icons" !important;
+  font-style:normal !important;
+  font-size:1.45rem !important;
+  line-height:1 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+}
+
+.panic-fab.guard i{
+  color:#ffffff !important;
+}
+
+.panic-fab.residents i{
+  color:#0A0F0C !important;
+}
+
+/* Asistente VIGIA */
+.assistant-fab{
+  display:grid !important;
+  place-items:center !important;
+}
+
+.assistant-fab i{
+  display:inline-block !important;
+  font-family:"bootstrap-icons" !important;
+  font-style:normal !important;
+  font-size:1.4rem !important;
+  line-height:1 !important;
+  color:#082217 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+}
