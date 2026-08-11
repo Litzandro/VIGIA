@@ -103,5 +103,23 @@ module.exports = function vetosAccesoOverride({ router, model, handlers, pkPath 
   router.get(`/${pkPath}`, handlers.getOne);
   router.put(`/${pkPath}`, handlers.update);
   router.patch(`/${pkPath}`, handlers.update);
-  router.delete(`/${pkPath}`, handlers.remove);
+
+  // La tabla no tiene columna de borrado logico (activo), asi que el
+  // DELETE generico haria un destroy() fisico y se perderia el registro
+  // de que alguien estuvo vetado (importante para auditoria/evidencia).
+  // Nadie en la interfaz llama a este endpoint hoy, pero lo dejamos
+  // seguro por si se usa directo contra la API: revoca en vez de borrar.
+  router.delete(`/${pkPath}`, async (req, res, next) => {
+    try {
+      if (!['admin', 'superadmin'].includes(req.user.rol_codigo)) {
+        return res.status(403).json({ error: 'Solo administracion puede revocar un veto.' });
+      }
+      const where = primaryKeyWhere(model, req.params);
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const row = await model.findOne({ where });
+      if (!row) return res.status(404).json({ error: 'Veto no encontrado.' });
+      await row.update({ estado: 'revocado', aprobado_por: req.user.id, fecha_resolucion: new Date() });
+      res.json({ data: row, mensaje: 'Veto revocado. Se conserva el historial.' });
+    } catch (err) { next(err); }
+  });
 };
