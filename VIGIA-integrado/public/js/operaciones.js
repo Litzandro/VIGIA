@@ -64,6 +64,7 @@
     }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
   }
 
+  
   form.onsubmit=async e=>{e.preventDefault();const payload={guardia_original_id:Number(document.getElementById('opGuard').value),guardia_relevo_id:Number(document.getElementById('opRelief').value)||null,punto_acceso_id:Number(document.getElementById('opPoint').value)||null,inicio_programado:document.getElementById('opStart').value,fin_programado:document.getElementById('opEnd').value,observaciones:document.getElementById('opNotes').value.trim()||null};if(isSuper)payload.residencial_id=selectedResidential();try{await VigiaAPI.request('/turnos-guardia',{method:'POST',body:JSON.stringify(payload)});form.reset();showToast('Turno programado');await load()}catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}};
   document.getElementById('reloadOps').onclick=load;load();
 })();
