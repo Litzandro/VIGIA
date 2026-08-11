@@ -948,3 +948,305 @@ html{
 .thread-item .post-av{flex:0 0 auto}
 .thread-item small{display:block;margin-top:.25rem;color:var(--mist)}
 @media(max-width:850px){.messaging-layout{grid-template-columns:1fr}.chat-panel{min-height:560px}}
+/* =========================================================
+   CAMBIOS VIGIA - INCIDENCIAS, NOTIFICACIONES, COMUNIDAD
+   Y ASISTENTE
+   ========================================================= */
+
+/* ===== Contador real de notificaciones ===== */
+.icon-btn .dot.has-count{
+  width:auto;
+  height:auto;
+  min-width:15px;
+  padding:0 4px;
+  top:-4px;
+  right:-4px;
+  border-radius:999px;
+  font-family:var(--f-mono);
+  font-size:.6rem;
+  line-height:15px;
+  text-align:center;
+  color:#fff;
+}
+
+
+/* ===== Comunidad: resaltar publicación abierta desde notificación ===== */
+.post-card{
+  transition:box-shadow .3s ease,border-color .3s ease;
+}
+
+.post-card.post-highlight{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+
+
+/* ===== Incidencias: prioridad urgente ===== */
+.priority.urgente{
+  background:var(--alert-soft);
+  color:var(--alert);
+}
+
+
+/* ===== Modal de detalle de incidencia ===== */
+.detail-modal{
+  max-width:560px;
+}
+
+.detail-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+
+.detail-head h3{
+  text-align:left !important;
+  margin-bottom:0 !important;
+}
+
+.detail-badges{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+  margin-bottom:1.2rem;
+}
+
+.detail-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:.9rem 1.2rem;
+  margin-bottom:1.2rem;
+}
+
+.detail-grid > div{
+  display:flex;
+  flex-direction:column;
+  gap:.25rem;
+}
+
+.field-label{
+  font-family:var(--f-mono);
+  font-size:.64rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--mist);
+}
+
+.detail-grid span:last-child{
+  color:var(--bone);
+  font-size:.85rem;
+}
+
+.detail-section{
+  margin-bottom:1.2rem;
+}
+
+.detail-timeline{
+  display:flex;
+  flex-direction:column;
+  gap:.7rem;
+  margin-top:.5rem;
+}
+
+.timeline-item{
+  display:flex;
+  gap:.7rem;
+  font-size:.8rem;
+}
+
+.timeline-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--accent);
+  margin-top:.35rem;
+  flex-shrink:0;
+}
+
+.timeline-item b{
+  color:var(--bone);
+  display:block;
+}
+
+.timeline-item span{
+  color:var(--mist);
+  font-family:var(--f-mono);
+  font-size:.68rem;
+}
+
+.timeline-item p{
+  color:var(--bone-dim);
+  margin:.2rem 0 0;
+}
+
+@media(max-width:520px){
+  .detail-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+
+/* =========================================================
+   FORMULARIO DE INCIDENCIAS
+   Scroll únicamente para "Nueva incidencia"
+   ========================================================= */
+
+.modal-box.form-modal{
+  max-height:calc(100vh - 4rem);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+@media(max-width:520px){
+  .modal-box.form-modal{
+    max-height:calc(100vh - 2rem);
+    width:95%;
+    padding:1.5rem 1.3rem;
+  }
+}
+
+/* =========================================================
+   ASISTENTE VIGIA + BOTONES DE ALERTA
+   Evita que se monten unos encima de otros
+   ========================================================= */
+
+body.has-panic-fab .assistant-fab{
+  bottom:12rem;
+}
+
+body.has-panic-fab .assistant-panel{
+  bottom:17.4rem;
+}
+
+@media(max-width:700px){
+  body.has-panic-fab .assistant-fab{
+    bottom:9.6rem;
+  }
+
+  body.has-panic-fab .assistant-panel{
+    bottom:15rem;
+  }
+}
+
+
+/* ===== Acciones dentro del Asistente VIGIA ===== */
+.assistant-msg a.assistant-action{
+  display:inline-block;
+  margin-top:.5rem;
+  padding:.4rem .75rem;
+  border-radius:8px;
+  background:var(--accent);
+  color:#082217;
+  text-decoration:none;
+  font-size:.72rem;
+}
+
+
+/* =========================================================
+   ASISTENTE VIGIA
+   Corrección del texto que no se veía al escribir
+   ========================================================= */
+
+.theme-light .assistant-panel .assistant-head b,
+.theme-soft .assistant-panel .assistant-head b,
+
+.theme-light .assistant-panel .assistant-head span,
+.theme-soft .assistant-panel .assistant-head span,
+
+.theme-light .assistant-panel .assistant-head button,
+.theme-soft .assistant-panel .assistant-head button,
+
+.theme-light .assistant-panel .assistant-suggestions button,
+.theme-soft .assistant-panel .assistant-suggestions button,
+
+.theme-light .assistant-panel .assistant-input input,
+.theme-soft .assistant-panel .assistant-input input{
+  color:#172019;
+}
+
+.theme-light .assistant-panel .assistant-suggestions button,
+.theme-soft .assistant-panel .assistant-suggestions button{
+  border-color:rgba(20,50,31,.28);
+}
+
+.theme-light .assistant-panel .assistant-input input::placeholder,
+.theme-soft .assistant-panel .assistant-input input::placeholder{
+  color:#657269;
+  opacity:1;
+}
+
+.theme-light .assistant-panel .assistant-input,
+.theme-soft .assistant-panel .assistant-input{
+  border-top-color:rgba(20,50,31,.15);
+}
+
+.assistant-input input::placeholder{
+  color:var(--mist);
+  opacity:1;
+}
+
+.assistant-input input{
+  caret-color:currentColor;
+}
+
+.assistant-input:focus-within{
+  border-top-color:var(--accent);
+}
+
+
+/* ===== Botón enviar del Asistente ===== */
+.assistant-input button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:38px;
+  font-size:1rem;
+  flex-shrink:0;
+  cursor:pointer;
+}
+
+.assistant-input button:hover{
+  filter:brightness(1.1);
+}
+
+.assistant-input button:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+.assistant-suggestions button:hover{
+  border-color:var(--accent-dim);
+  color:var(--bone);
+}
+
+.assistant-head button:hover{
+  color:var(--accent);
+}
+
+
+/* =========================================================
+   VISIBILIDAD DE ICONOS
+   Alertas + Asistente VIGIA
+   ========================================================= */
+
+.panic-fab i,
+.assistant-fab i{
+  display:inline-block;
+  font-size:1.3rem;
+  line-height:1;
+  font-style:normal;
+}
+
+.panic-fab.guard i{
+  color:#fff;
+}
+
+.panic-fab.residents i{
+  color:#0A0F0C;
+}
+
+.assistant-fab i{
+  color:#082217;
+}
