@@ -1,135 +1,4754 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>VIGIA — Dashboard</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="css/style.css">
+<link
+  rel="preconnect"
+  href="https://fonts.googleapis.com">
+
+<link
+  rel="preconnect"
+  href="https://fonts.gstatic.com"
+  crossorigin>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+  rel="stylesheet">
+
+<link
+  rel="stylesheet"
+  href="css/style.css?v=20260809-5">
+
+
+<style>
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.dash-hero{
+  position:relative !important;
+  overflow:hidden !important;
+  isolation:isolate;
+
+  min-height:335px;
+}
+
+.dash-hero-bg{
+  position:absolute !important;
+  inset:0 !important;
+
+  display:block !important;
+
+  width:100% !important;
+  height:100% !important;
+
+  background-image:
+    url("https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1600&auto=format&fit=crop");
+
+  background-size:cover !important;
+  background-position:center 45% !important;
+  background-repeat:no-repeat !important;
+
+  opacity:1 !important;
+  visibility:visible !important;
+
+  filter:
+    saturate(60%)
+    brightness(.5)
+    contrast(1.1);
+
+  z-index:0 !important;
+}
+
+.dash-hero::after{
+  content:"";
+
+  position:absolute;
+  inset:0;
+
+  z-index:1;
+
+  pointer-events:none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,.86) 0%,
+      rgba(0,0,0,.67) 40%,
+      rgba(0,0,0,.46) 67%,
+      rgba(0,30,20,.58) 100%
+    );
+}
+
+.dash-hero-scan{
+  position:absolute !important;
+  inset:0 !important;
+
+  z-index:2 !important;
+
+  pointer-events:none;
+}
+
+.dash-hero-glow{
+  position:absolute !important;
+  inset:0 !important;
+
+  z-index:3 !important;
+
+  pointer-events:none;
+}
+
+.dash-hero-content{
+  position:relative !important;
+
+  z-index:4 !important;
+}
+
+
+/* =========================================================
+   ESTRUCTURA
+========================================================= */
+
+.dashboard-main-grid,
+.dashboard-bottom-grid{
+
+  display:grid;
+
+  grid-template-columns:
+    minmax(0,1.55fr)
+    minmax(390px,1fr);
+
+  gap:1.15rem;
+
+  margin-top:1.15rem;
+
+  align-items:stretch;
+}
+
+.dashboard-main-grid > .panel,
+.dashboard-bottom-grid > .panel{
+
+  height:100%;
+}
+
+.dashboard-first-panel,
+.dashboard-calendar-panel{
+
+  min-height:410px;
+}
+
+.dashboard-activity-panel,
+.dashboard-next-panel{
+
+  min-height:255px;
+}
+
+
+/* =========================================================
+   SVG
+========================================================= */
+
+.dashboard-svg{
+
+  width:18px;
+  height:18px;
+
+  display:block;
+
+  fill:none;
+  stroke:currentColor;
+
+  stroke-width:1.8;
+
+  stroke-linecap:round;
+  stroke-linejoin:round;
+
+  flex-shrink:0;
+
+  pointer-events:none;
+}
+
+
+/* =========================================================
+   TITULOS
+========================================================= */
+
+.panel-title-icon{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.65rem;
+}
+
+.title-icon{
+
+  width:32px;
+  min-width:32px;
+  height:32px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:9px;
+
+  color:var(--accent);
+
+  background:
+    rgba(16,218,154,.09);
+
+  border:
+    1px solid rgba(16,218,154,.18);
+}
+
+.title-icon .dashboard-svg{
+
+  width:16px;
+  height:16px;
+}
+
+.panel-head{
+
+  min-height:36px;
+}
+
+
+/* =========================================================
+   SIDEBAR SIN ICONOS
+========================================================= */
+
+.sidebar-nav .nav-item{
+
+  display:flex;
+
+  align-items:center;
+}
+
+.sidebar-footer-clean{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:.75rem;
+}
+
+.sidebar-user-clean{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.65rem;
+}
+
+.sidebar-user-clean .av{
+
+  width:34px;
+  min-width:34px;
+  height:34px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:50%;
+
+  background:
+    rgba(16,218,154,.12);
+
+  border:
+    1px solid rgba(16,218,154,.18);
+
+  color:var(--accent);
+
+  font-size:.68rem;
+
+  font-weight:700;
+}
+
+.sidebar-user-clean .uname{
+
+  flex:1;
+
+  color:var(--bone);
+
+  font-size:.72rem;
+
+  font-weight:600;
+}
+
+.sidebar-footer-links{
+
+  display:grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:.45rem;
+}
+
+.sidebar-text-link,
+.sidebar-text-btn{
+
+  min-height:30px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border:
+    1px solid var(--line);
+
+  border-radius:7px;
+
+  background:
+    rgba(255,255,255,.02);
+
+  color:var(--mist);
+
+  font-family:
+    var(--f-body);
+
+  font-size:.62rem;
+
+  text-decoration:none;
+
+  cursor:pointer;
+}
+
+.sidebar-text-btn{
+
+  width:100%;
+}
+
+
+/* =========================================================
+   ACCESOS RAPIDOS
+========================================================= */
+
+.quick-access-panel{
+
+  display:flex;
+
+  flex-direction:column;
+}
+
+.quick-access-grid{
+
+  flex:1;
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+
+  grid-template-rows:
+    repeat(2,minmax(125px,1fr));
+
+  gap:.85rem;
+
+  margin-top:1rem;
+}
+
+.quick-access-card{
+
+  position:relative;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.95rem;
+
+  padding:1.1rem;
+
+  overflow:hidden;
+
+  border:
+    1px solid var(--line);
+
+  border-radius:12px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.025),
+      rgba(255,255,255,.008)
+    );
+
+  text-decoration:none;
+
+  transition:
+    transform .22s ease,
+    border-color .22s ease,
+    background .22s ease;
+}
+
+.quick-access-card::before{
+
+  content:"";
+
+  position:absolute;
+
+  top:18%;
+  bottom:18%;
+  left:0;
+
+  width:2px;
+
+  background:
+    var(--accent);
+
+  opacity:0;
+}
+
+.quick-access-card:hover{
+
+  transform:
+    translateY(-2px);
+
+  border-color:
+    rgba(16,218,154,.28);
+
+  background:
+    rgba(16,218,154,.04);
+}
+
+.quick-access-card:hover::before{
+
+  opacity:1;
+}
+
+.quick-access-icon{
+
+  width:48px;
+  min-width:48px;
+  height:48px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:12px;
+
+  color:var(--accent);
+
+  background:
+    rgba(16,218,154,.10);
+
+  border:
+    1px solid rgba(16,218,154,.18);
+}
+
+.quick-access-icon .dashboard-svg{
+
+  width:21px;
+  height:21px;
+}
+
+.quick-access-icon.purple{
+
+  color:#b99bff;
+
+  background:
+    rgba(185,155,255,.09);
+
+  border-color:
+    rgba(185,155,255,.17);
+}
+
+.quick-access-icon.warn{
+
+  color:#dfb44c;
+
+  background:
+    rgba(223,180,76,.09);
+
+  border-color:
+    rgba(223,180,76,.17);
+}
+
+.quick-access-icon.blue{
+
+  color:#73b9f4;
+
+  background:
+    rgba(115,185,244,.09);
+
+  border-color:
+    rgba(115,185,244,.17);
+}
+
+.quick-access-content{
+
+  flex:1;
+
+  min-width:0;
+}
+
+.quick-access-card b{
+
+  display:block;
+
+  margin-bottom:.25rem;
+
+  color:var(--bone);
+
+  font-family:
+    var(--f-display);
+
+  font-size:.92rem;
+}
+
+.quick-access-card small{
+
+  display:block;
+
+  color:var(--mist);
+
+  font-size:.67rem;
+
+  line-height:1.45;
+}
+
+.quick-arrow{
+
+  width:18px;
+  height:18px;
+
+  color:
+    rgba(255,255,255,.30);
+
+  transition:
+    transform .2s ease,
+    color .2s ease;
+}
+
+.quick-access-card:hover
+.quick-arrow{
+
+  color:var(--accent);
+
+  transform:
+    translate(2px,-2px);
+}
+
+
+/* =========================================================
+   CALENDARIO
+========================================================= */
+
+.dashboard-calendar-panel{
+
+  display:flex;
+
+  flex-direction:column;
+}
+
+.calendar-content{
+
+  flex:1;
+
+  display:flex;
+
+  flex-direction:column;
+}
+
+.mini-cal{
+
+  flex:1;
+
+  display:flex;
+
+  align-items:center;
+
+  width:100%;
+}
+
+.mini-cal-grid{
+
+  width:100%;
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(7,1fr);
+
+  gap:5px;
+}
+
+.mini-cal-grid > span:not(.day){
+
+  height:25px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  color:var(--mist);
+
+  font-family:
+    var(--f-mono);
+
+  font-size:.59rem;
+}
+
+.mini-cal-grid .day{
+
+  position:relative;
+
+  width:34px;
+  height:34px;
+
+  justify-self:center;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border:
+    1px solid transparent;
+
+  border-radius:8px;
+
+  background:
+    transparent;
+
+  color:
+    var(--bone-dim);
+
+  font-family:
+    var(--f-mono);
+
+  font-size:.66rem;
+}
+
+.mini-cal-grid .day.today{
+
+  color:
+    var(--accent) !important;
+
+  border-color:
+    var(--accent) !important;
+
+  background:
+    rgba(16,218,154,.04) !important;
+
+  font-weight:700;
+}
+
+.mini-cal-grid .day.event{
+
+  color:var(--bone);
+}
+
+.mini-cal-grid .day.event::after{
+
+  content:"";
+
+  position:absolute;
+
+  left:50%;
+  bottom:2px;
+
+  width:4px;
+  height:4px;
+
+  transform:
+    translateX(-50%);
+
+  border-radius:50%;
+
+  background:
+    var(--accent);
+}
+
+.mini-cal-grid .day.today.event{
+
+  background:
+    rgba(16,218,154,.065) !important;
+}
+
+.mini-cal-grid .day.muted{
+
+  opacity:.27;
+}
+
+.calendar-actions{
+
+  display:grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap:.55rem;
+
+  margin-top:.85rem;
+}
+
+.calendar-actions .btn{
+
+  width:100%;
+
+  justify-content:center;
+}
+
+
+/* =========================================================
+   BOTONES SVG
+========================================================= */
+
+.btn-with-svg{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.45rem;
+}
+
+.btn-with-svg
+.dashboard-svg{
+
+  width:15px;
+  height:15px;
+}
+
+
+/* =========================================================
+   ACTIVIDAD
+========================================================= */
+
+#recentActivity{
+
+  min-height:175px;
+}
+
+.activity-item{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.85rem;
+
+  padding:.78rem 0;
+
+  border-top:
+    1px solid var(--line);
+}
+
+.activity-item:first-child{
+
+  border-top:none;
+}
+
+.activity-icon{
+
+  width:40px;
+  min-width:40px;
+  height:40px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:10px;
+}
+
+.activity-icon .dashboard-svg{
+
+  width:18px;
+  height:18px;
+}
+
+.activity-icon.visit{
+
+  color:var(--accent);
+
+  background:
+    rgba(16,218,154,.10);
+
+  border:
+    1px solid rgba(16,218,154,.17);
+}
+
+.activity-icon.access{
+
+  color:#73b9f4;
+
+  background:
+    rgba(115,185,244,.10);
+
+  border:
+    1px solid rgba(115,185,244,.17);
+}
+
+.activity-icon.incident{
+
+  color:#dfb44c;
+
+  background:
+    rgba(223,180,76,.10);
+
+  border:
+    1px solid rgba(223,180,76,.17);
+}
+
+.activity-item .txt{
+
+  flex:1;
+
+  min-width:0;
+
+  color:
+    var(--bone-dim);
+
+  font-size:.82rem;
+
+  line-height:1.45;
+}
+
+.activity-item .txt b{
+
+  color:var(--bone);
+
+  font-weight:600;
+}
+
+.activity-item .txt small{
+
+  display:block;
+
+  margin-top:.18rem;
+
+  color:var(--mist);
+
+  font-family:
+    var(--f-mono);
+
+  font-size:.61rem;
+}
+
+
+/* =========================================================
+   PROXIMA VISITA
+========================================================= */
+
+.next-visit-box{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:.85rem;
+}
+
+.next-visit-top{
+
+  display:flex;
+
+  align-items:center;
+  justify-content:space-between;
+
+  gap:1rem;
+}
+
+.next-visit-person{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.75rem;
+}
+
+.next-visit-avatar{
+
+  width:44px;
+  min-width:44px;
+  height:44px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:11px;
+
+  color:var(--accent);
+
+  background:
+    rgba(16,218,154,.10);
+
+  border:
+    1px solid rgba(16,218,154,.18);
+}
+
+.next-visit-avatar
+.dashboard-svg{
+
+  width:19px;
+  height:19px;
+}
+
+.next-visit-name{
+
+  color:var(--bone);
+
+  font-family:
+    var(--f-display);
+
+  font-size:1rem;
+}
+
+.next-visit-date{
+
+  margin-top:.18rem;
+
+  color:var(--mist);
+
+  font-family:
+    var(--f-mono);
+
+  font-size:.63rem;
+}
+
+.next-visit-details{
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:.55rem;
+
+  padding-top:.8rem;
+
+  border-top:
+    1px solid var(--line);
+
+  color:
+    var(--bone-dim);
+
+  font-size:.78rem;
+}
+
+.next-detail-row{
+
+  display:flex;
+
+  align-items:flex-start;
+
+  gap:.55rem;
+}
+
+.next-detail-row
+.dashboard-svg{
+
+  width:15px;
+  height:15px;
+
+  margin-top:1px;
+
+  color:var(--accent);
+}
+
+.next-detail-text{
+
+  min-width:0;
+
+  overflow-wrap:anywhere;
+}
+
+.next-code{
+
+  color:var(--accent);
+
+  font-family:
+    var(--f-mono);
+
+  font-size:.68rem;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.dashboard-empty{
+
+  min-height:165px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  align-items:center;
+  justify-content:center;
+
+  gap:.6rem;
+
+  color:var(--mist);
+
+  text-align:center;
+
+  font-size:.8rem;
+}
+
+.empty-icon{
+
+  width:42px;
+  height:42px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:11px;
+
+  color:var(--accent);
+
+  background:
+    rgba(16,218,154,.09);
+
+  border:
+    1px solid rgba(16,218,154,.16);
+}
+
+
+/* =========================================================
+   TEMAS
+========================================================= */
+
+
+/* =========================
+   OSCURO
+========================= */
+
+body:not(.theme-light):not(.theme-soft):not(.theme-high)
+.dashboard-main-grid > .panel,
+
+body:not(.theme-light):not(.theme-soft):not(.theme-high)
+.dashboard-bottom-grid > .panel{
+
+  background:
+    rgba(21,38,29,.92);
+}
+
+
+/* =========================
+   CLARO
+========================= */
+
+body.theme-light{
+
+  --bone:#172019;
+
+  --bone-dim:#39483e;
+
+  --mist:#68756c;
+
+  --line:
+    rgba(28,61,41,.15);
+}
+
+
+body.theme-light
+.main,
+
+body.theme-light
+.content,
+
+body.theme-light
+.page{
+
+  color:#172019;
+}
+
+
+body.theme-light
+.dashboard-main-grid > .panel,
+
+body.theme-light
+.dashboard-bottom-grid > .panel{
+
+  background:
+    rgba(255,255,255,.94) !important;
+
+  border-color:
+    rgba(23,58,38,.14) !important;
+
+  box-shadow:
+    0 14px 38px
+    rgba(30,65,44,.06);
+}
+
+
+body.theme-light
+.quick-access-card{
+
+  background:
+    linear-gradient(
+      145deg,
+      #fff,
+      #f6f8f5
+    ) !important;
+
+  border-color:
+    rgba(23,58,38,.14) !important;
+}
+
+
+body.theme-light
+.quick-access-card:hover{
+
+  background:
+    #edf8f2 !important;
+}
+
+
+body.theme-light
+.quick-access-card b,
+
+body.theme-light
+.panel-title-icon,
+
+body.theme-light
+.activity-item .txt b,
+
+body.theme-light
+.next-visit-name{
+
+  color:#172019 !important;
+}
+
+
+body.theme-light
+.quick-access-card small,
+
+body.theme-light
+.activity-item .txt small,
+
+body.theme-light
+.next-visit-date{
+
+  color:#69766d !important;
+}
+
+
+body.theme-light
+.mini-cal-grid .day{
+
+  color:#35433a;
+}
+
+
+body.theme-light
+.mini-cal-grid > span:not(.day){
+
+  color:#748077;
+}
+
+
+body.theme-light
+.calendar-actions .btn,
+
+body.theme-light
+.next-visit-box .btn{
+
+  color:#172019;
+
+  background:#fff;
+
+  border-color:
+    rgba(20,55,35,.22);
+}
+
+
+/*
+  El hero sigue oscuro aunque
+  la interfaz esté clara.
+*/
+
+body.theme-light
+.dash-hero h1{
+
+  color:#fff !important;
+}
+
+
+body.theme-light
+.dash-hero p{
+
+  color:
+    rgba(255,255,255,.90) !important;
+}
+
+
+body.theme-light
+.dash-hero::after{
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0,0,0,.84) 0%,
+      rgba(0,0,0,.65) 40%,
+      rgba(0,0,0,.46) 68%,
+      rgba(0,35,24,.58) 100%
+    );
+}
+
+
+/* =========================
+   VERDE SUAVE
+========================= */
+
+body.theme-soft{
+
+  --bone:#f0f4f1;
+
+  --bone-dim:#d1d8d3;
+
+  --mist:#9baaa0;
+
+  --line:
+    rgba(255,255,255,.10);
+}
+
+
+body.theme-soft
+.dashboard-main-grid > .panel,
+
+body.theme-soft
+.dashboard-bottom-grid > .panel{
+
+  background:
+    #1b2c23 !important;
+
+  border-color:
+    rgba(255,255,255,.10) !important;
+}
+
+
+body.theme-soft
+.quick-access-card{
+
+  background:
+    linear-gradient(
+      145deg,
+      #22362b,
+      #1e3026
+    ) !important;
+
+  border-color:
+    rgba(255,255,255,.10) !important;
+}
+
+
+body.theme-soft
+.quick-access-card:hover{
+
+  background:
+    #294337 !important;
+}
+
+
+/* =========================
+   ALTO CONTRASTE
+========================= */
+
+body.theme-high{
+
+  --bone:#ffffff;
+
+  --bone-dim:#ffffff;
+
+  --mist:#dddddd;
+
+  --line:#777777;
+}
+
+
+body.theme-high
+.dashboard-main-grid > .panel,
+
+body.theme-high
+.dashboard-bottom-grid > .panel{
+
+  background:
+    #060606 !important;
+
+  border:
+    2px solid #777 !important;
+
+  box-shadow:none !important;
+}
+
+
+body.theme-high
+.quick-access-card{
+
+  background:
+    #111 !important;
+
+  border:
+    1px solid #777 !important;
+}
+
+
+body.theme-high
+.quick-access-card:hover{
+
+  border-color:
+    var(--accent) !important;
+}
+
+
+body.theme-high
+.title-icon,
+
+body.theme-high
+.quick-access-icon,
+
+body.theme-high
+.next-visit-avatar,
+
+body.theme-high
+.empty-icon{
+
+  border-color:
+    var(--accent);
+
+  background:
+    rgba(255,230,0,.10);
+}
+
+
+body.theme-high
+.quick-access-card b,
+
+body.theme-high
+.activity-item .txt b,
+
+body.theme-high
+.next-visit-name{
+
+  color:#fff !important;
+}
+
+
+body.theme-high
+.mini-cal-grid .day{
+
+  color:#fff;
+}
+
+
+body.theme-high
+.mini-cal-grid .day.today{
+
+  color:#000 !important;
+
+  background:
+    var(--accent) !important;
+
+  border-color:
+    var(--accent) !important;
+}
+
+
+body.theme-high
+.dash-hero{
+
+  border:
+    2px solid var(--accent) !important;
+}
+
+
+body.theme-high
+.dash-hero::after{
+
+  background:
+    rgba(0,0,0,.88);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:1100px){
+
+  .dashboard-main-grid,
+  .dashboard-bottom-grid{
+
+    grid-template-columns:1fr;
+  }
+
+
+  .dashboard-first-panel,
+  .dashboard-calendar-panel{
+
+    min-height:auto;
+  }
+
+
+  .quick-access-grid{
+
+    grid-template-rows:auto;
+  }
+
+}
+
+
+@media(max-width:700px){
+
+  .quick-access-grid{
+
+    grid-template-columns:1fr;
+  }
+
+
+  .calendar-actions{
+
+    grid-template-columns:1fr;
+  }
+
+
+  .mini-cal-grid .day{
+
+    width:30px;
+    height:30px;
+  }
+
+}
+
+</style>
+
 </head>
+
+
 <body>
+
+
 <div class="bg-photo"></div>
+
 <canvas id="bgCanvas"></canvas>
 
+
 <div class="app">
-  <!-- ============ TOP NAV ============ -->
-  <!-- ============ SIDEBAR ============ -->
-  <aside class="sidebar"><a href="dashboard.html" class="sidebar-logo"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA</a><nav class="sidebar-nav"><a href="dashboard.html" class="nav-item active"><i class="bi bi-grid-fill"></i> Dashboard</a><a href="visitas.html" class="nav-item"><i class="bi bi-person-plus-fill"></i> Mis visitas</a><a href="accesos.html" class="nav-item"><i class="bi bi-door-open-fill"></i> Mis accesos</a><a href="incidencias.html" class="nav-item"><i class="bi bi-flag-fill"></i> Incidencias</a><a href="notificaciones.html" class="nav-item"><i class="bi bi-bell-fill"></i> Notificaciones</a><a href="comunidad.html" class="nav-item"><i class="bi bi-people-fill"></i> Comunidad</a><a href="chat.html" class="nav-item"><i class="bi bi-chat-dots-fill"></i> Chat</a><a href="camaras.html" class="nav-item"><i class="bi bi-camera-video-fill"></i> Cámaras</a><a href="autorizados.html" class="nav-item"><i class="bi bi-person-check-fill"></i> Autorizados</a><a href="vetos.html" class="nav-item"><i class="bi bi-shield-x"></i> Vetos</a><a href="emergencias.html" class="nav-item"><i class="bi bi-telephone-fill"></i> Emergencias</a><a href="seguridad.html" class="nav-item"><i class="bi bi-shield-lock-fill"></i> Seguridad</a><a href="perfil.html" class="nav-item"><i class="bi bi-person-circle"></i> Perfil</a><a href="config.html" class="nav-item"><i class="bi bi-gear-fill"></i> Configuración</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><a href="notificaciones.html" class="icon-btn" id="bellLink"><i class="bi bi-bell"></i><span class="dot" id="bellDot"></span></a><a href="perfil.html" class="topnav-user"><div class="av">VG</div><span class="uname">Usuario</span></a><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside>
 
-  <!-- ============ MAIN ============ -->
-  <div class="main">
-    <div class="content">
-      <div class="page">
-        <div class="dash-hero bracket">
-          <span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span>
-          <div class="dash-hero-bg"></div>
-          <div class="dash-hero-scan"></div>
-          <div class="dash-hero-glow"></div>
-          <div class="dash-hero-content">
-            <span class="mono-tag">TORRE B · DEPTO 402</span>
-            <h1>Hola, <em>Jorge.</em></h1>
-            <p>Esto es lo que está pasando en tu residencial hoy: 3 visitas programadas, 1 incidencia en revisión y todo lo demás en orden.</p>
-            <div class="dash-hero-actions">
-              <a href="visitas.html" class="btn btn-solid"><i class="bi bi-plus-lg"></i> Autorizar visita</a>
-              <a href="incidencias.html" class="btn btn-ghost"><i class="bi bi-flag-fill"></i> Reportar incidencia</a>
-            </div>
-          </div>
-        </div>
 
-        <div class="grid-2">
-          <div class="panel">
-            <div class="panel-head"><h3>Accesos de la semana</h3><a href="accesos.html">VER TODO</a></div>
-            <div class="chart-wrap"><canvas id="accessChart"></canvas></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h3>Julio 2026</h3><span class="mono" style="font-size:.7rem;color:var(--mist)">Torre B</span></div>
-            <div class="mini-cal">
-              <div class="mini-cal-grid">
-                <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-                <span class="day muted">29</span><span class="day muted">30</span><span class="day">1</span><span class="day">2</span><span class="day">3</span><span class="day">4</span><span class="day">5</span>
-                <span class="day">6</span><span class="day">7</span><span class="day">8</span><span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day">12</span>
-                <span class="day">13</span><span class="day">14</span><span class="day">15</span><span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day event">19</span>
-                <span class="day today">19</span>
-              </div>
-            </div>
-            <div class="quick-actions">
-              <a href="visitas.html" class="btn btn-ghost"><i class="bi bi-calendar-plus"></i> Agendar visita</a>
-              <a href="incidencias.html" class="btn btn-ghost"><i class="bi bi-flag-fill"></i> Reportar incidencia</a>
-            </div>
-          </div>
-        </div>
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
 
-        <div class="grid-2" style="margin-top:1.3rem;">
-          <div class="panel">
-            <div class="panel-head"><h3>Actividad reciente</h3></div>
-            <div class="activity-item">
-              <span class="ic ok"><i class="bi bi-qr-code-scan"></i></span>
-              <div class="txt">Tu visita <b>María Flores</b> ingresó por el portón principal<small>Hace 22 minutos</small></div>
-            </div>
-            <div class="activity-item">
-              <span class="ic warn"><i class="bi bi-exclamation-triangle-fill"></i></span>
-              <div class="txt">Reportaste una incidencia: <b>Luminaria dañada — pasillo B3</b><small>Ayer, 8:40 PM</small></div>
-            </div>
-            <div class="activity-item">
-              <span class="ic ok"><i class="bi bi-car-front-fill"></i></span>
-              <div class="txt">Vehículo autorizado <b>HN-4521</b> verificado en portón vehicular<small>Ayer, 6:12 PM</small></div>
-            </div>
-            <div class="activity-item">
-              <span class="ic alert"><i class="bi bi-shield-x"></i></span>
-              <div class="txt">Intento de acceso no autorizado fue bloqueado por el guardia<small>Lunes, 11:03 PM</small></div>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h3>Próxima visita</h3></div>
-            <div style="display:flex;flex-direction:column;gap:.9rem;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div><b style="font-family:var(--f-display);color:var(--bone);font-size:1.05rem;">María Flores</b><div class="mono" style="font-size:.72rem;color:var(--mist);margin-top:.2rem;">Hoy · 4:30 PM</div></div>
-                <span class="badge ok">CONFIRMADA</span>
-              </div>
-              <div style="border-top:1px solid var(--line);padding-top:.9rem;font-size:.85rem;color:var(--bone-dim);line-height:1.6;">
-                Código de acceso: <b class="mono" id="nextVisitCode" style="color:var(--accent);">VG-2291</b><br>
-                Vehículo: HN-8832 · Motivo: Visita familiar
-              </div>
-              <button type="button" class="btn btn-ghost" style="justify-content:center;" id="shareCodeBtn"><i class="bi bi-share-fill"></i> Compartir código</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<aside class="sidebar">
+
+
+<a
+  href="dashboard.html"
+  class="sidebar-logo">
+
+VIGIA
+
+</a>
+
+
+<nav class="sidebar-nav">
+
+<a
+  href="dashboard.html"
+  class="nav-item active">
+
+Dashboard
+
+</a>
+
+
+<a
+  href="visitas.html"
+  class="nav-item">
+
+Mis visitas
+
+</a>
+
+
+<a
+  href="accesos.html"
+  class="nav-item">
+
+Mis accesos
+
+</a>
+
+
+<a
+  href="incidencias.html"
+  class="nav-item">
+
+Incidencias
+
+</a>
+
+
+<a
+  href="notificaciones.html"
+  class="nav-item">
+
+Notificaciones
+
+</a>
+
+
+<a
+  href="comunidad.html"
+  class="nav-item">
+
+Comunidad
+
+</a>
+
+
+<a
+  href="chat.html"
+  class="nav-item">
+
+Chat
+
+</a>
+
+
+<a
+  href="camaras.html"
+  class="nav-item">
+
+Cámaras
+
+</a>
+
+
+<a
+  href="autorizados.html"
+  class="nav-item">
+
+Autorizados
+
+</a>
+
+
+<a
+  href="vetos.html"
+  class="nav-item">
+
+Vetos
+
+</a>
+
+
+<a
+  href="emergencias.html"
+  class="nav-item">
+
+Emergencias
+
+</a>
+
+
+<a
+  href="seguridad.html"
+  class="nav-item">
+
+Seguridad
+
+</a>
+
+
+<a
+  href="perfil.html"
+  class="nav-item">
+
+Perfil
+
+</a>
+
+
+<a
+  href="config.html"
+  class="nav-item">
+
+Configuración
+
+</a>
+
+</nav>
+
+
+<div class="sidebar-footer">
+
+
+<div class="sidebar-footer-clean">
+
+
+<span
+  class="live-clock mono"
+  id="clock">
+
+VIGIA · 00:00:00
+
+</span>
+
+
+<div class="sidebar-user-clean">
+
+<div class="av">
+
+VG
+
 </div>
 
-<script src="js/common.js"></script>
-<script src="js/dashboard.js"></script>
-<script>
-const ctx=document.getElementById('accessChart');
-if(ctx){
-  new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
-      datasets:[{
-        data:[3,5,2,6,4,8,3],
-        backgroundColor:'#12E8A0',
-        borderRadius:6,
-        maxBarThickness:26
-      }]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{display:false},ticks:{color:'#B9B2A0',font:{family:'Space Mono',size:10}}},
-        y:{grid:{color:'rgba(237,231,214,0.08)'},ticks:{color:'#B9B2A0',font:{family:'Space Mono',size:10}}}
-      }
-    }
-  });
-}
+<span class="uname">
+
+Usuario
+
+</span>
+
+</div>
+
+
+<div class="sidebar-footer-links">
+
+
+<a
+  href="notificaciones.html"
+  class="sidebar-text-link">
+
+Avisos
+
+</a>
+
+
+<button
+  type="button"
+  class="sidebar-text-btn"
+  id="vgLogoutBtn">
+
+Salir
+
+</button>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</aside>
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<div class="main">
+
+<div class="content">
+
+<div class="page">
+
+
+<!-- =====================================================
+     HERO
+===================================================== -->
+
+<div class="dash-hero bracket">
+
+
+<span class="cn tl"></span>
+<span class="cn tr"></span>
+<span class="cn bl"></span>
+<span class="cn br"></span>
+
+
+<div class="dash-hero-bg"></div>
+
+<div class="dash-hero-scan"></div>
+
+<div class="dash-hero-glow"></div>
+
+
+<div class="dash-hero-content">
+
+
+<span
+  class="mono-tag"
+  id="residentUnitTag">
+
+TU RESIDENCIAL
+
+</span>
+
+
+<h1 id="dashboardGreeting">
+
+Hola,
+
+<em>Usuario.</em>
+
+</h1>
+
+
+<p id="dashboardSummary">
+
+Consultando la actividad de tu cuenta...
+
+</p>
+
+
+<div class="dash-hero-actions">
+
+
+<a
+  href="visitas.html"
+  class="
+    btn
+    btn-solid
+    btn-with-svg
+  ">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<circle
+  cx="9"
+  cy="8"
+  r="3">
+</circle>
+
+<path
+  d="M3 20C3 16.5 5.5 14 9 14">
+</path>
+
+<path d="M18 8V14"></path>
+
+<path d="M15 11H21"></path>
+
+</svg>
+
+
+Autorizar visita
+
+
+</a>
+
+
+<a
+  href="incidencias.html"
+  class="
+    btn
+    btn-ghost
+    btn-with-svg
+  ">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<path
+  d="M12 3L21 19H3Z">
+</path>
+
+<path d="M12 9V13"></path>
+
+<path d="M12 17H12.01"></path>
+
+</svg>
+
+
+Reportar incidencia
+
+
+</a>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<!-- =====================================================
+     FILA SUPERIOR
+===================================================== -->
+
+<div class="dashboard-main-grid">
+
+
+<!-- =====================================================
+     ACCESOS RAPIDOS
+===================================================== -->
+
+<div
+  class="
+    panel
+    quick-access-panel
+    dashboard-first-panel
+  ">
+
+
+<div class="panel-head">
+
+
+<h3 class="panel-title-icon">
+
+
+<span class="title-icon">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<path
+  d="M13 2L4.5 13H11L10 22L19.5 10H13Z">
+</path>
+
+</svg>
+
+
+</span>
+
+
+Accesos rápidos
+
+
+</h3>
+
+
+<span
+  class="mono"
+  style="
+    font-size:.62rem;
+    color:var(--mist);
+  ">
+
+VIGIA
+
+</span>
+
+
+</div>
+
+
+<div class="quick-access-grid">
+
+
+<!-- AGENDAR -->
+
+<a
+  href="visitas.html"
+  class="quick-access-card">
+
+
+<span class="quick-access-icon">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<circle
+  cx="9"
+  cy="8"
+  r="3">
+</circle>
+
+<path
+  d="M3 20C3 16.5 5.5 14 9 14">
+</path>
+
+<path d="M18 8V14"></path>
+
+<path d="M15 11H21"></path>
+
+</svg>
+
+
+</span>
+
+
+<div class="quick-access-content">
+
+<b>
+
+Agendar visita
+
+</b>
+
+<small>
+
+Autoriza una nueva entrada a tu residencial.
+
+</small>
+
+</div>
+
+
+<svg
+  class="
+    dashboard-svg
+    quick-arrow
+  "
+  viewBox="0 0 24 24">
+
+<path d="M7 17L17 7"></path>
+
+<path d="M9 7H17V15"></path>
+
+</svg>
+
+
+</a>
+
+
+<!-- ACCESOS -->
+
+<a
+  href="accesos.html"
+  class="quick-access-card">
+
+
+<span
+  class="
+    quick-access-icon
+    purple
+  ">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<path
+  d="M12 3A6 6 0 0 0 6 9">
+</path>
+
+<path
+  d="M18 9A6 6 0 0 0 12 3">
+</path>
+
+<path
+  d="M8 11V13A4 4 0 0 0 12 17">
+</path>
+
+<path d="M16 11V13"></path>
+
+<path
+  d="M12 8A2 2 0 0 0 10 10V13">
+</path>
+
+</svg>
+
+
+</span>
+
+
+<div class="quick-access-content">
+
+<b>
+
+Mis accesos
+
+</b>
+
+<small>
+
+Consulta tus entradas y salidas registradas.
+
+</small>
+
+</div>
+
+
+<svg
+  class="
+    dashboard-svg
+    quick-arrow
+  "
+  viewBox="0 0 24 24">
+
+<path d="M7 17L17 7"></path>
+
+<path d="M9 7H17V15"></path>
+
+</svg>
+
+
+</a>
+
+
+<!-- INCIDENCIA -->
+
+<a
+  href="incidencias.html"
+  class="quick-access-card">
+
+
+<span
+  class="
+    quick-access-icon
+    warn
+  ">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<path
+  d="M12 3L21 19H3Z">
+</path>
+
+<path d="M12 9V13"></path>
+
+<path d="M12 17H12.01"></path>
+
+</svg>
+
+
+</span>
+
+
+<div class="quick-access-content">
+
+<b>
+
+Reportar incidencia
+
+</b>
+
+<small>
+
+Informa rápidamente un problema de seguridad.
+
+</small>
+
+</div>
+
+
+<svg
+  class="
+    dashboard-svg
+    quick-arrow
+  "
+  viewBox="0 0 24 24">
+
+<path d="M7 17L17 7"></path>
+
+<path d="M9 7H17V15"></path>
+
+</svg>
+
+
+</a>
+
+
+<!-- CAMARAS -->
+
+<a
+  href="camaras.html"
+  class="quick-access-card">
+
+
+<span
+  class="
+    quick-access-icon
+    blue
+  ">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<rect
+  x="3"
+  y="6"
+  width="13"
+  height="12"
+  rx="2">
+</rect>
+
+<path
+  d="M16 10L21 7V17L16 14Z">
+</path>
+
+</svg>
+
+
+</span>
+
+
+<div class="quick-access-content">
+
+<b>
+
+Ver cámaras
+
+</b>
+
+<small>
+
+Consulta las cámaras disponibles del sistema.
+
+</small>
+
+</div>
+
+
+<svg
+  class="
+    dashboard-svg
+    quick-arrow
+  "
+  viewBox="0 0 24 24">
+
+<path d="M7 17L17 7"></path>
+
+<path d="M9 7H17V15"></path>
+
+</svg>
+
+
+</a>
+
+
+</div>
+
+
+</div>
+
+
+<!-- =====================================================
+     CALENDARIO
+===================================================== -->
+
+<div
+  class="
+    panel
+    dashboard-calendar-panel
+  ">
+
+
+<div class="panel-head">
+
+
+<h3
+  class="panel-title-icon"
+  id="calendarTitle">
+
+
+<span class="title-icon">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<rect
+  x="3"
+  y="5"
+  width="18"
+  height="16"
+  rx="2">
+</rect>
+
+<path d="M16 3V7"></path>
+
+<path d="M8 3V7"></path>
+
+<path d="M3 10H21"></path>
+
+</svg>
+
+
+</span>
+
+
+Calendario
+
+
+</h3>
+
+
+<span
+  class="mono"
+  id="calendarUnit"
+  style="
+    font-size:.62rem;
+    color:var(--mist);
+  ">
+
+Tu unidad
+
+</span>
+
+
+</div>
+
+
+<div class="calendar-content">
+
+
+<div class="mini-cal">
+
+
+<div
+  class="mini-cal-grid"
+  id="miniCalendar">
+</div>
+
+
+</div>
+
+
+<div class="calendar-actions">
+
+
+<a
+  href="visitas.html"
+  class="
+    btn
+    btn-ghost
+    btn-with-svg
+  ">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<rect
+  x="3"
+  y="5"
+  width="18"
+  height="16"
+  rx="2">
+</rect>
+
+<path d="M8 3V7"></path>
+
+<path d="M16 3V7"></path>
+
+<path d="M3 10H21"></path>
+
+<path d="M12 13V18"></path>
+
+<path
+  d="M9.5 15.5H14.5">
+</path>
+
+</svg>
+
+
+Agendar visita
+
+
+</a>
+
+
+<a
+  href="incidencias.html"
+  class="
+    btn
+    btn-ghost
+    btn-with-svg
+  ">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<path
+  d="M12 3L21 19H3Z">
+</path>
+
+<path d="M12 9V13"></path>
+
+<path d="M12 17H12.01"></path>
+
+</svg>
+
+
+Reportar incidencia
+
+
+</a>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<!-- =====================================================
+     FILA INFERIOR
+===================================================== -->
+
+<div class="dashboard-bottom-grid">
+
+
+<!-- ACTIVIDAD -->
+
+<div
+  class="
+    panel
+    dashboard-activity-panel
+  ">
+
+
+<div class="panel-head">
+
+
+<h3 class="panel-title-icon">
+
+
+<span class="title-icon">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<circle
+  cx="12"
+  cy="12"
+  r="9">
+</circle>
+
+<path
+  d="M12 7V12L15 14">
+</path>
+
+</svg>
+
+
+</span>
+
+
+Actividad reciente
+
+
+</h3>
+
+
+</div>
+
+
+<div id="recentActivity">
+
+
+<div class="dashboard-empty">
+
+
+<span class="empty-icon">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<circle
+  cx="12"
+  cy="12"
+  r="9">
+</circle>
+
+<path
+  d="M12 7V12L15 14">
+</path>
+
+</svg>
+
+
+</span>
+
+
+<span>
+
+Cargando actividad...
+
+</span>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<!-- PROXIMA VISITA -->
+
+<div
+  class="
+    panel
+    dashboard-next-panel
+  ">
+
+
+<div class="panel-head">
+
+
+<h3 class="panel-title-icon">
+
+
+<span class="title-icon">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<circle
+  cx="9"
+  cy="8"
+  r="3">
+</circle>
+
+<path
+  d="M3 20C3 16.5 5.5 14 9 14">
+</path>
+
+<path
+  d="M15 16L17 18L21 13">
+</path>
+
+</svg>
+
+
+</span>
+
+
+Próxima visita
+
+
+</h3>
+
+
+</div>
+
+
+<div id="nextVisitPanel">
+
+
+<div class="dashboard-empty">
+
+
+<span class="empty-icon">
+
+
+<svg
+  class="dashboard-svg"
+  viewBox="0 0 24 24">
+
+<rect
+  x="3"
+  y="5"
+  width="18"
+  height="16"
+  rx="2">
+</rect>
+
+<path d="M8 3V7"></path>
+
+<path d="M16 3V7"></path>
+
+<path d="M3 10H21"></path>
+
+<path
+  d="M9 15L11 17L15 13">
+</path>
+
+</svg>
+
+
+</span>
+
+
+<span>
+
+Buscando próxima visita...
+
+</span>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script
+  src="js/common.js?v=20260809-5">
 </script>
+
+
+<script>
+
+(function(){
+
+"use strict";
+
+
+/* =====================================================
+   API
+===================================================== */
+
+if(
+  typeof VigiaAPI ===
+  "undefined"
+){
+
+  console.error(
+    "No se pudo cargar VigiaAPI."
+  );
+
+  return;
+
+}
+
+
+const session =
+  VigiaAPI.getSession();
+
+
+if(!session){
+
+  location.replace(
+    "login.html"
+  );
+
+  return;
+
+}
+
+
+/* =====================================================
+   SVG DINAMICOS
+===================================================== */
+
+function iconoSVG(tipo){
+
+  const iconos = {
+
+
+    reloj: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7V12L15 14"></path>
+      </svg>
+    `,
+
+
+    visita: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <circle cx="9" cy="8" r="3"></circle>
+        <path d="M3 20C3 16.5 5.5 14 9 14"></path>
+        <path d="M15 16L17 18L21 13"></path>
+      </svg>
+    `,
+
+
+    entrada: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <path d="M12 3A6 6 0 0 0 6 9"></path>
+        <path d="M18 9A6 6 0 0 0 12 3"></path>
+        <path d="M8 11V13A4 4 0 0 0 12 17"></path>
+        <path d="M16 11V13"></path>
+        <path d="M12 8A2 2 0 0 0 10 10V13"></path>
+      </svg>
+    `,
+
+
+    salida: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <path d="M10 5H5V19H10"></path>
+        <path d="M13 8L17 12L13 16"></path>
+        <path d="M8 12H17"></path>
+      </svg>
+    `,
+
+
+    incidencia: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <path d="M12 3L21 19H3Z"></path>
+        <path d="M12 9V13"></path>
+        <path d="M12 17H12.01"></path>
+      </svg>
+    `,
+
+
+    persona: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3"></circle>
+        <path d="M5 20C5 16.5 7.8 14 12 14C16.2 14 19 16.5 19 20"></path>
+      </svg>
+    `,
+
+
+    qr: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="6" height="6"></rect>
+        <rect x="15" y="3" width="6" height="6"></rect>
+        <rect x="3" y="15" width="6" height="6"></rect>
+        <path d="M15 15H18V18H15Z"></path>
+        <path d="M18 18H21V21"></path>
+        <path d="M15 21H18"></path>
+      </svg>
+    `,
+
+
+    motivo: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+        <path d="M8 9H16"></path>
+        <path d="M8 13H16"></path>
+        <path d="M8 17H13"></path>
+      </svg>
+    `,
+
+
+    compartir: `
+      <svg class="dashboard-svg" viewBox="0 0 24 24">
+        <circle cx="18" cy="5" r="2"></circle>
+        <circle cx="6" cy="12" r="2"></circle>
+        <circle cx="18" cy="19" r="2"></circle>
+        <path d="M8 11L16 6"></path>
+        <path d="M8 13L16 18"></path>
+      </svg>
+    `
+
+  };
+
+
+  return iconos[tipo] || "";
+
+}
+
+
+/* =====================================================
+   UTILIDADES
+===================================================== */
+
+const $ =
+  selector =>
+    document.querySelector(
+      selector
+    );
+
+
+const MESES = [
+
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre"
+
+];
+
+
+function escapeHtml(valor){
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  div.textContent =
+    valor == null
+      ? ""
+      : String(valor);
+
+  return div.innerHTML;
+
+}
+
+
+function arregloRespuesta(respuesta){
+
+  if(!respuesta){
+    return [];
+  }
+
+  if(
+    Array.isArray(
+      respuesta
+    )
+  ){
+    return respuesta;
+  }
+
+  if(
+    Array.isArray(
+      respuesta.data
+    )
+  ){
+    return respuesta.data;
+  }
+
+  if(
+    respuesta.data &&
+    Array.isArray(
+      respuesta.data.rows
+    )
+  ){
+    return respuesta.data.rows;
+  }
+
+  if(
+    Array.isArray(
+      respuesta.rows
+    )
+  ){
+    return respuesta.rows;
+  }
+
+  return [];
+
+}
+
+
+/* =====================================================
+   USUARIO
+===================================================== */
+
+function obtenerNombreCompleto(){
+
+  if(
+    session.nombre_completo
+  ){
+
+    return session.nombre_completo;
+
+  }
+
+
+  const partes = [
+
+    session.nombre,
+
+    session.apellido
+
+  ].filter(Boolean);
+
+
+  if(partes.length){
+
+    return partes.join(" ");
+
+  }
+
+
+  if(session.name){
+
+    return session.name;
+
+  }
+
+
+  if(session.email){
+
+    return session.email
+      .split("@")[0];
+
+  }
+
+
+  return "Usuario";
+
+}
+
+
+function obtenerPrimerNombre(){
+
+  const nombre =
+
+    session.nombre ||
+
+    obtenerNombreCompleto();
+
+
+  return String(nombre)
+    .trim()
+    .split(/\s+/)[0] ||
+    "Usuario";
+
+}
+
+
+function obtenerUnidad(){
+
+  return(
+
+    session.unidad ||
+
+    session.numero_vivienda ||
+
+    session.bloque_torre ||
+
+    session.vivienda ||
+
+    session.apartamento ||
+
+    "Tu unidad"
+
+  );
+
+}
+
+
+function colocarDatosUsuario(){
+
+  const nombreCompleto =
+    obtenerNombreCompleto();
+
+
+  const primerNombre =
+    obtenerPrimerNombre();
+
+
+  const greeting =
+    $("#dashboardGreeting");
+
+
+  if(greeting){
+
+    greeting.innerHTML =
+
+      `Hola, <em>${
+        escapeHtml(
+          primerNombre
+        )
+      }.</em>`;
+
+  }
+
+
+  document
+    .querySelectorAll(
+      ".sidebar-user-clean .uname"
+    )
+    .forEach(
+      elemento => {
+
+        elemento.textContent =
+          nombreCompleto;
+
+      }
+    );
+
+
+  const iniciales =
+    nombreCompleto
+
+      .split(/\s+/)
+
+      .filter(Boolean)
+
+      .slice(0,2)
+
+      .map(
+        nombre =>
+          nombre.charAt(0)
+      )
+
+      .join("")
+
+      .toUpperCase();
+
+
+  document
+    .querySelectorAll(
+      ".sidebar-user-clean .av"
+    )
+    .forEach(
+      elemento => {
+
+        elemento.textContent =
+          iniciales || "VG";
+
+      }
+    );
+
+
+  const unidad =
+    obtenerUnidad();
+
+
+  const calendarUnit =
+    $("#calendarUnit");
+
+
+  if(calendarUnit){
+
+    calendarUnit.textContent =
+      unidad;
+
+  }
+
+
+  const tag =
+    $("#residentUnitTag");
+
+
+  if(tag){
+
+    const residencial =
+
+      session.residencial_nombre ||
+
+      session.residencial ||
+
+      "";
+
+
+    const partes = [
+
+      unidad !== "Tu unidad"
+        ? unidad
+        : null,
+
+      residencial
+
+    ].filter(Boolean);
+
+
+    tag.textContent =
+
+      partes.length
+
+        ? partes
+            .join(" · ")
+            .toUpperCase()
+
+        : "TU RESIDENCIAL";
+
+  }
+
+}
+
+
+/* =====================================================
+   ACCESOS
+===================================================== */
+
+async function cargarAccesos(){
+
+  const rutas = [
+
+    "/accesos/mios?limit=100",
+
+    "/accesos?limit=100&sort=fecha_hora:desc"
+
+  ];
+
+
+  for(
+    const ruta of rutas
+  ){
+
+    try{
+
+      const respuesta =
+        await VigiaAPI.request(
+          ruta
+        );
+
+
+      let datos =
+        arregloRespuesta(
+          respuesta
+        );
+
+
+      if(
+        ruta.startsWith(
+          "/accesos?"
+        ) &&
+        session.id
+      ){
+
+        const conUsuario =
+          datos.filter(
+            x =>
+              x.usuario_id != null
+          );
+
+
+        if(conUsuario.length){
+
+          datos =
+            conUsuario.filter(
+
+              x =>
+                String(
+                  x.usuario_id
+                ) ===
+                String(
+                  session.id
+                )
+
+            );
+
+        }
+
+      }
+
+
+      return datos;
+
+    }
+
+    catch(error){
+
+      console.warn(
+        `No disponible ${ruta}`,
+        error
+      );
+
+    }
+
+  }
+
+
+  return [];
+
+}
+
+
+/* =====================================================
+   INVITACIONES
+===================================================== */
+
+async function cargarInvitaciones(){
+
+  const rutas = [
+
+    "/invitaciones/mias?limit=100",
+
+    "/invitaciones?limit=100&sort=fecha_valida_desde:asc"
+
+  ];
+
+
+  for(
+    const ruta of rutas
+  ){
+
+    try{
+
+      const respuesta =
+        await VigiaAPI.request(
+          ruta
+        );
+
+
+      let datos =
+        arregloRespuesta(
+          respuesta
+        );
+
+
+      if(
+        session.id &&
+        datos.some(
+          x =>
+            x.residente_id != null
+        )
+      ){
+
+        datos =
+          datos.filter(
+
+            x =>
+              String(
+                x.residente_id
+              ) ===
+              String(
+                session.id
+              )
+
+          );
+
+      }
+
+
+      return datos;
+
+    }
+
+    catch(error){
+
+      console.warn(
+        `No disponible ${ruta}`,
+        error
+      );
+
+    }
+
+  }
+
+
+  return [];
+
+}
+
+
+/* =====================================================
+   INCIDENCIAS
+===================================================== */
+
+async function cargarIncidencias(){
+
+  const rutas = [
+
+    "/incidencias/mias?limit=50",
+
+    "/incidencias?limit=50"
+
+  ];
+
+
+  for(
+    const ruta of rutas
+  ){
+
+    try{
+
+      const respuesta =
+        await VigiaAPI.request(
+          ruta
+        );
+
+
+      let datos =
+        arregloRespuesta(
+          respuesta
+        );
+
+
+      if(session.id){
+
+        const tieneUsuario =
+          datos.some(
+            x =>
+              x.usuario_id != null
+          );
+
+
+        const tieneResidente =
+          datos.some(
+            x =>
+              x.residente_id != null
+          );
+
+
+        if(tieneUsuario){
+
+          datos =
+            datos.filter(
+
+              x =>
+                String(
+                  x.usuario_id
+                ) ===
+                String(
+                  session.id
+                )
+
+            );
+
+        }
+
+        else if(
+          tieneResidente
+        ){
+
+          datos =
+            datos.filter(
+
+              x =>
+                String(
+                  x.residente_id
+                ) ===
+                String(
+                  session.id
+                )
+
+            );
+
+        }
+
+      }
+
+
+      return datos;
+
+    }
+
+    catch(error){
+
+      console.warn(
+        `No disponible ${ruta}`,
+        error
+      );
+
+    }
+
+  }
+
+
+  return [];
+
+}
+
+
+/* =====================================================
+   SEMANA
+===================================================== */
+
+function inicioSemana(){
+
+  const hoy =
+    new Date();
+
+
+  hoy.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  const diferencia =
+    (
+      hoy.getDay() +
+      6
+    ) % 7;
+
+
+  hoy.setDate(
+
+    hoy.getDate() -
+    diferencia
+
+  );
+
+
+  return hoy;
+
+}
+
+
+/* =====================================================
+   CALENDARIO
+===================================================== */
+
+function renderizarCalendario(
+  invitaciones
+){
+
+  const grid =
+    $("#miniCalendar");
+
+
+  const titulo =
+    $("#calendarTitle");
+
+
+  if(!grid){
+
+    return;
+
+  }
+
+
+  const hoy =
+    new Date();
+
+
+  const anio =
+    hoy.getFullYear();
+
+
+  const mes =
+    hoy.getMonth();
+
+
+  if(titulo){
+
+    titulo.innerHTML = `
+
+      <span class="title-icon">
+
+        <svg
+          class="dashboard-svg"
+          viewBox="0 0 24 24">
+
+          <rect
+            x="3"
+            y="5"
+            width="18"
+            height="16"
+            rx="2">
+          </rect>
+
+          <path d="M16 3V7"></path>
+
+          <path d="M8 3V7"></path>
+
+          <path d="M3 10H21"></path>
+
+        </svg>
+
+      </span>
+
+      ${MESES[mes]} ${anio}
+
+    `;
+
+  }
+
+
+  const eventos =
+    new Set();
+
+
+  invitaciones.forEach(
+    invitacion => {
+
+      const valor =
+
+        invitacion.fecha_valida_desde ||
+
+        invitacion.fecha_inicio ||
+
+        invitacion.fecha_visita;
+
+
+      if(!valor){
+
+        return;
+
+      }
+
+
+      const fecha =
+        new Date(valor);
+
+
+      if(
+        Number.isNaN(
+          fecha.getTime()
+        )
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        fecha.getFullYear() ===
+          anio &&
+
+        fecha.getMonth() ===
+          mes
+      ){
+
+        eventos.add(
+          fecha.getDate()
+        );
+
+      }
+
+    }
+  );
+
+
+  let html = `
+
+    <span>L</span>
+    <span>M</span>
+    <span>M</span>
+    <span>J</span>
+    <span>V</span>
+    <span>S</span>
+    <span>D</span>
+
+  `;
+
+
+  const primerDia =
+    new Date(
+      anio,
+      mes,
+      1
+    );
+
+
+  const offset =
+    (
+      primerDia.getDay() +
+      6
+    ) % 7;
+
+
+  const diasMes =
+    new Date(
+      anio,
+      mes + 1,
+      0
+    ).getDate();
+
+
+  const diasMesAnterior =
+    new Date(
+      anio,
+      mes,
+      0
+    ).getDate();
+
+
+  for(
+    let i = offset - 1;
+    i >= 0;
+    i--
+  ){
+
+    html += `
+
+      <span class="day muted">
+
+        ${
+          diasMesAnterior -
+          i
+        }
+
+      </span>
+
+    `;
+
+  }
+
+
+  for(
+    let dia = 1;
+    dia <= diasMes;
+    dia++
+  ){
+
+    const clases =
+      ["day"];
+
+
+    if(
+      dia ===
+      hoy.getDate()
+    ){
+
+      clases.push(
+        "today"
+      );
+
+    }
+
+
+    if(
+      eventos.has(dia)
+    ){
+
+      clases.push(
+        "event"
+      );
+
+    }
+
+
+    html += `
+
+      <span
+        class="${
+          clases.join(" ")
+        }">
+
+        ${dia}
+
+      </span>
+
+    `;
+
+  }
+
+
+  const usados =
+    offset +
+    diasMes;
+
+
+  const total =
+    usados <= 35
+      ? 35
+      : 42;
+
+
+  const restantes =
+    total -
+    usados;
+
+
+  for(
+    let dia = 1;
+    dia <= restantes;
+    dia++
+  ){
+
+    html += `
+
+      <span class="day muted">
+
+        ${dia}
+
+      </span>
+
+    `;
+
+  }
+
+
+  grid.innerHTML =
+    html;
+
+}
+
+
+/* =====================================================
+   FECHAS
+===================================================== */
+
+function tiempoRelativo(
+  valor
+){
+
+  const fecha =
+    new Date(valor);
+
+
+  if(
+    Number.isNaN(
+      fecha.getTime()
+    )
+  ){
+
+    return "";
+
+  }
+
+
+  const diferencia =
+    Date.now() -
+    fecha.getTime();
+
+
+  if(diferencia < 0){
+
+    return fecha.toLocaleString(
+      "es-HN",
+      {
+        day:"numeric",
+        month:"short",
+        hour:"numeric",
+        minute:"2-digit"
+      }
+    );
+
+  }
+
+
+  const minutos =
+    Math.floor(
+      diferencia /
+      60000
+    );
+
+
+  if(minutos < 1){
+
+    return "Ahora";
+
+  }
+
+
+  if(minutos < 60){
+
+    return `Hace ${minutos} min`;
+
+  }
+
+
+  const horas =
+    Math.floor(
+      minutos /
+      60
+    );
+
+
+  if(horas < 24){
+
+    return `Hace ${horas} h`;
+
+  }
+
+
+  const dias =
+    Math.floor(
+      horas /
+      24
+    );
+
+
+  if(dias === 1){
+
+    return "Hace 1 día";
+
+  }
+
+
+  if(dias < 7){
+
+    return `Hace ${dias} días`;
+
+  }
+
+
+  return fecha.toLocaleDateString(
+    "es-HN",
+    {
+      day:"numeric",
+      month:"short"
+    }
+  );
+
+}
+
+
+function formatearFechaActividad(
+  valor
+){
+
+  const fecha =
+    new Date(valor);
+
+
+  if(
+    Number.isNaN(
+      fecha.getTime()
+    )
+  ){
+
+    return "";
+
+  }
+
+
+  return fecha.toLocaleString(
+    "es-HN",
+    {
+      day:"numeric",
+      month:"short",
+      hour:"numeric",
+      minute:"2-digit"
+    }
+  );
+
+}
+
+
+/* =====================================================
+   ACTIVIDAD
+===================================================== */
+
+function renderizarActividad(
+  accesos,
+  invitaciones,
+  incidencias
+){
+
+  const contenedor =
+    $("#recentActivity");
+
+
+  if(!contenedor){
+
+    return;
+
+  }
+
+
+  const actividades =
+    [];
+
+
+  invitaciones.forEach(
+    invitacion => {
+
+      const fecha =
+
+        invitacion.fecha_creacion ||
+
+        invitacion.created_at ||
+
+        invitacion.fecha_valida_desde;
+
+
+      if(!fecha){
+
+        return;
+
+      }
+
+
+      const nombre =
+
+        invitacion.nombre_evento ||
+
+        invitacion.visitante_nombre ||
+
+        invitacion.nombre_visitante ||
+
+        "Visitante";
+
+
+      const fechaVisita =
+
+        invitacion.fecha_valida_desde ||
+
+        invitacion.fecha_visita;
+
+
+      actividades.push({
+
+        fecha,
+
+        clase:"visit",
+
+        icono:"visita",
+
+        titulo:
+          `Agendaste una visita para ${nombre}`,
+
+        detalle:
+          fechaVisita
+            ? `Programada para ${
+                formatearFechaActividad(
+                  fechaVisita
+                )
+              }`
+            : "Visita registrada"
+
+      });
+
+    }
+  );
+
+
+  accesos.forEach(
+    acceso => {
+
+      const fecha =
+
+        acceso.fecha_hora ||
+
+        acceso.fecha_creacion ||
+
+        acceso.created_at;
+
+
+      if(!fecha){
+
+        return;
+
+      }
+
+
+      const movimiento =
+        String(
+
+          acceso.tipo_movimiento ||
+
+          acceso.tipo ||
+
+          "entrada"
+
+        ).toLowerCase();
+
+
+      const esSalida =
+        movimiento.includes(
+          "salida"
+        );
+
+
+      actividades.push({
+
+        fecha,
+
+        clase:"access",
+
+        icono:
+          esSalida
+            ? "salida"
+            : "entrada",
+
+        titulo:
+          esSalida
+            ? "Se registró una salida"
+            : "Se registró una entrada",
+
+        detalle:
+          acceso.modo_registro
+            ? `Método: ${
+                acceso.modo_registro
+              }`
+            : "Acceso registrado"
+
+      });
+
+    }
+  );
+
+
+  incidencias.forEach(
+    incidencia => {
+
+      const fecha =
+
+        incidencia.fecha_hora ||
+
+        incidencia.fecha_creacion ||
+
+        incidencia.created_at;
+
+
+      if(!fecha){
+
+        return;
+
+      }
+
+
+      const titulo =
+
+        incidencia.titulo ||
+
+        incidencia.tipo ||
+
+        incidencia.categoria ||
+
+        "Incidencia";
+
+
+      actividades.push({
+
+        fecha,
+
+        clase:"incident",
+
+        icono:"incidencia",
+
+        titulo:
+          `Reportaste una incidencia: ${titulo}`,
+
+        detalle:
+          incidencia.estado
+            ? `Estado: ${
+                incidencia.estado
+              }`
+            : "Incidencia registrada"
+
+      });
+
+    }
+  );
+
+
+  actividades.sort(
+
+    (a,b) =>
+
+      new Date(
+        b.fecha
+      ) -
+
+      new Date(
+        a.fecha
+      )
+
+  );
+
+
+  const recientes =
+    actividades.slice(
+      0,
+      4
+    );
+
+
+  if(
+    !recientes.length
+  ){
+
+    contenedor.innerHTML = `
+
+      <div class="dashboard-empty">
+
+        <span class="empty-icon">
+
+          ${iconoSVG("reloj")}
+
+        </span>
+
+        <span>
+
+          Aún no tienes actividad reciente.
+
+        </span>
+
+      </div>
+
+    `;
+
+
+    return;
+
+  }
+
+
+  contenedor.innerHTML =
+    recientes.map(
+      actividad => `
+
+        <div class="activity-item">
+
+          <span
+            class="
+              activity-icon
+              ${actividad.clase}
+            ">
+
+            ${
+              iconoSVG(
+                actividad.icono
+              )
+            }
+
+          </span>
+
+
+          <div class="txt">
+
+            <b>
+
+              ${
+                escapeHtml(
+                  actividad.titulo
+                )
+              }
+
+            </b>
+
+
+            <small>
+
+              ${
+                escapeHtml(
+                  actividad.detalle
+                )
+              }
+
+              ·
+
+              ${
+                escapeHtml(
+                  tiempoRelativo(
+                    actividad.fecha
+                  )
+                )
+              }
+
+            </small>
+
+          </div>
+
+        </div>
+
+      `
+    ).join("");
+
+}
+
+
+/* =====================================================
+   PROXIMA VISITA
+===================================================== */
+
+function renderizarProximaVisita(
+  invitaciones
+){
+
+  const contenedor =
+    $("#nextVisitPanel");
+
+
+  if(!contenedor){
+
+    return;
+
+  }
+
+
+  const ahora =
+    Date.now();
+
+
+  const proximas =
+    invitaciones
+
+      .filter(
+        invitacion => {
+
+
+          const inicio =
+            new Date(
+
+              invitacion.fecha_valida_desde ||
+
+              invitacion.fecha_visita ||
+
+              invitacion.fecha_inicio
+
+            ).getTime();
+
+
+          const hasta =
+            new Date(
+
+              invitacion.fecha_valida_hasta ||
+
+              invitacion.fecha_valida_desde ||
+
+              invitacion.fecha_visita
+
+            ).getTime();
+
+
+          const estado =
+            String(
+
+              invitacion.estado ||
+
+              ""
+
+            ).toLowerCase();
+
+
+          const anulada =
+            [
+
+              "cancelada",
+              "cancelado",
+              "expirada",
+              "expirado",
+              "rechazada",
+              "rechazado"
+
+            ].includes(
+              estado
+            );
+
+
+          return(
+
+            !anulada &&
+
+            (
+              inicio >= ahora ||
+
+              hasta >= ahora
+            )
+
+          );
+
+        }
+      )
+
+
+      .sort(
+        (a,b) =>
+
+          new Date(
+
+            a.fecha_valida_desde ||
+
+            a.fecha_visita
+
+          ) -
+
+          new Date(
+
+            b.fecha_valida_desde ||
+
+            b.fecha_visita
+
+          )
+
+      );
+
+
+  const visita =
+    proximas[0];
+
+
+  if(!visita){
+
+    contenedor.innerHTML = `
+
+      <div class="dashboard-empty">
+
+        <span class="empty-icon">
+
+          ${iconoSVG("visita")}
+
+        </span>
+
+        <span>
+
+          No tienes visitas próximas programadas.
+
+        </span>
+
+      </div>
+
+    `;
+
+
+    return;
+
+  }
+
+
+  const nombre =
+
+    visita.nombre_evento ||
+
+    visita.visitante_nombre ||
+
+    visita.nombre_visitante ||
+
+    visita.nombre ||
+
+    "Visita programada";
+
+
+  const fechaValor =
+
+    visita.fecha_valida_desde ||
+
+    visita.fecha_visita ||
+
+    visita.fecha_inicio;
+
+
+  const fecha =
+    new Date(
+      fechaValor
+    );
+
+
+  const fechaTexto =
+
+    Number.isNaN(
+      fecha.getTime()
+    )
+
+      ? "Fecha pendiente"
+
+      : fecha.toLocaleString(
+
+          "es-HN",
+
+          {
+
+            weekday:"short",
+
+            day:"numeric",
+
+            month:"short",
+
+            hour:"numeric",
+
+            minute:"2-digit"
+
+          }
+
+        );
+
+
+  const codigo =
+
+    visita.codigo_qr ||
+
+    visita.codigo ||
+
+    visita.codigo_acceso ||
+
+    "Pendiente";
+
+
+  const motivo =
+
+    visita.notas ||
+
+    visita.motivo ||
+
+    visita.tipo ||
+
+    "Visita";
+
+
+  contenedor.innerHTML = `
+
+    <div class="next-visit-box">
+
+
+      <div class="next-visit-top">
+
+
+        <div class="next-visit-person">
+
+
+          <span class="next-visit-avatar">
+
+            ${iconoSVG("persona")}
+
+          </span>
+
+
+          <div>
+
+            <div class="next-visit-name">
+
+              ${
+                escapeHtml(
+                  nombre
+                )
+              }
+
+            </div>
+
+            <div class="next-visit-date">
+
+              ${
+                escapeHtml(
+                  fechaTexto
+                )
+              }
+
+            </div>
+
+          </div>
+
+
+        </div>
+
+
+        <span class="badge ok">
+
+          CONFIRMADA
+
+        </span>
+
+
+      </div>
+
+
+      <div class="next-visit-details">
+
+
+        <div class="next-detail-row">
+
+          ${iconoSVG("qr")}
+
+          <div class="next-detail-text">
+
+            Código de acceso:
+
+            <span
+              class="next-code"
+              id="nextVisitCode">
+
+              ${
+                escapeHtml(
+                  codigo
+                )
+              }
+
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="next-detail-row">
+
+          ${iconoSVG("motivo")}
+
+          <div class="next-detail-text">
+
+            Motivo:
+
+            ${
+              escapeHtml(
+                motivo
+              )
+            }
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+
+      <button
+        type="button"
+        class="
+          btn
+          btn-ghost
+          btn-with-svg
+        "
+        id="shareCodeBtn"
+        style="
+          justify-content:center;
+        ">
+
+        ${iconoSVG("compartir")}
+
+        Compartir código
+
+      </button>
+
+
+    </div>
+
+  `;
+
+
+  const boton =
+    $("#shareCodeBtn");
+
+
+  if(boton){
+
+    boton.addEventListener(
+      "click",
+      async () => {
+
+        try{
+
+          await navigator
+            .clipboard
+            .writeText(
+              String(codigo)
+            );
+
+
+          if(
+            typeof showToast ===
+            "function"
+          ){
+
+            showToast(
+              "Código copiado"
+            );
+
+          }
+
+        }
+
+        catch(error){
+
+          console.error(
+            error
+          );
+
+        }
+
+      }
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   RESUMEN
+===================================================== */
+
+function renderizarResumen(
+  accesos,
+  invitaciones,
+  incidencias
+){
+
+  const elemento =
+    $("#dashboardSummary");
+
+
+  if(!elemento){
+
+    return;
+
+  }
+
+
+  const inicio =
+    inicioSemana();
+
+
+  const accesosSemana =
+    accesos.filter(
+      acceso => {
+
+        const fecha =
+          new Date(
+
+            acceso.fecha_hora ||
+
+            acceso.fecha_creacion ||
+
+            acceso.created_at
+
+          );
+
+
+        return(
+
+          !Number.isNaN(
+            fecha.getTime()
+          ) &&
+
+          fecha >= inicio
+
+        );
+
+      }
+    ).length;
+
+
+  const ahora =
+    Date.now();
+
+
+  const visitasProximas =
+    invitaciones.filter(
+      invitacion => {
+
+        const fecha =
+          new Date(
+
+            invitacion.fecha_valida_hasta ||
+
+            invitacion.fecha_valida_desde ||
+
+            invitacion.fecha_visita
+
+          ).getTime();
+
+
+        const estado =
+          String(
+
+            invitacion.estado ||
+
+            ""
+
+          ).toLowerCase();
+
+
+        return(
+
+          fecha >= ahora &&
+
+          ![
+            "cancelada",
+            "cancelado",
+            "expirada",
+            "expirado"
+          ].includes(
+            estado
+          )
+
+        );
+
+      }
+    ).length;
+
+
+  const pendientes =
+    incidencias.filter(
+      incidencia => {
+
+        const estado =
+          String(
+
+            incidencia.estado ||
+
+            ""
+
+          ).toLowerCase();
+
+
+        return ![
+          "resuelta",
+          "resuelto",
+          "cerrada",
+          "cerrado"
+        ].includes(
+          estado
+        );
+
+      }
+    ).length;
+
+
+  elemento.textContent =
+
+    `Tienes ${visitasProximas} ` +
+
+    `visita${
+      visitasProximas === 1
+        ? ""
+        : "s"
+    } programada${
+      visitasProximas === 1
+        ? ""
+        : "s"
+    }, ` +
+
+    `${accesosSemana} ` +
+
+    `acceso${
+      accesosSemana === 1
+        ? ""
+        : "s"
+    } esta semana y ` +
+
+    `${pendientes} ` +
+
+    `incidencia${
+      pendientes === 1
+        ? ""
+        : "s"
+    } en seguimiento.`;
+
+}
+
+
+/* =====================================================
+   RELOJ
+===================================================== */
+
+function actualizarReloj(){
+
+  const reloj =
+    $("#clock");
+
+
+  if(!reloj){
+
+    return;
+
+  }
+
+
+  reloj.textContent =
+
+    "VIGIA · " +
+
+    new Date()
+      .toLocaleTimeString(
+        "es-HN",
+        {
+          hour12:false
+        }
+      );
+
+}
+
+
+actualizarReloj();
+
+
+setInterval(
+  actualizarReloj,
+  1000
+);
+
+
+/* =====================================================
+   INICIO
+===================================================== */
+
+async function iniciar(){
+
+  colocarDatosUsuario();
+
+
+  renderizarCalendario(
+    []
+  );
+
+
+  const [
+
+    accesos,
+
+    invitaciones,
+
+    incidencias
+
+  ] = await Promise.all([
+
+    cargarAccesos(),
+
+    cargarInvitaciones(),
+
+    cargarIncidencias()
+
+  ]);
+
+
+  renderizarCalendario(
+    invitaciones
+  );
+
+
+  renderizarActividad(
+
+    accesos,
+
+    invitaciones,
+
+    incidencias
+
+  );
+
+
+  renderizarProximaVisita(
+    invitaciones
+  );
+
+
+  renderizarResumen(
+
+    accesos,
+
+    invitaciones,
+
+    incidencias
+
+  );
+
+}
+
+
+iniciar();
+
+
+})();
+
+</script>
+
+
 </body>
+
 </html>
