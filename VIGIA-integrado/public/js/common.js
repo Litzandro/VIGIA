@@ -115,6 +115,65 @@ window.showToast=showToast;
 function escapeHtml(value){const d=document.createElement('div');d.textContent=value==null?'':String(value);return d.innerHTML}
 window.escapeHtml=escapeHtml;
 
+// Formatea un numero de identidad hondureno mientras se escribe:
+// 0000-0000-00000 (13 digitos: departamento+municipio, ano+correlativo,
+// numero de orden). Se usa en cualquier input de "Documento" de la app.
+// Devuelve solo el texto formateado; quien la llama decide cuando
+// engancharla al evento "input" del campo correspondiente.
+function formatDocumentoHN(raw){
+  const value=String(raw||'');
+  // Si ya hay alguna letra (pasaporte u otro documento que no sea la
+  // identidad hondurena), no tocamos nada: esta mascara es una ayuda
+  // para el formato 0000-0000-00000, nunca debe bloquear otro documento.
+  if(/[a-zA-Z]/.test(value))return value;
+  const digits=value.replace(/[^0-9]/g,'').slice(0,13);
+  const parts=[digits.slice(0,4),digits.slice(4,8),digits.slice(8,13)].filter(Boolean);
+  return parts.join('-');
+}
+window.formatDocumentoHN=formatDocumentoHN;
+
+// Engancha el formateo automatico a un <input>: mientras el usuario
+// escribe solo numeros, los agrupa como 0000-0000-00000. En cuanto
+// escribe una letra (pasaporte u otro documento), se sale del modo
+// mascara y deja el campo libre, para no perder datos validos.
+function attachDocumentoHNMask(input){
+  if(!input)return;
+  input.setAttribute('placeholder','0000-0000-00000 (u otro documento)');
+  input.addEventListener('input',()=>{input.value=formatDocumentoHN(input.value)});
+}
+window.attachDocumentoHNMask=attachDocumentoHNMask;
+
+// Arma un <select> de horas cada 15 minutos, mostrando 12h con AM/PM
+// pero con value en 24h "HH:MM" (lo que ya espera el backend). Se usa en
+// los selectores de horario de Autorizados en vez de <input type="time">,
+// que en varios navegadores no deja claro si es AM o PM.
+function buildAmPmTimeOptions(selected){
+  const out=['<option value="">Sin restricción</option>'];
+  for(let m=0;m<24*60;m+=15){
+    const hh=String(Math.floor(m/60)).padStart(2,'0');
+    const mm=String(m%60).padStart(2,'0');
+    const value=`${hh}:${mm}`;
+    const h12=((Math.floor(m/60)+11)%12)+1;
+    const suffix=Math.floor(m/60)<12?'AM':'PM';
+    const label=`${h12}:${mm} ${suffix}`;
+    out.push(`<option value="${value}"${value===selected?' selected':''}>${label}</option>`);
+  }
+  return out.join('');
+}
+window.buildAmPmTimeOptions=buildAmPmTimeOptions;
+
+// Convierte "HH:MM" (24h, lo que guarda el backend) a texto 12h con
+// AM/PM para mostrarlo en listas y avisos. Si no hay valor, devuelve ''.
+function formatHora12(hhmm){
+  if(!hhmm)return'';
+  const [h,m]=String(hhmm).split(':').map(Number);
+  if(Number.isNaN(h)||Number.isNaN(m))return hhmm;
+  const h12=((h+11)%12)+1;
+  const suffix=h<12?'AM':'PM';
+  return `${h12}:${String(m).padStart(2,'0')} ${suffix}`;
+}
+window.formatHora12=formatHora12;
+
 // ---- Identidad, barra lateral y navegacion segun rol ----
 (function(){
   const session=VigiaAPI.getSession();if(!session)return;
