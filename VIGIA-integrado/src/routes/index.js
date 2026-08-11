@@ -30,6 +30,7 @@ const overrides = {
   incidencias: require('./overrides/incidencias'),
   cola_acceso: require('./overrides/colaAcceso'),
   vetos_acceso: require('./overrides/vetosAcceso'),
+  personas_autorizadas: require('./overrides/personasAutorizadas'),
   preferencias_usuario: require('./overrides/preferenciasUsuario'),
   dispositivos_usuario: require('./overrides/dispositivosUsuario'),
   contactos_emergencia: require('./overrides/contactosEmergencia'),
