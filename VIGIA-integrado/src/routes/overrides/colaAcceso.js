@@ -25,6 +25,55 @@ async function findActiveVeto(residencialId, numeroDocumento, visitanteId) {
   });
 }
 
+// Misma logica de vigencia (dia/horario/fechas) que
+// src/routes/overrides/personasAutorizadas.js. Se duplica aca en vez de
+// importarla porque cada override se monta por separado en routes/index.js
+// y esto evita acoplar el orden de carga de los dos routers.
+function dayIndex(date) { return date.getDay(); }
+
+function isWithinSchedule(record, when) {
+  const now = when || new Date();
+  if (record.fecha_desde && now < new Date(record.fecha_desde)) return false;
+  if (record.fecha_hasta) {
+    const end = new Date(record.fecha_hasta);
+    end.setHours(23, 59, 59, 999);
+    if (now > end) return false;
+  }
+  if (Array.isArray(record.dias_semana_json) && record.dias_semana_json.length) {
+    if (!record.dias_semana_json.map(Number).includes(dayIndex(now))) return false;
+  }
+  if (record.hora_desde || record.hora_hasta) {
+    const hhmm = now.toTimeString().slice(0, 5);
+    if (record.hora_desde && hhmm < record.hora_desde) return false;
+    if (record.hora_hasta && hhmm > record.hora_hasta) return false;
+  }
+  return true;
+}
+
+// Busca si la persona que se esta registrando tiene una autorizacion
+// recurrente activa (bus escolar, familiar, proveedor, etc.) por
+// documento o placa. Antes esto solo se comprobaba para vetos; los
+// autorizados se guardaban pero garita nunca los consultaba.
+async function findAuthorizedMatch(residencialId, { numero_documento, placa_vehiculo }) {
+  const or = [];
+  if (numero_documento) or.push({ numero_documento });
+  if (placa_vehiculo) or.push({ placa_vehiculo });
+  if (!or.length) return null;
+  const rows = await db.PersonasAutorizadas.findAll({ where: { residencial_id: residencialId, estado: 'activa', [Op.or]: or } });
+  if (!rows.length) return null;
+  const now = new Date();
+  return rows.find((r) => isWithinSchedule(r, now)) || rows[0];
+}
+
+async function countTodayAccesses(residencialId, personaAutorizadaId) {
+  if (!personaAutorizadaId) return 0;
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return db.ColaAcceso.count({
+    where: { residencial_id: residencialId, persona_autorizada_id: personaAutorizadaId, fecha_llegada: { [Op.gte]: start } },
+  });
+}
+
 async function findCurrentShift(user) {
   if (!user || !user.residencial_id) return null;
   return db.TurnosGuardia.findOne({
@@ -90,11 +139,39 @@ module.exports = function colaAccesoOverride({ router, model, handlers, pkPath }
 
       const shift = await findCurrentShift(req.user);
       const veto = await findActiveVeto(req.user.residencial_id, body.numero_documento, body.visitante_id);
+
+      // Revisamos si la persona tiene una autorizacion recurrente (bus
+      // escolar, familiar, proveedor...) sin importar si tambien hay un
+      // veto: si las dos cosas coinciden a la vez, eso es justo el
+      // "conflicto" que administracion debe resolver.
+      const autorizacion = body.persona_autorizada_id
+        ? await db.PersonasAutorizadas.findOne({ where: { id: body.persona_autorizada_id, residencial_id: req.user.residencial_id } })
+        : await findAuthorizedMatch(req.user.residencial_id, { numero_documento: body.numero_documento, placa_vehiculo: body.placa_vehiculo });
+      let fueraDeHorario = false;
+      let cupoAgotado = false;
+      if (autorizacion && !veto) {
+        fueraDeHorario = !isWithinSchedule(autorizacion, new Date());
+        const usadosHoy = await countTodayAccesses(req.user.residencial_id, autorizacion.id);
+        cupoAgotado = usadosHoy >= autorizacion.max_accesos_dia;
+      }
+
+      let observaciones = body.observaciones || null;
+      let resultadoValidacion = 'pendiente';
+      if (veto) {
+        resultadoValidacion = 'veto';
+        observaciones = `Bloqueo automatico por veto #${veto.id}`;
+      } else if (autorizacion) {
+        const notas = [`Coincide con autorizacion recurrente #${autorizacion.id} (${autorizacion.nombre_completo}).`];
+        if (fueraDeHorario) { resultadoValidacion = 'fuera_horario'; notas.push('Llega fuera del dia/horario autorizado: revisar antes de dejar pasar.'); }
+        if (cupoAgotado) notas.push(`Ya alcanzo su limite de accesos autorizados hoy (${autorizacion.max_accesos_dia}).`);
+        observaciones = [notas.join(' '), body.observaciones || ''].filter(Boolean).join(' ');
+      }
+
       const row = await model.create({
         residencial_id: req.user.residencial_id,
         punto_acceso_id: body.punto_acceso_id,
         invitacion_id: body.invitacion_id || null,
-        persona_autorizada_id: body.persona_autorizada_id || null,
+        persona_autorizada_id: autorizacion ? autorizacion.id : null,
         visitante_id: body.visitante_id || null,
         nombre_persona: String(body.nombre_persona).trim(),
         tipo_documento: body.tipo_documento || null,
@@ -107,11 +184,11 @@ module.exports = function colaAccesoOverride({ router, model, handlers, pkPath }
         origen_registro: body.origen_registro || 'manual',
         prioridad: body.prioridad || 'normal',
         estado: veto ? 'bloqueada' : 'esperando',
-        resultado_validacion: veto ? 'veto' : 'pendiente',
+        resultado_validacion: resultadoValidacion,
         guardia_original_id: req.user.id,
         guardia_actual_id: req.user.id,
         turno_guardia_id: shift ? shift.id : null,
-        observaciones: veto ? `Bloqueo automatico por veto #${veto.id}` : body.observaciones || null,
+        observaciones,
       }, { transaction });
 
       if (body.foto_url) {
@@ -128,11 +205,11 @@ module.exports = function colaAccesoOverride({ router, model, handlers, pkPath }
       if (veto) {
         await db.ConflictosPermisos.create({
           residencial_id: req.user.residencial_id,
-          persona_autorizada_id: body.persona_autorizada_id || null,
+          persona_autorizada_id: autorizacion ? autorizacion.id : null,
           veto_id: veto.id,
           nombre_persona: row.nombre_persona,
           numero_documento: row.numero_documento,
-          descripcion: body.persona_autorizada_id
+          descripcion: autorizacion
             ? 'La persona aparece autorizada y vetada al mismo tiempo.'
             : 'Se intento registrar una persona con veto activo.',
           estado: 'abierto',
@@ -142,7 +219,16 @@ module.exports = function colaAccesoOverride({ router, model, handlers, pkPath }
 
       await transaction.commit();
       if (veto) return res.status(409).json({ error: 'Acceso bloqueado: existe un veto activo.', data: row, veto_id: veto.id });
-      return res.status(201).json({ data: row });
+      return res.status(201).json({
+        data: row,
+        autorizacion_recurrente: autorizacion ? {
+          id: autorizacion.id,
+          nombre_completo: autorizacion.nombre_completo,
+          tipo: autorizacion.tipo,
+          fuera_de_horario: fueraDeHorario,
+          cupo_agotado: cupoAgotado,
+        } : null,
+      });
     } catch (err) {
       if (!transaction.finished) await transaction.rollback();
       next(err);
