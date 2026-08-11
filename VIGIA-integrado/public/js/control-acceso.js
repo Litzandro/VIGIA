@@ -1,8 +1,42 @@
 (function(){
   const form=document.getElementById('quickAccessForm');if(!form)return;
-  const point=document.getElementById('qaPoint'),photo=document.getElementById('qaPhoto'),preview=document.getElementById('qaPreview'),message=document.getElementById('qaMessage');
+  const point=document.getElementById('qaPoint'),photo=document.getElementById('qaPhoto'),preview=document.getElementById('qaPreview'),message=document.getElementById('qaMessage'),authHint=document.getElementById('qaAuthHint');
+  const docInput=document.getElementById('qaDocument'),plateInput=document.getElementById('qaPlate');
   let photoData='';
   const setMsg=(text,type='')=>{message.style.display='flex';message.className='status-line '+type;message.textContent=text};
+
+  // Consulta en vivo (con pequeño retraso) si el documento o la placa que
+  // el guardia esta escribiendo coincide con una autorizacion recurrente
+  // vigente (bus escolar, familiar, proveedor...), para que no tenga que
+  // re-validarla a mano cada vez que la persona ya esta autorizada.
+  let authTimer=null;
+  function hideAuthHint(){authHint.style.display='none';authHint.textContent=''}
+  async function checkAuthorized(){
+    const numero_documento=docInput.value.trim(),placa_vehiculo=plateInput.value.trim();
+    if(!numero_documento&&!placa_vehiculo){hideAuthHint();return}
+    try{
+      const params=new URLSearchParams();
+      if(numero_documento)params.set('numero_documento',numero_documento);
+      if(placa_vehiculo)params.set('placa_vehiculo',placa_vehiculo);
+      const r=await VigiaAPI.request(`/personas-autorizadas/verificar?${params.toString()}`);
+      const match=r.data;
+      if(!match){hideAuthHint();return}
+      authHint.style.display='flex';
+      if(!match.dentro_de_horario){
+        authHint.className='status-line warn';
+        authHint.innerHTML=`<i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(match.nombre_completo)} está autorizado, pero fuera de su horario permitido (${escapeHtml(match.hora_desde||'00:00')}–${escapeHtml(match.hora_hasta||'23:59')}). Revisa antes de dejar pasar.`;
+      }else if(match.cupo_agotado){
+        authHint.className='status-line warn';
+        authHint.innerHTML=`<i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(match.nombre_completo)} está autorizado, pero ya alcanzó su límite de accesos hoy (${match.max_accesos_dia}).`;
+      }else{
+        authHint.className='status-line ok';
+        authHint.innerHTML=`<i class="bi bi-person-check-fill"></i> Persona autorizada: ${escapeHtml(match.nombre_completo)}${match.empresa?' · '+escapeHtml(match.empresa):''}.`;
+      }
+    }catch(e){hideAuthHint()}
+  }
+  function scheduleAuthCheck(){clearTimeout(authTimer);authTimer=setTimeout(checkAuthorized,400)}
+  docInput.addEventListener('input',scheduleAuthCheck);
+  plateInput.addEventListener('input',scheduleAuthCheck);
   async function compress(file){
     const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
     const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=data});
@@ -27,7 +61,11 @@
       rows.forEach((x,i)=>{
         const el=document.createElement('div');el.className='queue-item';
         const time=new Date(x.fecha_llegada).toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'});
-        el.innerHTML=`<div class="queue-number">${i+1}</div><div class="queue-copy"><b>${escapeHtml(x.nombre_persona)}</b><span>${escapeHtml(x.vivienda_destino||'Sin destino')} · ${escapeHtml(x.placa_vehiculo||'Sin placa')} · ${time}</span>${x.resultado_validacion==='veto'?'<span style="color:var(--alert)">VETO ACTIVO — no permitir el ingreso</span>':''}</div><div class="queue-actions">${badge(x.estado)}${x.estado==='esperando'?`<button class="btn btn-ghost" data-a="iniciar">Iniciar</button>`:''}${x.estado==='en_validacion'?`<button class="btn btn-solid" data-a="autorizar">Autorizar</button><button class="btn btn-ghost" data-a="rechazar">Rechazar</button>`:''}${x.estado==='autorizada'?`<button class="btn btn-ghost" data-a="completar">Completar</button>`:''}</div>`;
+        let flag='';
+        if(x.resultado_validacion==='veto')flag='<span style="color:var(--alert)">VETO ACTIVO — no permitir el ingreso</span>';
+        else if(x.resultado_validacion==='fuera_horario')flag='<span style="color:var(--warn)">Autorizado, pero fuera de horario — revisar</span>';
+        else if(x.persona_autorizada_id)flag='<span style="color:var(--accent)"><i class="bi bi-person-check-fill"></i> Persona autorizada</span>';
+        el.innerHTML=`<div class="queue-number">${i+1}</div><div class="queue-copy"><b>${escapeHtml(x.nombre_persona)}</b><span>${escapeHtml(x.vivienda_destino||'Sin destino')} · ${escapeHtml(x.placa_vehiculo||'Sin placa')} · ${time}</span>${flag}</div><div class="queue-actions">${badge(x.estado)}${x.estado==='esperando'?`<button class="btn btn-ghost" data-a="iniciar">Iniciar</button>`:''}${x.estado==='en_validacion'?`<button class="btn btn-solid" data-a="autorizar">Autorizar</button><button class="btn btn-ghost" data-a="rechazar">Rechazar</button>`:''}${x.estado==='autorizada'?`<button class="btn btn-ghost" data-a="completar">Completar</button>`:''}</div>`;
         el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>action(x.id,b.dataset.a));list.appendChild(el);
       });
       const metrics=m.data||{};document.getElementById('mWaiting').textContent=metrics.esperando||0;document.getElementById('mValidating').textContent=metrics.en_validacion||0;document.getElementById('mAverage').textContent=(metrics.tiempo_promedio_seg||0)+' s';document.getElementById('mTarget').textContent=(metrics.objetivo_seg||90)+' s';document.getElementById('mTargetCard').classList.toggle('alert',Boolean(metrics.alerta_cola));
@@ -38,7 +76,15 @@
     const payload={punto_acceso_id:Number(point.value),nombre_persona:document.getElementById('qaName').value.trim(),numero_documento:document.getElementById('qaDocument').value.trim()||null,vivienda_destino:document.getElementById('qaHome').value.trim()||null,placa_vehiculo:document.getElementById('qaPlate').value.trim()||null,motivo:document.getElementById('qaReason').value.trim()||null,origen_registro:document.getElementById('qaOrigin').value,prioridad:document.getElementById('qaPriority').value,foto_url:photoData||null};
     if(!payload.nombre_persona){setMsg('Escribe el nombre de la persona.','alert');return}
     if(!payload.foto_url){setMsg('Toma una fotografía: es la evidencia obligatoria del guardia.','alert');return}
-    try{const r=await VigiaAPI.request('/cola-acceso/rapido',{method:'POST',body:JSON.stringify(payload)});setMsg(r.offline?'Registro guardado sin conexión. Se sincronizará automáticamente.':'Persona agregada a la cola.');form.reset();photoData='';preview.classList.remove('show');await loadQueue()}catch(err){setMsg(err.message,'alert');await loadQueue()}
+    try{
+      const r=await VigiaAPI.request('/cola-acceso/rapido',{method:'POST',body:JSON.stringify(payload)});
+      const auth=r.autorizacion_recurrente;
+      if(auth&&auth.fuera_de_horario)setMsg(`Agregado a la cola. Ojo: ${auth.nombre_completo} está autorizado pero fuera de su horario.`,'warn');
+      else if(auth&&auth.cupo_agotado)setMsg(`Agregado a la cola. Ojo: ${auth.nombre_completo} ya alcanzó su límite de accesos hoy.`,'warn');
+      else if(auth)setMsg(`Agregado a la cola. Coincide con la autorización de ${auth.nombre_completo}.`,'');
+      else setMsg(r.offline?'Registro guardado sin conexión. Se sincronizará automáticamente.':'Persona agregada a la cola.');
+      form.reset();photoData='';preview.classList.remove('show');hideAuthHint();await loadQueue();
+    }catch(err){setMsg(err.message,'alert');await loadQueue()}
   });
   document.getElementById('refreshQueue').onclick=loadQueue;loadPoints();loadQueue();setInterval(loadQueue,30000);
 })();
