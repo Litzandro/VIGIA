@@ -10,14 +10,15 @@
 
   function selectedResidential(){return isSuper?Number(document.getElementById('opResidential').value):Number(session.residencial_id)}
   function refreshSelectors(){
-    if(!canManage)return;
     const rid=selectedResidential();
-    const userMap=new Map(users.map(u=>[String(u.id),`${u.nombre} ${u.apellido}`]));
-    const currentGuards=guards.filter(g=>!rid||Number(g.residencial_id)===rid);
-    const options=currentGuards.map(g=>`<option value="${g.usuario_id}">${escapeHtml(userMap.get(String(g.usuario_id))||`Guardia #${g.usuario_id}`)}</option>`).join('');
-    document.getElementById('opGuard').innerHTML=options||'<option value="">Sin guardias</option>';
-    document.getElementById('opRelief').innerHTML='<option value="">Sin relevo</option>'+options;
-    document.getElementById('opPoint').innerHTML=points.filter(p=>!rid||Number(p.residencial_id)===rid).map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('')||'<option value="">Sin punto de acceso</option>';
+    if(canManage){
+      const userMap=new Map(users.map(u=>[String(u.id),`${u.nombre} ${u.apellido}`]));
+      const currentGuards=guards.filter(g=>!rid||Number(g.residencial_id)===rid);
+      const options=currentGuards.map(g=>`<option value="${g.usuario_id}">${escapeHtml(userMap.get(String(g.usuario_id))||`Guardia #${g.usuario_id}`)}</option>`).join('');
+      document.getElementById('opGuard').innerHTML=options||'<option value="">Sin guardias</option>';
+      document.getElementById('opRelief').innerHTML='<option value="">Sin relevo</option>'+options;
+      document.getElementById('opPoint').innerHTML=points.filter(p=>!rid||Number(p.residencial_id)===rid).map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('')||'<option value="">Sin punto de acceso</option>';
+    }
     const cfg=configs.find(x=>Number(x.residencial_id)===rid);const zone=cfg&&cfg.zona_horaria||'America/Tegucigalpa';
     document.getElementById('timeZone').textContent=zone.split('/').pop().replaceAll('_',' ');localStorage.setItem('vigia_timezone',zone);
     renderShifts();
@@ -32,7 +33,13 @@
     const box=document.getElementById('shiftList');box.innerHTML=rows.length?'':'<div class="empty-state">No hay turnos programados.</div>';
     rows.forEach(x=>{
       const el=document.createElement('div');el.className='queue-item';
-      el.innerHTML=`<div class="queue-number"><i class="bi bi-clock-history"></i></div><div class="queue-copy"><b>${escapeHtml(x.guardia_original_nombre||`Guardia #${x.guardia_original_id}`)}</b><span>${new Date(x.inicio_programado).toLocaleString('es-HN')} — ${new Date(x.fin_programado).toLocaleString('es-HN')}</span>${x.guardia_relevo_nombre?`<span>Relevo: ${escapeHtml(x.guardia_relevo_nombre)}</span>`:''}<span>${escapeHtml(x.observaciones||'Sin observaciones')}</span></div><div class="queue-actions"><span class="badge ${x.estado==='activo'?'ok':x.estado==='programado'?'pending':'neutral'}">${escapeHtml(x.estado)}</span>${x.estado==='programado'?'<button class="btn btn-solid" data-a="iniciar">Iniciar</button>':''}${canManage&&['programado','activo'].includes(x.estado)?'<button class="btn btn-ghost" data-a="relevar">Relevar</button>':''}${['activo','relevado'].includes(x.estado)?'<button class="btn btn-ghost" data-a="finalizar">Finalizar</button>':''}</div>`;
+      // Este panel va en un layout de 2 columnas (split-layout), mas
+      // angosto que otras paginas: fuerza la tarjeta a 2 columnas
+      // (icono+texto) con los botones en su propia fila de abajo, para
+      // que el nombre del guardia no se apriete y se parta letra por
+      // letra cuando hay 2-3 botones de accion.
+      el.style.gridTemplateColumns='auto 1fr';
+      el.innerHTML=`<div class="queue-number"><i class="bi bi-clock-history"></i></div><div class="queue-copy"><b>${escapeHtml(x.guardia_original_nombre||`Guardia #${x.guardia_original_id}`)}</b><span>${new Date(x.inicio_programado).toLocaleString('es-HN')} — ${new Date(x.fin_programado).toLocaleString('es-HN')}</span>${x.guardia_relevo_nombre?`<span>Relevo: ${escapeHtml(x.guardia_relevo_nombre)}</span>`:''}<span>${escapeHtml(x.observaciones||'Sin observaciones')}</span></div><div class="queue-actions" style="grid-column:1 / -1;justify-content:flex-start;margin-top:.6rem;"><span class="badge ${x.estado==='activo'?'ok':x.estado==='programado'?'pending':'neutral'}">${escapeHtml(x.estado)}</span>${x.estado==='programado'?'<button class="btn btn-solid" data-a="iniciar">Iniciar</button>':''}${canManage&&['programado','activo'].includes(x.estado)?'<button class="btn btn-ghost" data-a="relevar">Relevar</button>':''}${['activo','relevado'].includes(x.estado)?'<button class="btn btn-ghost" data-a="finalizar">Finalizar</button>':''}</div>`;
       el.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{
         const body={accion:b.dataset.a};
         if(b.dataset.a==='relevar'){
