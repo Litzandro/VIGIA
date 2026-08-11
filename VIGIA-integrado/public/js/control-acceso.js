@@ -24,7 +24,7 @@
       authHint.style.display='flex';
       if(!match.dentro_de_horario){
         authHint.className='status-line warn';
-        authHint.innerHTML=`<i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(match.nombre_completo)} está autorizado, pero fuera de su horario permitido (${escapeHtml(match.hora_desde||'00:00')}–${escapeHtml(match.hora_hasta||'23:59')}). Revisa antes de dejar pasar.`;
+        authHint.innerHTML=`<i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(match.nombre_completo)} está autorizado, pero fuera de su horario permitido (${escapeHtml(formatHora12(match.hora_desde)||'12:00 AM')}–${escapeHtml(formatHora12(match.hora_hasta)||'11:59 PM')}). Revisa antes de dejar pasar.`;
       }else if(match.cupo_agotado){
         authHint.className='status-line warn';
         authHint.innerHTML=`<i class="bi bi-exclamation-triangle-fill"></i> ${escapeHtml(match.nombre_completo)} está autorizado, pero ya alcanzó su límite de accesos hoy (${match.max_accesos_dia}).`;
@@ -35,6 +35,7 @@
     }catch(e){hideAuthHint()}
   }
   function scheduleAuthCheck(){clearTimeout(authTimer);authTimer=setTimeout(checkAuthorized,400)}
+  attachDocumentoHNMask(docInput);
   docInput.addEventListener('input',scheduleAuthCheck);
   plateInput.addEventListener('input',scheduleAuthCheck);
   async function compress(file){
