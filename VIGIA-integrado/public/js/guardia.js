@@ -1,30 +1,21 @@
 // ============ GUARDIA.JS ============
 // Exclusivo de guardia.html: valida la sesion contra GuardAuthStore,
-// muestra las alertas de panico en tiempo real (via PanicStore) con
-// acciones reales para el guardia (cambiar estado, asignarse o
-// reasignar, dejar una nota, ver la camara mas cercana) y el chat con
-// residentes (via ChatStore, el mismo canal que usan chat.html y
-// superadmin.html).
+// muestra las alertas de panico REALES (via /api/alertas-panico) con
+// acciones reales para el guardia (marcar atendida o falsa alarma) y
+// el chat con residentes (via ChatStore, sigue pendiente de conectar
+// a la API real de mensajes).
+//
+// Nota: el nombre/avatar en la barra lateral y el boton de cerrar
+// sesion (id="vgLogoutBtn") ya los maneja common.js de forma generica
+// para todas las paginas de staff; este archivo no los toca.
 
 (function(){
   if(typeof GuardAuthStore==='undefined') return;
   const session=GuardAuthStore.getSession();
   if(!session){ window.location.href='guardia-login.html'; return; }
 
-  const guardAvatar=document.getElementById('guardAvatar');
-  const guardName=document.getElementById('guardName');
   const guardShiftLine=document.getElementById('guardShiftLine');
-  if(guardAvatar) guardAvatar.textContent=session.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
-  if(guardName) guardName.textContent=session.name;
   if(guardShiftLine){const h=new Date().getHours();const jornada=h>=6&&h<18?'Jornada diurna':'Jornada nocturna';guardShiftLine.textContent=(session.turno||jornada)+' · '+jornada+' · Altavista Residencial';}
-
-  const logoutBtn=document.getElementById('guardLogoutBtn');
-  if(logoutBtn){
-    logoutBtn.addEventListener('click',()=>{
-      GuardAuthStore.logout();
-      window.location.href='guardia-login.html';
-    });
-  }
 
   // ---- Pestañas (Alertas / Chat) ----
   const tabsGroup=document.querySelector('.agenda-tabs');
@@ -44,58 +35,59 @@
     });
   }
 
-  // ============ ALERTAS DE PANICO ============
-  const hasPanicStore=typeof PanicStore!=='undefined';
-
-  // ---- Guardias reales del residencial (para reasignar una alerta) ----
-  let guardNames=[];
-  async function loadGuardNames(){
-    try{
-      const [guardias,usuarios]=await Promise.all([
-        VigiaAPI.request('/guardias'),
-        VigiaAPI.request('/usuarios'),
-      ]);
-      const guardIds=new Set((guardias.data||[]).map(g=>g.usuario_id));
-      guardNames=(usuarios.data||[])
-        .filter(u=>guardIds.has(u.id))
-        .map(u=>`${u.nombre||''} ${u.apellido||''}`.trim())
-        .filter(Boolean);
-    }catch(e){ guardNames=[]; }
-    renderPanicAlerts();
-  }
-  const hasGuardList=typeof GuardAuthStore!=='undefined';
+  // ============ ALERTAS DE PANICO (API real: /api/alertas-panico) ============
   const guardPanicList=document.getElementById('guardPanicList');
   const guardPanicEmptyMsg=document.getElementById('guardPanicEmptyMsg');
   const statPendientes=document.getElementById('statPendientes');
-  const statEnCamino=document.getElementById('statEnCamino');
+  const statFalsas=document.getElementById('statFalsas');
   const statAtendidas=document.getElementById('statAtendidas');
 
-  const TARGET_LABEL={guardia:'Alertó solo al guardia', residentes:'Alertó a los residentes de su torre'};
-  const STATUS_BADGE_CLASS={pendiente:'alert', en_camino:'warn', atendida:'ok', falsa_alarma:'neutral'};
+  // El esquema real solo tiene 3 estados: activa, atendida, falsa_alarma
+  // (no existe "en_camino" ni reasignar guardia; eso era del store falso).
+  const STATUS_LABEL={activa:'Pendiente', atendida:'Atendida', falsa_alarma:'Falsa alarma'};
+  const STATUS_BADGE_CLASS={activa:'alert', atendida:'ok', falsa_alarma:'neutral'};
 
-  // Mapeo simple unidad -> camara mas cercana en camaras.html (demo: solo
-  // hay una unidad de ejemplo, "Torre B"). En un residencial real esto
-  // vendria de un mapa de unidades a camaras dado de alta por el superadmin.
-  function nearestCameraAnchor(unidad){
-    const u=(unidad||'').toLowerCase();
+  // Mapeo simple vivienda -> camara mas cercana en camaras.html. En un
+  // residencial real esto vendria de un mapa de unidades a camaras dado
+  // de alta por el superadmin; por ahora usa un enlace general por torre.
+  function nearestCameraAnchor(vivienda){
+    const u=(vivienda||'').toLowerCase();
     if(u.includes('torre b')) return {id:'cam-area-comun', label:'Área común'};
     if(u.includes('torre a')) return {id:'cam-porton-principal', label:'Portón principal'};
     return {id:'cam-porton-principal', label:'Portón principal'};
   }
 
-  function buildActionButton(label, statusValue, currentStatus, extraClass){
-    const active=statusValue===currentStatus;
-    return '<button type="button" class="btn '+extraClass+' panic-action-btn'+(active?' active':'')+'" data-status="'+statusValue+'">'+label+'</button>';
+  function formatFecha(iso){
+    if(!iso) return '';
+    return new Date(iso).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
+
+  async function atenderAlerta(id, estado, btn){
+    const original=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<i class="bi bi-arrow-repeat"></i> Guardando...';
+    try{
+      await VigiaAPI.request(`/alertas-panico/${id}`,{method:'PATCH',body:JSON.stringify({
+        estado,
+        atendida_por:session.id,
+        fecha_atencion:new Date().toISOString(),
+      })});
+      showToast(estado==='atendida' ? 'Alerta marcada como atendida' : 'Alerta marcada como falsa alarma');
+      await loadPanicAlerts();
+    }catch(e){
+      showToast(e.message,'bi-exclamation-triangle-fill');
+      btn.disabled=false; btn.innerHTML=original;
+    }
   }
 
   function renderAlertCard(a){
     const card=document.createElement('div');
-    card.className='panic-card'+(a.status==='pendiente' ? ' is-pendiente' : '');
+    card.className='panic-card'+(a.estado==='activa' ? ' is-pendiente' : '');
     card.dataset.id=a.id;
 
-    const cam=nearestCameraAnchor(a.unidad);
-    const guardOptions=guardNames
-      .map(name=>'<option value="'+name+'"'+(a.assignedTo===name?' selected':'')+'>'+name+'</option>').join('');
+    const cam=nearestCameraAnchor(a.vivienda);
+    const who=a.vivienda ? `${a.usuario_nombre} · ${a.vivienda}` : a.usuario_nombre;
+    const tipo=a.tipo_alerta_nombre || 'Alerta';
+    const resuelta=a.estado!=='activa';
 
     card.innerHTML=
       '<div class="panic-card-head">'+
@@ -103,57 +95,30 @@
           '<span class="ic"><i class="bi bi-exclamation-octagon-fill"></i></span>'+
           '<div class="panic-card-who-text"><b></b><span></span></div>'+
         '</div>'+
-        '<span class="badge '+STATUS_BADGE_CLASS[a.status]+'"></span>'+
+        '<span class="badge '+STATUS_BADGE_CLASS[a.estado]+'"></span>'+
       '</div>'+
       '<div class="panic-card-actions">'+
-        buildActionButton('En camino','en_camino',a.status,'btn-warn')+
-        buildActionButton('Atendida','atendida',a.status,'btn-solid')+
-        buildActionButton('Falsa alarma','falsa_alarma',a.status,'btn-ghost')+
+        (resuelta ? '' :
+          '<button type="button" class="btn btn-solid panic-action-btn" data-status="atendida"><i class="bi bi-check-lg"></i> Atendida</button>'+
+          '<button type="button" class="btn btn-ghost panic-action-btn" data-status="falsa_alarma"><i class="bi bi-x-lg"></i> Falsa alarma</button>'
+        )+
         '<a class="btn btn-ghost panic-card-cam-link" href="camaras.html#'+cam.id+'" target="_blank" rel="noopener"><i class="bi bi-camera-video-fill"></i> Ver cámara más cercana (' +cam.label+ ')</a>'+
-      '</div>'+
-      '<div class="panic-card-row">'+
-        '<div class="form-group">'+
-          '<label>Asignar a</label>'+
-          '<select class="form-control panic-assignee-select">'+
-            '<option value=""'+(!a.assignedTo?' selected':'')+'>Sin asignar</option>'+
-            guardOptions+
-          '</select>'+
-        '</div>'+
-        '<div class="form-group" style="flex:2;">'+
-          '<label>Nota / comentario</label>'+
-          '<input type="text" class="form-control panic-note-input" placeholder="Ej. Falsa alarma, la mascota activó el sensor." value="">'+
-        '</div>'+
-        '<button type="button" class="btn btn-ghost panic-note-save" style="padding:.6rem .9rem;"><i class="bi bi-check-lg"></i> Guardar nota</button>'+
       '</div>';
 
-    card.querySelector('.panic-card-who-text b').textContent=a.residentName;
-    card.querySelector('.panic-card-who-text span').textContent=a.unidad+' · '+TARGET_LABEL[a.target]+' · '+a.time+(a.originalGuard?' · Guardia original: '+a.originalGuard:'');
+    card.querySelector('.panic-card-who-text b').textContent=who;
+    card.querySelector('.panic-card-who-text span').textContent=tipo+' · '+formatFecha(a.fecha_hora);
     const statusBadge=card.querySelector('.panic-card-head .badge');
-    statusBadge.textContent=PanicStore.STATUS_LABEL[a.status].toUpperCase();
+    statusBadge.textContent=STATUS_LABEL[a.estado].toUpperCase();
 
-    const noteInput=card.querySelector('.panic-note-input');
-    noteInput.value=a.note||'';
-    if(a.note){
-      const savedNote=document.createElement('p');
-      savedNote.className='panic-card-note-saved';
-      savedNote.innerHTML='<i class="bi bi-sticky-fill"></i> '+escapeHtml(a.note)+' <span class="mono">— '+(a.noteTime||'')+'</span>';
-      card.appendChild(savedNote);
+    if(resuelta){
+      const info=document.createElement('p');
+      info.className='panic-card-note-saved';
+      info.innerHTML='<i class="bi bi-check2-circle"></i> Resuelta por '+escapeHtml(a.atendida_por_nombre||'personal')+' <span class="mono">— '+formatFecha(a.fecha_atencion)+'</span>';
+      card.appendChild(info);
     }
 
-    // ---- Acciones ----
     card.querySelectorAll('.panic-action-btn').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        PanicStore.setStatus(a.id, btn.dataset.status);
-        renderPanicAlerts();
-      });
-    });
-    card.querySelector('.panic-assignee-select').addEventListener('change',(e)=>{
-      PanicStore.setAssignee(a.id, e.target.value);
-      renderPanicAlerts();
-    });
-    card.querySelector('.panic-note-save').addEventListener('click',()=>{
-      PanicStore.setNote(a.id, noteInput.value.trim());
-      renderPanicAlerts();
+      btn.addEventListener('click',()=> atenderAlerta(a.id, btn.dataset.status, btn));
     });
 
     return card;
@@ -165,26 +130,36 @@
     return div.innerHTML;
   }
 
+  let panicAlerts=[];
   function renderPanicAlerts(){
-    if(!guardPanicList || !hasPanicStore) return;
-    const alerts=PanicStore.getAll();
-
+    if(!guardPanicList) return;
     guardPanicList.innerHTML='';
-    alerts.forEach(a=> guardPanicList.appendChild(renderAlertCard(a)));
+    panicAlerts.forEach(a=> guardPanicList.appendChild(renderAlertCard(a)));
 
-    if(guardPanicEmptyMsg) guardPanicEmptyMsg.style.display = alerts.length ? 'none' : '';
+    if(guardPanicEmptyMsg) guardPanicEmptyMsg.style.display = panicAlerts.length ? 'none' : '';
 
     if(statPendientes){
-      const n=alerts.filter(a=>a.status==='pendiente').length;
+      const n=panicAlerts.filter(a=>a.estado==='activa').length;
       statPendientes.textContent=n;
       statPendientes.closest('.admin-stat').classList.toggle('has-alert', n>0);
     }
-    if(statEnCamino) statEnCamino.textContent=alerts.filter(a=>a.status==='en_camino').length;
-    if(statAtendidas) statAtendidas.textContent=alerts.filter(a=>a.status==='atendida').length;
+    if(statFalsas) statFalsas.textContent=panicAlerts.filter(a=>a.estado==='falsa_alarma').length;
+    if(statAtendidas) statAtendidas.textContent=panicAlerts.filter(a=>a.estado==='atendida').length;
   }
 
-  if(hasPanicStore) PanicStore.onChange(renderPanicAlerts);
-  renderPanicAlerts();
+  async function loadPanicAlerts(){
+    if(!guardPanicList) return;
+    try{
+      const r=await VigiaAPI.request('/alertas-panico?limit=100&sort=fecha_hora:desc');
+      panicAlerts=r.data||[];
+      renderPanicAlerts();
+    }catch(e){
+      guardPanicList.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  loadPanicAlerts();
+  setInterval(loadPanicAlerts, 20000);
 
   // ============ CHAT CON RESIDENTES ============
   // Mismo canal (ChatStore/localStorage) que usan chat.html y la pestaña
