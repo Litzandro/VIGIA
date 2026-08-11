@@ -3,74 +3,658 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>VIGIA — Portal del guardia</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+  rel="stylesheet"
+>
+
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+>
+
 <link rel="stylesheet" href="css/style.css">
+
+<style>
+  /* =========================================================
+     INCIDENCIAS DEL RESIDENTE - PORTAL DEL GUARDIA
+     ========================================================= */
+
+  .incidencias-guardia-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .incidencia-guardia-card {
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 1.25rem;
+    background: rgba(20, 39, 30, .72);
+  }
+
+  .incidencia-guardia-card:hover {
+    border-color: rgba(18,232,160,.28);
+  }
+
+  .incidencia-guardia-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .incidencia-guardia-title {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .incidencia-guardia-description {
+    margin: .75rem 0 1rem;
+    color: var(--mist);
+    line-height: 1.55;
+  }
+
+  .incidencia-guardia-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: 1rem;
+  }
+
+  .incidencia-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.09);
+    font-size: .72rem;
+    font-family: "Space Mono", monospace;
+  }
+
+  .incidencia-chip.priority-urgente,
+  .incidencia-chip.priority-alta {
+    color: #ffd36a;
+    border-color: rgba(255,211,106,.25);
+  }
+
+  .incidencia-chip.priority-media {
+    color: #d8c96a;
+  }
+
+  .incidencia-chip.priority-baja {
+    color: #9fd9bd;
+  }
+
+  .incidencia-chip.status-reportada {
+    color: #ffd36a;
+  }
+
+  .incidencia-chip.status-revision {
+    color: #12e8a0;
+  }
+
+  .incidencia-chip.status-resuelta,
+  .incidencia-chip.status-cerrada {
+    color: #b9c5be;
+  }
+
+  .incidencia-guardia-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,.07);
+  }
+
+  .incidencia-guardia-id {
+    color: var(--mist);
+    font-size: .72rem;
+  }
+
+  .incidencia-guardia-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .incidencia-guardia-empty {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--mist);
+  }
+
+  .incidencia-guardia-error {
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid rgba(235,82,82,.25);
+    color: #ffb0b0;
+    background: rgba(120,30,30,.15);
+  }
+
+  .incidencias-toolbar-extra {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .incidencias-filter {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  .incidencias-filter button.active {
+    color: var(--mint, #12e8a0);
+    border-color: rgba(18,232,160,.35);
+  }
+
+  @media (max-width: 700px) {
+    .incidencia-guardia-head,
+    .incidencia-guardia-footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .incidencia-guardia-actions {
+      width: 100%;
+    }
+
+    .incidencia-guardia-actions button {
+      flex: 1;
+    }
+  }
+</style>
+
 </head>
+
 <body>
+
 <div class="bg-photo"></div>
 <canvas id="bgCanvas"></canvas>
 
 <div class="app">
-  <!-- ============ TOP NAV (portal separado de residentes y superadmin) ============ -->
-  <aside class="sidebar"><a href="superadmin.html" class="sidebar-logo" id="staffHomeLink"><span class="mark bracket"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span>VIGIA <span class="mono" style="font-size:.62rem;color:var(--mist);margin-left:.3rem;letter-spacing:.08em;">STAFF</span></a><nav class="sidebar-nav"><a href="guardia.html" class="nav-item active" data-role="guardia,admin,superadmin"><i class="bi bi-exclamation-octagon-fill"></i> Alertas</a><a href="control-acceso.html" class="nav-item" data-role="guardia,admin"><i class="bi bi-person-bounding-box"></i> Acceso rápido</a><a href="conflictos.html" class="nav-item" data-role="guardia,admin,superadmin"><i class="bi bi-shield-exclamation"></i> Conflictos y vetos</a><a href="operaciones.html" class="nav-item" data-role="guardia,admin,superadmin"><i class="bi bi-clock-history"></i> Operación</a><a href="mensajeria.html" class="nav-item" data-role="guardia,admin,superadmin"><i class="bi bi-chat-dots-fill"></i> Mensajería</a><a href="integraciones.html" class="nav-item" data-role="admin,superadmin"><i class="bi bi-diagram-3-fill"></i> Integraciones</a><a href="superadmin.html" class="nav-item" data-role="admin,superadmin"><i class="bi bi-people-fill"></i> Administración</a><a href="suscripciones.html" class="nav-item" data-role="superadmin"><i class="bi bi-credit-card-fill"></i> Suscripciones</a><a href="benchmark.html" class="nav-item" data-role="superadmin"><i class="bi bi-bar-chart-fill"></i> Benchmark</a></nav><div class="sidebar-footer"><span class="live-clock mono" id="clock">VIGIA · 00:00:00</span><div class="sidebar-actions"><div class="topnav-user"><div class="av">VG</div><span class="uname">Personal</span></div><button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button></div></div></aside><!-- ============ MAIN ============ -->
-  <div class="main">
-    <div class="content">
-      <div class="page">
-        <div class="page-banner">
-          <div class="page-banner-bg" style="background-image:url('https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=1400&auto=format&fit=crop');"></div>
-          <div class="page-banner-glow"></div>
-          <div class="page-banner-content">
-            <div><span class="mono-tag">PORTAL DEL GUARDIA</span><h1>Alertas y comunicación con residentes</h1><p id="guardShiftLine">Turno · Altavista Residencial</p></div>
-          </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <a
+      href="superadmin.html"
+      class="sidebar-logo"
+      id="staffHomeLink"
+    >
+      <span class="mark bracket">
+        <span class="cn tl"></span>
+        <span class="cn tr"></span>
+        <span class="cn bl"></span>
+        <span class="cn br"></span>
+        <i class="bi bi-shield-lock-fill"></i>
+      </span>
+
+      VIGIA
+
+      <span
+        class="mono"
+        style="font-size:.62rem;color:var(--mist);margin-left:.3rem;letter-spacing:.08em;"
+      >
+        STAFF
+      </span>
+    </a>
+
+    <nav class="sidebar-nav">
+
+      <a
+        href="guardia.html"
+        class="nav-item active"
+        data-role="guardia,admin,superadmin"
+      >
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        Alertas
+      </a>
+
+      <a
+        href="control-acceso.html"
+        class="nav-item"
+        data-role="guardia,admin"
+      >
+        <i class="bi bi-person-bounding-box"></i>
+        Acceso rápido
+      </a>
+
+      <a
+        href="conflictos.html"
+        class="nav-item"
+        data-role="guardia,admin,superadmin"
+      >
+        <i class="bi bi-shield-exclamation"></i>
+        Conflictos y vetos
+      </a>
+
+      <a
+        href="operaciones.html"
+        class="nav-item"
+        data-role="guardia,admin,superadmin"
+      >
+        <i class="bi bi-clock-history"></i>
+        Operación
+      </a>
+
+      <a
+        href="mensajeria.html"
+        class="nav-item"
+        data-role="guardia,admin,superadmin"
+      >
+        <i class="bi bi-chat-dots-fill"></i>
+        Mensajería
+      </a>
+
+      <a
+        href="integraciones.html"
+        class="nav-item"
+        data-role="admin,superadmin"
+      >
+        <i class="bi bi-diagram-3-fill"></i>
+        Integraciones
+      </a>
+
+      <a
+        href="superadmin.html"
+        class="nav-item"
+        data-role="admin,superadmin"
+      >
+        <i class="bi bi-people-fill"></i>
+        Administración
+      </a>
+
+      <a
+        href="suscripciones.html"
+        class="nav-item"
+        data-role="superadmin"
+      >
+        <i class="bi bi-credit-card-fill"></i>
+        Suscripciones
+      </a>
+
+      <a
+        href="benchmark.html"
+        class="nav-item"
+        data-role="superadmin"
+      >
+        <i class="bi bi-bar-chart-fill"></i>
+        Benchmark
+      </a>
+
+    </nav>
+
+    <div class="sidebar-footer">
+
+      <span class="live-clock mono" id="clock">
+        VIGIA · 00:00:00
+      </span>
+
+      <div class="sidebar-actions">
+
+        <div class="topnav-user">
+          <div class="av">VG</div>
+          <span class="uname">Personal</span>
         </div>
 
-        <div class="admin-stats">
-          <div class="admin-stat" id="statPendientesWrap"><span class="val" id="statPendientes">0</span><span class="lbl">Pendientes</span></div>
-          <div class="admin-stat"><span class="val" id="statFalsas">0</span><span class="lbl">Falsas alarmas</span></div>
-          <div class="admin-stat"><span class="val" id="statAtendidas">0</span><span class="lbl">Atendidas hoy</span></div>
-        </div>
+        <button
+          type="button"
+          class="icon-btn"
+          id="vgLogoutBtn"
+          title="Cerrar sesión"
+        >
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
 
-        <div class="incidencias-toolbar">
-          <div class="agenda-tabs">
-            <button class="active" data-tab="alertas">Alertas de pánico</button>
-            <button data-tab="chat">Chat con residentes</button>
-          </div>
-        </div>
-
-        <div class="panel" data-panel="alertas">
-          <div id="guardPanicList"></div>
-          <p class="mono" id="guardPanicEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:1.5rem 0;text-align:center;">Aún no se ha activado ninguna alerta de pánico.</p>
-        </div>
-
-        <div class="panel" data-panel="chat" style="display:none;padding:0;">
-          <div class="admin-chat-layout">
-            <div class="admin-chat-list" id="guardChatList"></div>
-            <div class="admin-chat-conversation">
-              <div class="chat-header">
-                <div class="post-av" id="guardChatAv">JP</div>
-                <div class="post-who"><b id="guardChatName">Jorge Paz</b><span class="mono"><span class="chat-status-dot"></span> En línea</span></div>
-              </div>
-              <div class="chat-messages" id="guardChatMessages"></div>
-              <form id="guardChatForm" class="chat-input-row" autocomplete="off">
-                <input type="text" class="form-control" id="guardChatInput" placeholder="Escribe un mensaje...">
-                <button type="submit" class="btn btn-solid" id="guardChatSendBtn"><i class="bi bi-send-fill"></i></button>
-              </form>
-            </div>
-          </div>
-        </div>
       </div>
+
     </div>
+
+  </aside>
+
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div class="content">
+
+      <div class="page">
+
+        <!-- HEADER -->
+        <div class="page-banner">
+
+          <div
+            class="page-banner-bg"
+            style="background-image:url('https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=1400&auto=format&fit=crop');"
+          ></div>
+
+          <div class="page-banner-glow"></div>
+
+          <div class="page-banner-content">
+
+            <div>
+
+              <span class="mono-tag">
+                PORTAL DEL GUARDIA
+              </span>
+
+              <h1>
+                Alertas y comunicación con residentes
+              </h1>
+
+              <p id="guardShiftLine">
+                Turno · Altavista Residencial
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- STATS -->
+        <div class="admin-stats">
+
+          <div
+            class="admin-stat"
+            id="statPendientesWrap"
+          >
+            <span
+              class="val"
+              id="statPendientes"
+            >
+              0
+            </span>
+
+            <span class="lbl">
+              Pendientes
+            </span>
+          </div>
+
+
+          <div class="admin-stat">
+
+            <span
+              class="val"
+              id="statEnCamino"
+            >
+              0
+            </span>
+
+            <span class="lbl">
+              En camino
+            </span>
+
+          </div>
+
+
+          <div class="admin-stat">
+
+            <span
+              class="val"
+              id="statAtendidas"
+            >
+              0
+            </span>
+
+            <span class="lbl">
+              Atendidas hoy
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <!-- TABS -->
+        <div class="incidencias-toolbar">
+
+          <div class="agenda-tabs">
+
+            <button
+              class="active"
+              data-tab="alertas"
+            >
+              Alertas de pánico
+            </button>
+
+            <button
+              data-tab="incidencias"
+            >
+              Incidencias
+            </button>
+
+            <button
+              data-tab="chat"
+            >
+              Chat con residentes
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <!-- ALERTAS DE PANICO -->
+        <div
+          class="panel"
+          data-panel="alertas"
+        >
+
+          <div id="guardPanicList"></div>
+
+          <p
+            class="mono"
+            id="guardPanicEmptyMsg"
+            style="color:var(--mist);font-size:.85rem;padding:1.5rem 0;text-align:center;"
+          >
+            Aún no se ha activado ninguna alerta de pánico.
+          </p>
+
+        </div>
+
+
+        <!-- =====================================================
+             INCIDENCIAS
+             ===================================================== -->
+
+        <div
+          class="panel"
+          data-panel="incidencias"
+          style="display:none;"
+        >
+
+          <div class="incidencias-toolbar-extra">
+
+            <div>
+
+              <strong>
+                Incidencias de residentes
+              </strong>
+
+              <div
+                class="mono"
+                style="color:var(--mist);font-size:.72rem;margin-top:.25rem;"
+              >
+                Reportes enviados a esta residencial
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-ghost"
+              id="refreshIncidenciasBtn"
+            >
+              <i class="bi bi-arrow-clockwise"></i>
+              Actualizar
+            </button>
+
+          </div>
+
+
+          <div class="incidencias-filter">
+
+            <button
+              type="button"
+              class="btn btn-ghost active"
+              data-inc-filter="todas"
+            >
+              Todas
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-ghost"
+              data-inc-filter="reportada"
+            >
+              Nuevas
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-ghost"
+              data-inc-filter="en_revision"
+            >
+              En progreso
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-ghost"
+              data-inc-filter="resuelta"
+            >
+              Resueltas
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-ghost"
+              data-inc-filter="cerrada"
+            >
+              Cerradas
+            </button>
+
+          </div>
+
+
+          <div
+            id="guardIncidenciasList"
+            class="incidencias-guardia-wrap"
+            style="margin-top:1rem;"
+          ></div>
+
+        </div>
+
+
+        <!-- CHAT -->
+        <div
+          class="panel"
+          data-panel="chat"
+          style="display:none;padding:0;"
+        >
+
+          <div class="admin-chat-layout">
+
+            <div
+              class="admin-chat-list"
+              id="guardChatList"
+            ></div>
+
+            <div class="admin-chat-conversation">
+
+              <div class="chat-header">
+
+                <div
+                  class="post-av"
+                  id="guardChatAv"
+                >
+                  JP
+                </div>
+
+                <div class="post-who">
+
+                  <b id="guardChatName">
+                    Jorge Paz
+                  </b>
+
+                  <span class="mono">
+                    <span class="chat-status-dot"></span>
+                    En línea
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <div
+                class="chat-messages"
+                id="guardChatMessages"
+              ></div>
+
+
+              <form
+                id="guardChatForm"
+                class="chat-input-row"
+                autocomplete="off"
+              >
+
+                <input
+                  type="text"
+                  class="form-control"
+                  id="guardChatInput"
+                  placeholder="Escribe un mensaje..."
+                >
+
+                <button
+                  type="submit"
+                  class="btn btn-solid"
+                  id="guardChatSendBtn"
+                >
+                  <i class="bi bi-send-fill"></i>
+                </button>
+
+              </form>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
+
 </div>
+
+
+<!-- SCRIPTS -->
 
 <script src="js/common.js"></script>
 <script src="js/guard-auth-store.js"></script>
+<script src="js/panic-store.js"></script>
 <script src="js/chat-store.js"></script>
 <script src="js/guardia.js"></script>
+
+<!-- NUEVO -->
+<script src="js/incidencias-guardia.js"></script>
+
 </body>
 </html>
