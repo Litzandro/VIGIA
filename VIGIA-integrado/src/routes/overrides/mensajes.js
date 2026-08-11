@@ -83,17 +83,25 @@ async function ensureResidentConversation(user) {
   const staff = await currentStaffUser(user.residencial_id);
   if (!staff) throw Object.assign(new Error('No hay un guardia o administrador activo para iniciar el chat.'), { status: 409 });
 
+  // El residente conserva UN solo hilo continuo con seguridad, sin
+  // importar que guardia este de turno. Si cambia el guardia, se le
+  // suma como participante de esa misma conversacion en vez de abrir
+  // una nueva, para que el historial nunca desaparezca de la vista del
+  // residente.
   const ownIds = await participantConversationIds(user.id);
   if (ownIds.length) {
-    const shared = await db.ConversacionesParticipantes.findOne({
-      where: { conversacion_id: { [Op.in]: ownIds }, usuario_id: staff.id },
-      order: [['conversacion_id', 'DESC']],
+    const existing = await db.Conversaciones.findOne({
+      where: { id: { [Op.in]: ownIds }, residencial_id: user.residencial_id, tipo: 'directa' },
+      order: [['id', 'DESC']],
     });
-    if (shared) {
-      const existing = await db.Conversaciones.findOne({
-        where: { id: shared.conversacion_id, residencial_id: user.residencial_id, tipo: 'directa' },
+    if (existing) {
+      const alreadyIn = await db.ConversacionesParticipantes.findOne({
+        where: { conversacion_id: existing.id, usuario_id: staff.id },
       });
-      if (existing) return { conversation: existing, staff };
+      if (!alreadyIn) {
+        await db.ConversacionesParticipantes.create({ conversacion_id: existing.id, usuario_id: staff.id });
+      }
+      return { conversation: existing, staff };
     }
   }
 
@@ -112,14 +120,38 @@ async function ensureResidentConversation(user) {
 }
 
 async function participantNames(conversationId) {
-  const links = await db.ConversacionesParticipantes.findAll({ where: { conversacion_id: conversationId } });
+  const links = await db.ConversacionesParticipantes.findAll({
+    where: { conversacion_id: conversationId },
+    order: [['fecha_union', 'ASC']],
+  });
   const ids = links.map((x) => x.usuario_id);
   if (!ids.length) return [];
   const users = await db.Usuarios.findAll({
     where: { id: { [Op.in]: ids } },
-    attributes: ['id', 'nombre', 'apellido', 'foto_url'],
+    attributes: ['id', 'nombre', 'apellido', 'foto_url', 'rol_id'],
   });
-  return users.map((x) => ({ id: x.id, nombre_completo: `${x.nombre} ${x.apellido}`.trim(), foto_url: x.foto_url }));
+  const roleIds = [...new Set(users.map((x) => x.rol_id))];
+  const roles = roleIds.length ? await db.Roles.findAll({ where: { id: { [Op.in]: roleIds } }, attributes: ['id', 'codigo'] }) : [];
+  const roleMap = new Map(roles.map((r) => [String(r.id), r.codigo]));
+  // Se conserva el orden de ingreso (fecha_union) para que el residente
+  // que inicio la conversacion siempre quede identificable, aunque con
+  // el tiempo se sumen varios guardias al mismo hilo por cambios de turno.
+  return ids
+    .map((id) => users.find((u) => String(u.id) === String(id)))
+    .filter(Boolean)
+    .map((x) => ({
+      id: x.id,
+      nombre_completo: `${x.nombre} ${x.apellido}`.trim(),
+      foto_url: x.foto_url,
+      rol_codigo: roleMap.get(String(x.rol_id)) || null,
+    }));
+}
+
+async function markConversationRead(conversationId, readerId) {
+  await db.Mensajes.update(
+    { leido: true },
+    { where: { conversacion_id: conversationId, usuario_id: { [Op.ne]: readerId }, leido: false } },
+  );
 }
 
 async function messagesForConversation(conversationId) {
@@ -154,6 +186,7 @@ module.exports = function mensajesOverride({ router, model, handlers, pkPath }) 
         }) : null;
       }
       if (!conversation) return res.json({ data: { conversacion: null, participantes: [], mensajes: [] } });
+      await markConversationRead(conversation.id, req.user.id);
       const [participants, messages] = await Promise.all([
         participantNames(conversation.id),
         messagesForConversation(conversation.id),
@@ -191,6 +224,7 @@ module.exports = function mensajesOverride({ router, model, handlers, pkPath }) 
     try {
       const conversation = await assertCanUseConversation(req.params.id, req.user);
       if (!conversation) return res.status(404).json({ error: 'Conversación no encontrada.' });
+      await markConversationRead(conversation.id, req.user.id);
       const [participants, messages] = await Promise.all([
         participantNames(conversation.id),
         messagesForConversation(conversation.id),
