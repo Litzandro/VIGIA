@@ -88,6 +88,7 @@ body::before{
   background:rgba(10,15,12,.86);backdrop-filter:blur(16px) saturate(150%);
   border-right:1px solid var(--line);
   display:flex;flex-direction:column;padding:1.6rem 1.1rem;z-index:100;
+  transition:width .22s ease;
 }
 .sidebar-logo{display:flex;align-items:center;gap:.6rem;font-family:var(--f-display);font-weight:600;font-size:1.1rem;color:var(--bone);padding:0 .3rem;margin-bottom:2rem;flex-shrink:0;}
 .sidebar-nav{display:flex;flex-direction:column;gap:.2rem;flex:1;}
@@ -95,6 +96,23 @@ body::before{
 .sidebar-footer{border-top:1px solid var(--line);padding-top:1.1rem;margin-top:1rem;display:flex;flex-direction:column;gap:.9rem;flex-shrink:0;}
 .sidebar-actions{display:flex;align-items:center;gap:.7rem;}
 .font-scaled .sidebar{width:210px;}
+
+/* ---- Barra lateral retractil (boton en sidebar.html, logica en common.js) ---- */
+.sidebar-collapse-btn{
+  position:absolute;top:1.5rem;right:-13px;width:26px;height:26px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line-strong);color:var(--bone-dim);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:130;
+  transition:color .2s ease,border-color .2s ease,transform .2s ease;
+}
+.sidebar-collapse-btn:hover{color:var(--accent);border-color:var(--accent-dim);}
+.sidebar-collapse-btn i{transition:transform .25s ease;font-size:.75rem;}
+.sidebar.collapsed .sidebar-collapse-btn i{transform:rotate(180deg);}
+.sidebar.collapsed .sidebar-logo{justify-content:center;}
+.sidebar.collapsed .sidebar-nav .nav-item{justify-content:center;padding:.65rem 0;}
+.sidebar.collapsed .sidebar-actions{flex-direction:column;gap:.5rem;}
+.sidebar.collapsed .sidebar-actions .topnav-user{padding:0;}
+.sidebar.collapsed .label,
+.sidebar.collapsed .live-clock{display:none;}
 
 @media (max-width:860px){
   .app{display:block;}
@@ -108,6 +126,8 @@ body::before{
   .sidebar-nav .nav-item{padding:.5rem .7rem;font-size:.8rem;white-space:nowrap;}
   .sidebar-footer{flex-direction:row;border-top:none;margin-top:0;padding-top:0;margin-left:auto;padding-left:1rem;flex-shrink:0;}
   .main{padding-top:4.4rem;}
+
+  .sidebar-collapse-btn{display:none;}
 }
 
 .nav-item{
@@ -849,6 +869,14 @@ body.theme-light .chat-msg.resident .chat-bubble{background:var(--accent);color:
   .a11y-xl .sidebar ~ .main{
     margin-left:230px;
     width:calc(100% - 230px);
+  }
+
+  .sidebar.collapsed{
+    width:76px;
+  }
+  .sidebar.collapsed ~ .main{
+    margin-left:76px;
+    width:calc(100% - 76px);
   }
 }
 

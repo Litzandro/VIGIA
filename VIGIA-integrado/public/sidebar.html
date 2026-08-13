@@ -1,0 +1,62 @@
+<!--
+  VIGIA — barra lateral única y compartida.
+  Antes cada página tenía su propia barra lateral (etiqueta aside) copiada
+  y pegado, así que con el tiempo se fueron desincronizando entre sí (por
+  ejemplo dashboard.html había quedado con una versión distinta a las demás
+  13 páginas de residente). Ahora este archivo es la única fuente de verdad:
+  common.js lo descarga una vez por página y arma el <aside id="vigiaSidebar">
+  a partir de la plantilla que corresponda (residente o personal).
+
+  Para agregar/quitar un enlace del menú, edita SOLO este archivo.
+-->
+<template id="residentSidebarTemplate">
+  <a href="dashboard.html" class="sidebar-logo"><span class="mark bracket" aria-hidden="true"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span><span class="label">VIGIA</span></a>
+  <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar barra lateral" title="Colapsar barra lateral"><i class="bi bi-chevron-left"></i></button>
+  <nav class="sidebar-nav" aria-label="Navegación principal">
+    <a href="dashboard.html" class="nav-item" title="Dashboard"><i class="bi bi-grid-fill"></i><span class="label">Dashboard</span></a>
+    <a href="visitas.html" class="nav-item" title="Mis visitas"><i class="bi bi-person-plus-fill"></i><span class="label">Mis visitas</span></a>
+    <a href="accesos.html" class="nav-item" title="Mis accesos"><i class="bi bi-door-open-fill"></i><span class="label">Mis accesos</span></a>
+    <a href="incidencias.html" class="nav-item" title="Incidencias"><i class="bi bi-flag-fill"></i><span class="label">Incidencias</span></a>
+    <a href="notificaciones.html" class="nav-item" title="Notificaciones"><i class="bi bi-bell-fill"></i><span class="label">Notificaciones</span></a>
+    <a href="comunidad.html" class="nav-item" title="Comunidad"><i class="bi bi-people-fill"></i><span class="label">Comunidad</span></a>
+    <a href="chat.html" class="nav-item" title="Chat"><i class="bi bi-chat-dots-fill"></i><span class="label">Chat</span></a>
+    <a href="camaras.html" class="nav-item" title="Cámaras"><i class="bi bi-camera-video-fill"></i><span class="label">Cámaras</span></a>
+    <a href="autorizados.html" class="nav-item" title="Autorizados"><i class="bi bi-person-check-fill"></i><span class="label">Autorizados</span></a>
+    <a href="vetos.html" class="nav-item" title="Vetos"><i class="bi bi-shield-x"></i><span class="label">Vetos</span></a>
+    <a href="emergencias.html" class="nav-item" title="Emergencias"><i class="bi bi-telephone-fill"></i><span class="label">Emergencias</span></a>
+    <a href="seguridad.html" class="nav-item" title="Seguridad"><i class="bi bi-shield-lock-fill"></i><span class="label">Seguridad</span></a>
+    <a href="perfil.html" class="nav-item" title="Perfil"><i class="bi bi-person-circle"></i><span class="label">Perfil</span></a>
+    <a href="config.html" class="nav-item" title="Configuración"><i class="bi bi-gear-fill"></i><span class="label">Configuración</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="live-clock mono" id="clock">VIGIA · 00:00:00</span>
+    <div class="sidebar-actions">
+      <a href="notificaciones.html" class="icon-btn" id="bellLink" title="Avisos"><i class="bi bi-bell"></i><span class="dot" id="bellDot"></span></a>
+      <a href="perfil.html" class="topnav-user" title="Perfil"><div class="av">VG</div><span class="uname label">Usuario</span></a>
+      <button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </div>
+</template>
+
+<template id="staffSidebarTemplate">
+  <a href="superadmin.html" class="sidebar-logo" id="staffHomeLink"><span class="mark bracket" aria-hidden="true"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span><span class="label">VIGIA <span class="mono" style="font-size:.62rem;color:var(--mist);margin-left:.3rem;letter-spacing:.08em;">STAFF</span></span></a>
+  <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar barra lateral" title="Colapsar barra lateral"><i class="bi bi-chevron-left"></i></button>
+  <nav class="sidebar-nav" aria-label="Navegación de personal">
+    <a href="guardia.html" class="nav-item" data-role="guardia,admin,superadmin" title="Alertas"><i class="bi bi-exclamation-octagon-fill"></i><span class="label">Alertas</span></a>
+    <a href="control-acceso.html" class="nav-item" data-role="guardia,admin" title="Acceso rápido"><i class="bi bi-person-bounding-box"></i><span class="label">Acceso rápido</span></a>
+    <a href="conflictos.html" class="nav-item" data-role="guardia,admin,superadmin" title="Conflictos y vetos"><i class="bi bi-shield-exclamation"></i><span class="label">Conflictos y vetos</span></a>
+    <a href="operaciones.html" class="nav-item" data-role="guardia,admin,superadmin" title="Operación"><i class="bi bi-clock-history"></i><span class="label">Operación</span></a>
+    <a href="mensajeria.html" class="nav-item" data-role="guardia,admin,superadmin" title="Mensajería"><i class="bi bi-chat-dots-fill"></i><span class="label">Mensajería</span></a>
+    <a href="integraciones.html" class="nav-item" data-role="admin,superadmin" title="Integraciones"><i class="bi bi-diagram-3-fill"></i><span class="label">Integraciones</span></a>
+    <a href="superadmin.html" class="nav-item" data-role="admin,superadmin" title="Administración"><i class="bi bi-people-fill"></i><span class="label">Administración</span></a>
+    <a href="suscripciones.html" class="nav-item" data-role="superadmin" title="Suscripciones"><i class="bi bi-credit-card-fill"></i><span class="label">Suscripciones</span></a>
+    <a href="benchmark.html" class="nav-item" data-role="superadmin" title="Benchmark"><i class="bi bi-bar-chart-fill"></i><span class="label">Benchmark</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="live-clock mono" id="clock">VIGIA · 00:00:00</span>
+    <div class="sidebar-actions">
+      <div class="topnav-user" title="Personal"><div class="av">VG</div><span class="uname label">Personal</span></div>
+      <button type="button" class="icon-btn" id="vgLogoutBtn" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </div>
+</template>
