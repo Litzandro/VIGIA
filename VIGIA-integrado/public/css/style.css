@@ -123,6 +123,12 @@ body::before{
 /* algo mas de aire entre los enlaces del menu */
 .sidebar-nav{gap:.3rem;}
 
+/* Los iconos de cada enlace solo se muestran cuando el sidebar esta
+   colapsado (ahi ayudan a identificar la seccion sin texto). Con el
+   sidebar desplegado se ve solo el texto, mas limpio. */
+.sidebar-nav .nav-item i{display:none;}
+.sidebar.collapsed .sidebar-nav .nav-item i{display:inline-block;}
+
 @media (max-width:860px){
   .app{display:block;}
   .sidebar{

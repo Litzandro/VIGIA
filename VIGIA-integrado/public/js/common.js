@@ -187,26 +187,32 @@ function formatHora12(hhmm){
 }
 window.formatHora12=formatHora12;
 
-// Formatea un numero de telefono hondureno mientras se escribe: 8 digitos
-// agrupados como 9999-0000. Igual que formatDocumentoHN, si detecta una
-// letra no toca nada (por si alguien pega un numero internacional con
-// "+" u otro formato) para no bloquear datos validos.
+// Formatea un numero de telefono hondureno: 8 digitos agrupados como
+// 9999-0000. A diferencia de formatDocumentoHN, aqui SI se bloquean las
+// letras por completo (estos campos son especificamente numericos, a
+// diferencia de "Documento" que a veces es un pasaporte).
 function formatTelefonoHN(raw){
-  const value=String(raw||'');
-  // Letras o "+" (numero internacional, ej. "+1 555...") -> no tocar.
-  if(/[a-zA-Z+]/.test(value))return value;
-  const digits=value.replace(/[^0-9]/g,'').slice(0,8);
+  const digits=String(raw||'').replace(/[^0-9]/g,'').slice(0,8);
   const parts=[digits.slice(0,4),digits.slice(4,8)].filter(Boolean);
   return parts.join('-');
 }
 window.formatTelefonoHN=formatTelefonoHN;
 
-// Engancha el formateo automatico de telefono a un <input>: mientras se
-// escribe solo numeros los agrupa 9999-0000; si aparece una letra o un
-// "+" (numero internacional), deja de intervenir.
+// Engancha el bloqueo real de letras a un <input> de telefono: la tecla
+// se bloquea en el momento (keydown), asi la letra nunca llega ni a
+// aparecer un instante en la caja. El "input" de respaldo limpia
+// cualquier caracter que se cuele por otra via (pegar, autocompletar,
+// teclado de celular) y agrupa como 9999-0000.
 function attachTelefonoHNMask(input){
   if(!input)return;
   input.setAttribute('placeholder','9999-0000');
+  input.setAttribute('inputmode','numeric');
+  input.addEventListener('keydown',(e)=>{
+    if(e.ctrlKey||e.metaKey||e.altKey)return; // deja pasar atajos (copiar, pegar, seleccionar todo...)
+    const allowed=['Backspace','Delete','Tab','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
+    if(allowed.includes(e.key))return;
+    if(e.key.length===1 && !/[0-9]/.test(e.key))e.preventDefault();
+  });
   input.addEventListener('input',()=>{input.value=formatTelefonoHN(input.value)});
 }
 window.attachTelefonoHNMask=attachTelefonoHNMask;
