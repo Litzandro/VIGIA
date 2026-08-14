@@ -239,6 +239,15 @@ function prepararSidebarUnico(sidebar,current){
     }
   });
 
+  // Los separadores visuales tambien respetan data-role, para no dejar
+  // una linea suelta cuando todo lo que agrupan queda oculto (por ejemplo,
+  // un guardia sin acceso a Integraciones/Administracion/Suscripciones).
+  sidebar.querySelectorAll('.sidebar-divider[data-role]').forEach(div=>{
+    if(!session)return;
+    const roles=div.getAttribute('data-role').split(',').map(r=>r.trim());
+    div.hidden=!roles.includes(session.rol_codigo);
+  });
+
   if(session){
     const displayName=session.name||session.nombre_completo||[session.nombre,session.apellido].filter(Boolean).join(' ')||'Usuario';
     const initials=displayName.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';

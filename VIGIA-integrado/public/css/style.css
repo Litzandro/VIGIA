@@ -114,6 +114,17 @@ body::before{
 .sidebar.collapsed .label,
 .sidebar.collapsed .live-clock{display:none;}
 
+/* separador visual entre navegacion principal y cuenta/administracion */
+.sidebar-divider{height:1px;background:var(--line);margin:.7rem .4rem;flex-shrink:0;}
+.sidebar.collapsed .sidebar-divider{margin:.7rem .1rem;}
+
+/* boton de colapsar: un poco mas visible y con mejor estado hover */
+.sidebar-collapse-btn{box-shadow:0 2px 8px rgba(0,0,0,.35);}
+.sidebar-collapse-btn:hover{background:var(--accent-soft);}
+
+/* algo mas de aire entre los enlaces del menu */
+.sidebar-nav{gap:.3rem;}
+
 @media (max-width:860px){
   .app{display:block;}
   .sidebar{
