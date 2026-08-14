@@ -32,27 +32,12 @@
             <button type="button" class="btn btn-ghost" id="markAllRead"><i class="bi bi-check2-all"></i> Marcar todo leído</button>
           </div>
         </div>
-        <div class="panel">
-          <div class="notif-item unread">
-            <span class="ic" style="background:var(--accent-soft);color:var(--accent);"><i class="bi bi-qr-code-scan"></i></span>
-            <div class="txt" style="flex:1;"><b>Tu visita María Flores ingresó al residencial</b><p>Verificada en portón principal por J. Reyes.</p></div>
-            <span class="time">Hace 22 min</span>
-          </div>
-          <div class="notif-item unread">
-            <span class="ic" style="background:var(--warn-soft);color:var(--warn);"><i class="bi bi-exclamation-triangle-fill"></i></span>
-            <div class="txt" style="flex:1;"><b>Actualización de tu incidencia #INC-0231</b><p>Mantenimiento fue asignado y revisará la luminaria mañana.</p></div>
-            <span class="time">Hace 3 h</span>
-          </div>
-          <div class="notif-item">
-            <span class="ic" style="background:var(--alert-soft);color:var(--alert);"><i class="bi bi-shield-x"></i></span>
-            <div class="txt" style="flex:1;"><b>Intento de acceso no autorizado bloqueado</b><p>Un código inválido fue rechazado en el portón principal.</p></div>
-            <span class="time">Ayer</span>
-          </div>
-          <div class="notif-item">
-            <span class="ic" style="background:rgba(237,231,214,.08);color:var(--bone-dim);"><i class="bi bi-megaphone-fill"></i></span>
-            <div class="txt" style="flex:1;"><b>Aviso de administración</b><p>Mantenimiento programado del portón vehicular el sábado de 9 a 11 AM.</p></div>
-            <span class="time">Hace 2 días</span>
-          </div>
+        <div class="filter-chips" style="margin-bottom:1rem;">
+          <button type="button" class="filter-chip active" data-filter="todas">Todas</button>
+          <button type="button" class="filter-chip" data-filter="no-leidas">No leídas</button>
+        </div>
+        <div class="panel" id="notifList">
+          <div class="empty-state">Cargando…</div>
         </div>
       </div>
     </div>
