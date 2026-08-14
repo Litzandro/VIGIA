@@ -13,6 +13,8 @@
     document.getElementById('subscriptionLink').style.display = 'none';
   }
 
+  attachTelefonoHNMask(document.getElementById('adPhone'));
+
   const roleSelect = document.getElementById('adRole');
   function toggleFields() {
     document.getElementById('residentFields').style.display = roleSelect.value === 'residente' ? 'grid' : 'none';

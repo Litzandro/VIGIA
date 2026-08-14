@@ -187,6 +187,30 @@ function formatHora12(hhmm){
 }
 window.formatHora12=formatHora12;
 
+// Formatea un numero de telefono hondureno mientras se escribe: 8 digitos
+// agrupados como 9999-0000. Igual que formatDocumentoHN, si detecta una
+// letra no toca nada (por si alguien pega un numero internacional con
+// "+" u otro formato) para no bloquear datos validos.
+function formatTelefonoHN(raw){
+  const value=String(raw||'');
+  // Letras o "+" (numero internacional, ej. "+1 555...") -> no tocar.
+  if(/[a-zA-Z+]/.test(value))return value;
+  const digits=value.replace(/[^0-9]/g,'').slice(0,8);
+  const parts=[digits.slice(0,4),digits.slice(4,8)].filter(Boolean);
+  return parts.join('-');
+}
+window.formatTelefonoHN=formatTelefonoHN;
+
+// Engancha el formateo automatico de telefono a un <input>: mientras se
+// escribe solo numeros los agrupa 9999-0000; si aparece una letra o un
+// "+" (numero internacional), deja de intervenir.
+function attachTelefonoHNMask(input){
+  if(!input)return;
+  input.setAttribute('placeholder','9999-0000');
+  input.addEventListener('input',()=>{input.value=formatTelefonoHN(input.value)});
+}
+window.attachTelefonoHNMask=attachTelefonoHNMask;
+
 // ---- Barra lateral unica, compartida por residentes y personal ----
 // Antes cada pagina traia su propio <aside class="sidebar">...</aside>
 // pegado a mano, y con el tiempo se desincronizaron entre si (dashboard.html
@@ -340,10 +364,15 @@ setInterval(tickClock,1000);tickClock();
   const defaults={theme:'soft',filter:'none',font:'normal',simple:false,motion:'normal'};
   let prefs={...defaults};try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){}
   function applyAccessibility(){
-    document.body.classList.remove('theme-light','theme-soft','theme-high','filter-grayscale','filter-deuteranopia','filter-protanopia','filter-tritanopia','a11y-large','a11y-xl','simple-mode','reduce-motion');
+    document.body.classList.remove('theme-light','theme-soft','theme-high','filter-grayscale','filter-deuteranopia','filter-protanopia','filter-tritanopia','simple-mode','reduce-motion');
+    // El tamano de texto (a11y-large/a11y-xl) va en <html>, no en <body>:
+    // casi todo el tamano de letra del sitio esta en unidades "rem", que
+    // siempre se calculan sobre el tamano de fuente del elemento raiz
+    // (<html>). Ponerlo en <body> casi no cambiaba nada visualmente.
+    document.documentElement.classList.remove('a11y-large','a11y-xl');
     if(prefs.theme!=='dark')document.body.classList.add('theme-'+prefs.theme);
     if(prefs.filter!=='none')document.body.classList.add('filter-'+prefs.filter);
-    if(prefs.font!=='normal')document.body.classList.add('a11y-'+prefs.font);
+    if(prefs.font!=='normal')document.documentElement.classList.add('a11y-'+prefs.font);
     if(prefs.simple)document.body.classList.add('simple-mode');
     if(prefs.motion==='reduced')document.body.classList.add('reduce-motion');
     localStorage.setItem(KEY,JSON.stringify(prefs));

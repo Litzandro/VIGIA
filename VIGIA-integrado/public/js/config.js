@@ -1,4 +1,27 @@
-document.querySelectorAll('.toggle').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
+// Antes estos 4 interruptores de notificaciones no guardaban nada: el
+// HTML traia un estado fijo (on/off) y cualquier clic se perdia al
+// recargar la pagina -- por eso siempre se veian "datos
+// predeterminados". Todavia no hay una columna en la base de datos
+// para preferencias de notificacion por categoria (eso requeriria una
+// migracion), asi que por ahora se recuerdan por dispositivo via
+// localStorage, igual que otras preferencias locales de VIGIA.
+(function(){
+  const KEY='vigia_notif_prefs';
+  const DEFAULTS={visitas:true,incidencias:true,administracion:false,seguridad:true};
+  let prefs={...DEFAULTS};
+  try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){}
+  document.querySelectorAll('[data-notif-pref]').forEach(t=>{
+    const key=t.dataset.notifPref;
+    t.classList.toggle('on',Boolean(prefs[key]));
+    t.addEventListener('click',()=>{
+      prefs[key]=!prefs[key];
+      t.classList.toggle('on',prefs[key]);
+      try{localStorage.setItem(KEY,JSON.stringify(prefs))}catch(e){}
+      showToast(prefs[key]?'Notificación activada':'Notificación desactivada');
+    });
+  });
+})();
+document.querySelectorAll('.toggle:not([data-notif-pref])').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
 (function(){
   if(!window.VigiaAccessibility)return;const status=document.getElementById('accessibilityStatus');let remote={};
   const mapToApi=p=>({tema:{light:'claro',soft:'suave',dark:'oscuro',high:'alto_contraste'}[p.theme]||'suave',filtro_color:{none:'ninguno',grayscale:'escala_grises',deuteranopia:'deuteranopia',protanopia:'protanopia',tritanopia:'tritanopia'}[p.filter]||'ninguno',tamano_texto:{normal:'normal',large:'grande',xl:'extra_grande'}[p.font]||'normal',modo_simple:Boolean(p.simple),reducir_movimiento:p.motion==='reduced'});

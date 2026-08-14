@@ -10,8 +10,10 @@
   Para agregar/quitar un enlace del menú, edita SOLO este archivo.
 -->
 <template id="residentSidebarTemplate">
-  <a href="dashboard.html" class="sidebar-logo"><span class="mark bracket" aria-hidden="true"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span><span class="label">VIGIA</span></a>
-  <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar barra lateral" title="Colapsar barra lateral"><i class="bi bi-chevron-left"></i></button>
+  <div class="sidebar-header">
+    <a href="dashboard.html" class="sidebar-logo"><span class="mark bracket" aria-hidden="true"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span><span class="label">VIGIA</span></a>
+    <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar barra lateral" title="Colapsar barra lateral"><i class="bi bi-chevron-left"></i></button>
+  </div>
   <nav class="sidebar-nav" aria-label="Navegación principal">
     <a href="dashboard.html" class="nav-item" title="Dashboard"><i class="bi bi-grid-fill"></i><span class="label">Dashboard</span></a>
     <a href="visitas.html" class="nav-item" title="Mis visitas"><i class="bi bi-person-plus-fill"></i><span class="label">Mis visitas</span></a>
@@ -40,8 +42,10 @@
 </template>
 
 <template id="staffSidebarTemplate">
-  <a href="superadmin.html" class="sidebar-logo" id="staffHomeLink"><span class="mark bracket" aria-hidden="true"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span><span class="label">VIGIA <span class="mono" style="font-size:.62rem;color:var(--mist);margin-left:.3rem;letter-spacing:.08em;">STAFF</span></span></a>
-  <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar barra lateral" title="Colapsar barra lateral"><i class="bi bi-chevron-left"></i></button>
+  <div class="sidebar-header">
+    <a href="superadmin.html" class="sidebar-logo" id="staffHomeLink"><span class="mark bracket" aria-hidden="true"><span class="cn tl"></span><span class="cn tr"></span><span class="cn bl"></span><span class="cn br"></span><i class="bi bi-shield-lock-fill"></i></span><span class="label">VIGIA <span class="mono" style="font-size:.62rem;color:var(--mist);margin-left:.3rem;letter-spacing:.08em;">STAFF</span></span></a>
+    <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar barra lateral" title="Colapsar barra lateral"><i class="bi bi-chevron-left"></i></button>
+  </div>
   <nav class="sidebar-nav" aria-label="Navegación de personal">
     <a href="guardia.html" class="nav-item" data-role="guardia,admin,superadmin" title="Alertas"><i class="bi bi-exclamation-octagon-fill"></i><span class="label">Alertas</span></a>
     <a href="control-acceso.html" class="nav-item" data-role="guardia,admin" title="Acceso rápido"><i class="bi bi-person-bounding-box"></i><span class="label">Acceso rápido</span></a>

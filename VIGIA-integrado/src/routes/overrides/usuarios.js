@@ -102,9 +102,25 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
   router.get('/me', async (req, res, next) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-      const usuario = await model.findByPk(req.user.id);
+      const usuario = await model.findByPk(req.user.id, {
+        include: [{ model: db.Residenciales, as: 'residencial', attributes: ['id', 'nombre'] }],
+      });
       if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
       const data = usuario.toJSON(); delete data.password_hash;
+
+      // Requisito perfil.html: mostrar la unidad real (torre/bloque +
+      // numero) en vez de un dato inventado. Solo aplica a residentes;
+      // guardia/admin/superadmin no tienen fila en "residentes".
+      if (req.user.rol_codigo === 'residente') {
+        const residente = await db.Residentes.findByPk(req.user.id, {
+          include: [{ model: db.Viviendas, as: 'vivienda', attributes: ['numero', 'bloque_torre'] }],
+        });
+        if (residente && residente.vivienda) {
+          const { numero, bloque_torre } = residente.vivienda;
+          data.unidad = bloque_torre ? `${bloque_torre} · ${numero}` : numero;
+        }
+      }
+
       res.json({ data });
     } catch (err) {
       next(err);

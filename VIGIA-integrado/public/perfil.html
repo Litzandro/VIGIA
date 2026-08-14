@@ -33,24 +33,26 @@
             <span class="verified-chip"><i class="bi bi-patch-check-fill"></i> VERIFICADO</span>
           </div>
           <div class="profile-body">
-            <div class="profile-avatar">JP</div>
-            <h2>Jorge Paz</h2>
-            <div class="role">RESIDENTE VERIFICADO</div>
-            <div class="loc"><i class="bi bi-geo-alt-fill"></i> Torre B, Depto 402 · Altavista Residencial</div>
+            <div class="profile-avatar" id="pfAvatar">VG</div>
+            <h2 id="pfNombre">Cargando…</h2>
+            <div class="role" id="pfRol">&nbsp;</div>
+            <div class="loc"><i class="bi bi-geo-alt-fill"></i> <span id="pfUbicacion">Cargando…</span></div>
             <div class="profile-stats">
-              <div><b>3</b><span>Visitas activas</span></div>
-              <div><b>27</b><span>Accesos este mes</span></div>
-              <div><b>2</b><span>Vehículos registrados</span></div>
+              <div><b id="pfStatVisitas">—</b><span>Visitas registradas</span></div>
+              <div><b id="pfStatAccesos">—</b><span>Accesos registrados</span></div>
+              <div><b id="pfStatVehiculos">—</b><span>Vehículos registrados</span></div>
             </div>
           </div>
         </div>
         <div class="panel">
           <div class="panel-head"><h3>Información de contacto</h3><div style="display:flex;gap:1rem;"><a href="#" id="cancelEditBtn" style="display:none;color:var(--mist);">CANCELAR</a><a href="#" id="editProfileBtn">EDITAR</a></div></div>
           <div class="info-grid">
-            <div class="info-field"><label>Nombre completo</label><div class="v">Jorge Alberto Paz</div></div>
-            <div class="info-field"><label>Correo electrónico</label><div class="v">jorge.paz@correo.com</div></div>
-            <div class="info-field"><label>Unidad</label><div class="v">Torre B · Depto 402</div></div>
-            <div class="info-field"><label>Residencial</label><div class="v">Altavista Residencial</div></div>
+            <div class="info-field"><label>Nombre</label><div class="v" id="pfNombreField" data-field="nombre">—</div></div>
+            <div class="info-field"><label>Apellido</label><div class="v" id="pfApellidoField" data-field="apellido">—</div></div>
+            <div class="info-field"><label>Correo electrónico</label><div class="v" id="pfEmailField" data-field="email">—</div></div>
+            <div class="info-field"><label>Teléfono</label><div class="v" id="pfTelefonoField" data-field="telefono">—</div></div>
+            <div class="info-field"><label>Unidad</label><div class="v" id="pfUnidadField">—</div></div>
+            <div class="info-field"><label>Residencial</label><div class="v" id="pfResidencialField">—</div></div>
           </div>
         </div>
       </div>
