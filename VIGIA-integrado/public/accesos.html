@@ -33,56 +33,15 @@
           </div>
         </div>
         <div class="panel">
-          <div class="timeline-day-label">Hoy, 19 de julio</div>
-          <div class="tl-wrap">
-            <div class="tl-entry"><div class="row"><b>María Flores ingresó al residencial</b><span class="time mono">4:32 PM</span></div><p>Verificada por QR en portón principal · Guardia J. Reyes</p></div>
-            <div class="tl-entry"><div class="row"><b>Vehículo HN-8832 verificado</b><span class="time mono">4:30 PM</span></div><p>Acceso vehicular autorizado · Portón vehicular</p></div>
-          </div>
-          <div class="timeline-day-label">Ayer, 18 de julio</div>
-          <div class="tl-wrap">
-            <div class="tl-entry warn"><div class="row"><b>Reportaste una incidencia</b><span class="time mono">8:40 PM</span></div><p>Luminaria dañada — pasillo B3</p></div>
-            <div class="tl-entry"><div class="row"><b>Vehículo HN-4521 verificado</b><span class="time mono">6:12 PM</span></div><p>Acceso vehicular autorizado · Portón vehicular</p></div>
-          </div>
-          <div class="timeline-day-label">Lunes, 13 de julio</div>
-          <div class="tl-wrap">
-            <div class="tl-entry alert"><div class="row"><b>Intento de acceso no autorizado</b><span class="time mono">11:03 PM</span></div><p>Bloqueado por el guardia en turno — código inválido</p></div>
-            <div class="tl-entry"><div class="row"><b>Saliste del residencial</b><span class="time mono">7:45 AM</span></div><p>Verificado por reconocimiento de placa</p></div>
-          </div>
+          <div id="accessTimeline"><div class="empty-state">Cargando…</div></div>
         </div>
 
         <div class="panel" style="margin-top:1.6rem;">
-          <div class="panel-head"><h3>Personas vetadas</h3><button type="button" class="btn btn-ghost" id="addVetoBtn"><i class="bi bi-slash-circle"></i> Vetar a alguien</button></div>
-          <div id="vetoList">
-            <div class="config-row">
-              <div class="l"><b>Roberto Cáceres</b><span>Vetado el 10 de julio · Motivo: comportamiento inapropiado con el guardia en turno</span></div>
-              <button type="button" class="btn btn-ghost remove-veto"><i class="bi bi-trash"></i></button>
-            </div>
-          </div>
+          <div class="panel-head"><h3>Personas vetadas</h3><a href="vetos.html" class="btn btn-ghost"><i class="bi bi-slash-circle"></i> Ir a Vetos</a></div>
+          <p class="config-section-note">Administra tus solicitudes de veto desde la página de Vetos, donde administración puede revisarlas.</p>
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="vetoModal">
-  <div class="modal-box form-modal" id="vetoModalBox">
-    <div class="modal-icon warn"><i class="bi bi-slash-circle"></i></div>
-    <h3>Vetar a una persona</h3>
-    <p>No podrá ingresar a tu unidad. Si otro residente ya la autorizó, te lo señalamos como conflicto.</p>
-    <form id="vetoForm" novalidate>
-      <div class="form-group">
-        <label for="vetoName">Nombre completo</label>
-        <input type="text" class="form-control" id="vetoName" placeholder="Ej. Carlos Mendoza" required>
-      </div>
-      <div class="form-group">
-        <label for="vetoReason">Motivo</label>
-        <textarea class="form-control" id="vetoReason" placeholder="Describe brevemente el motivo del veto" required></textarea>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="vetoCancel">Cancelar</button>
-        <button type="submit" class="btn btn-warn"><i class="bi bi-slash-circle"></i> Vetar</button>
-      </div>
-    </form>
   </div>
 </div>
 
