@@ -713,6 +713,11 @@ body.filter-grayscale{filter:grayscale(1)}body.filter-deuteranopia{--accent:#4aa
 .a11y-panel{position:fixed;right:1rem;bottom:1rem;z-index:450;width:min(320px,calc(100vw - 2rem));background:var(--card);border:1px solid var(--line-strong);border-radius:16px;padding:1rem;box-shadow:0 20px 55px rgba(0,0,0,.35);display:none}.a11y-panel.open{display:block}.a11y-panel h3{font-size:1rem;margin-bottom:.8rem}.a11y-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}.a11y-grid button{justify-content:center}.a11y-fab{position:fixed;right:1rem;bottom:1rem;z-index:449;width:48px;height:48px;border-radius:50%;border:1px solid var(--line-strong);background:var(--accent);color:var(--ink);font-size:1.2rem;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3)}.a11y-panel.open+.a11y-fab{display:none}
 @media(max-width:700px){.incident-quickbar{align-items:stretch;flex-direction:column}.incident-main-btn{width:100%;justify-content:center}.kanban{grid-template-columns:1fr!important}}
 
+/* Texto de ayuda pegado justo debajo de un campo (ej. requisitos de
+   contraseña). Distinto de .config-section-note, que es para notas de
+   seccion completa: este es mas chico y va sin margen extra arriba. */
+.field-hint{color:var(--mist);font-size:.72rem;line-height:1.5;margin:-.6rem 0 1rem;}
+
 /* ===== Configuración: accesibilidad y apariencia ===== */
 .config-section-note{color:var(--mist);font-size:.78rem;margin:.3rem 0 0;max-width:620px;line-height:1.5}
 .settings-group{padding:1.15rem 0;border-top:1px solid var(--line)}

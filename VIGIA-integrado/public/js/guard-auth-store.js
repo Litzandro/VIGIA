@@ -8,7 +8,7 @@ const GuardAuthStore=(function(){
         VigiaAPI.clearSession();
         return {ok:false,error:'Esta cuenta no tiene acceso al portal del guardia.'};
       }
-      const guard=VigiaAPI.setSession(data.token,data.usuario);
+      const guard=VigiaAPI.setSession(data.usuario,data.expira_en);
       return {ok:true,guard};
     }catch(error){ return {ok:false,error:error.message}; }
   }

@@ -10,7 +10,7 @@ const AdminAuthStore=(function(){
         VigiaAPI.clearSession();
         return {ok:false,error:'Esta cuenta no tiene acceso al portal de administración.'};
       }
-      const admin=VigiaAPI.setSession(data.token,data.usuario);
+      const admin=VigiaAPI.setSession(data.usuario,data.expira_en);
       return {ok:true,admin};
     }catch(error){ return {ok:false,error:error.message}; }
   }

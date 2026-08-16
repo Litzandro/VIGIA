@@ -8,11 +8,20 @@ const VigiaAPI=(function(){
   const onLocalPreview=['localhost','127.0.0.1'].includes(location.hostname) && location.port && location.port!=='3000';
   const BASE_URL=onLocalPreview ? 'http://localhost:3000/api' : '/api';
 
+  // El token de sesion real vive en una cookie httpOnly que pone el
+  // backend (src/controllers/authController.js); JavaScript no puede
+  // leerla ni un script inyectado por XSS puede robarla. getToken() ya
+  // no guarda nada sensible: solo queda por compatibilidad con codigo
+  // que la llama para saber "hay sesion" (ver getSession() abajo, que
+  // es la forma correcta de chequear eso).
   function getToken(){try{return localStorage.getItem(TOKEN_KEY)||''}catch(e){return ''}}
   function getSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch(e){return null}}
-  function setSession(token,user){
-    const session={...user,name:user.nombre_completo||`${user.nombre||''} ${user.apellido||''}`.trim()};
-    localStorage.setItem(TOKEN_KEY,token);
+  function setSession(user,expiraEn){
+    // expiraEn (fecha ISO) no es sensible -sirve solo para el temporizador
+    // de auto-logout del cliente-, a diferencia del token, que ya nunca
+    // pasa por aqui: vive unicamente en la cookie httpOnly del backend.
+    const session={...user,name:user.nombre_completo||`${user.nombre||''} ${user.apellido||''}`.trim(),expira_en:expiraEn||null};
+    try{localStorage.removeItem(TOKEN_KEY)}catch(e){}
     localStorage.setItem(SESSION_KEY,JSON.stringify(session));
     return session;
   }
@@ -36,9 +45,10 @@ const VigiaAPI=(function(){
   }
   async function rawFetch(path,options={}){
     const headers={'Content-Type':'application/json',...(options.headers||{})};
-    const token=getToken();
-    if(token)headers.Authorization='Bearer '+token;
-    return fetch(BASE_URL+path,{...options,headers});
+    // credentials:'include' hace que el navegador mande la cookie
+    // httpOnly de sesion en cada request (incluso a localhost:3000
+    // cuando se previsualiza en otro puerto con Live Server).
+    return fetch(BASE_URL+path,{...options,headers,credentials:'include'});
   }
   async function request(path,options={}){
     const method=(options.method||'GET').toUpperCase();
@@ -46,7 +56,7 @@ const VigiaAPI=(function(){
     try{
       response=await rawFetch(path,options);
     }catch(e){
-      const canQueue=!['GET','HEAD'].includes(method) && !path.startsWith('/auth/') && options.offline!==false && getToken();
+      const canQueue=!['GET','HEAD'].includes(method) && !path.startsWith('/auth/') && options.offline!==false && getSession();
       if(canQueue){
         const queued=queueRequest(path,options);
         let parsedBody=null;try{parsedBody=options.body?JSON.parse(options.body):null}catch(_){}
@@ -62,7 +72,7 @@ const VigiaAPI=(function(){
     return data;
   }
   async function syncOffline(){
-    if(!navigator.onLine||!getToken())return {processed:0,pending:readQueue().length};
+    if(!navigator.onLine||!getSession())return {processed:0,pending:readQueue().length};
     const q=readQueue();const pending=[];let processed=0;
     for(const item of q){
       try{
@@ -388,10 +398,14 @@ setInterval(tickClock,1000);tickClock();
 })();
 
 // ---- Seguridad de sesion: expiracion del JWT e inactividad ----
+// El JWT real vive en una cookie httpOnly que este script no puede leer
+// (a proposito, para protegerlo de robo por XSS). Para el temporizador
+// de expiracion usamos "expira_en", la fecha que el backend ya manda en
+// la respuesta de login/register y que setSession() guarda junto al
+// resto de la sesion (no es informacion sensible).
 (function(){
-  const token=VigiaAPI.getToken();if(!token)return;
-  let payload=null;try{payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))}catch(e){}
-  const expMs=payload&&payload.exp?payload.exp*1000:null;
+  const session=VigiaAPI.getSession();if(!session)return;
+  const expMs=session.expira_en?new Date(session.expira_en).getTime():null;
   const logout=async(reason)=>{
     try{await VigiaAPI.request('/auth/logout',{method:'POST',offline:false})}catch(e){}
     VigiaAPI.clearSession();

@@ -35,7 +35,8 @@
     const passwordConfirm=passwordConfirmInput.value;
 
     if(Object.values(payload).some(v=>!v) || !passwordConfirm){showError('Completa todos los campos para continuar.');return;}
-    if(payload.password.length<6){showError('La contraseña debe tener al menos 6 caracteres.');return;}
+    if(payload.password.length<8){showError('La contraseña debe tener al menos 8 caracteres.');return;}
+    if(!/[a-z]/.test(payload.password)||!/[A-Z]/.test(payload.password)||!/[0-9]/.test(payload.password)){showError('La contraseña debe incluir mayúscula, minúscula y número.');return;}
     if(payload.password!==passwordConfirm){showError('Las contraseñas no coinciden.');return;}
     if(!termsInput.checked){showError('Debes aceptar los términos de uso para continuar.');return;}
 
