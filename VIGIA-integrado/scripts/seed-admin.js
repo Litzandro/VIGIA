@@ -29,7 +29,7 @@ async function main() {
   }
 
   const passwordPlano = process.argv[2] || 'Vigia2026!';
-  const password_hash = await bcrypt.hash(passwordPlano, 10);
+  const password_hash = await bcrypt.hash(passwordPlano, 12);
 
   const [usuario, creado] = await db.Usuarios.findOrCreate({
     where: { email: 'superadmin@vigia.test' },

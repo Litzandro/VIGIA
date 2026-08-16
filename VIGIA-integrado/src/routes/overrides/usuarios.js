@@ -2,6 +2,10 @@
 
 const bcrypt = require('bcryptjs');
 const db = require('../../models');
+const { validatePassword } = require('../../utils/passwordPolicy');
+
+// Mismo costo de bcrypt que authController.js (mantenerlos sincronizados).
+const BCRYPT_ROUNDS = 12;
 
 // Agrega /me sobre el CRUD generico de usuarios: cualquier usuario
 // logueado puede ver/editar SU PROPIO perfil sin necesitar el permiso
@@ -29,9 +33,10 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         await transaction.rollback();
         return res.status(400).json({ error: 'Nombre, apellido, correo, contraseña y rol son requeridos.' });
       }
-      if (String(password).length < 8) {
+      const passwordCheck = validatePassword(password);
+      if (!passwordCheck.ok) {
         await transaction.rollback();
-        return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+        return res.status(400).json({ error: passwordCheck.error });
       }
       if (!['residente', 'guardia', 'admin'].includes(rol_codigo)) {
         await transaction.rollback();
@@ -56,7 +61,7 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         apellido: String(apellido).trim(),
         email: String(email).trim().toLowerCase(),
         telefono: req.body.telefono || null,
-        password_hash: await bcrypt.hash(String(password), 10),
+        password_hash: await bcrypt.hash(String(password), BCRYPT_ROUNDS),
         estado: 'activo',
         debe_cambiar_clave: true,
         creado_por: req.user.id,

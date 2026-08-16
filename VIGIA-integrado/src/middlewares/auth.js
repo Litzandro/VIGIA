@@ -19,11 +19,19 @@ function getJwt() {
 // residencial_id }. Es el requisito 1 (login por rol) llevado a cada
 // request: sin este middleware, ninguna ruta protegida deja pasar a nadie.
 async function requireAuth(req, res, next) {
-  const header = req.headers.authorization || '';
-  const [scheme, token] = header.split(' ');
+  // El frontend web manda el token en una cookie httpOnly (no accesible
+  // desde JavaScript, para protegerlo de robo por XSS). Se mantiene el
+  // header "Authorization: Bearer <token>" como alternativa para
+  // clientes que no son el navegador (Postman, apps moviles, scripts).
+  let token = req.cookies && req.cookies.vigia_token;
+  if (!token) {
+    const header = req.headers.authorization || '';
+    const [scheme, headerToken] = header.split(' ');
+    if (scheme === 'Bearer' && headerToken) token = headerToken;
+  }
 
-  if (scheme !== 'Bearer' || !token) {
-    return res.status(401).json({ error: 'Falta el token de autenticacion (header Authorization: Bearer <token>)' });
+  if (!token) {
+    return res.status(401).json({ error: 'Falta el token de autenticacion (cookie de sesion o header Authorization: Bearer <token>)' });
   }
 
   try {

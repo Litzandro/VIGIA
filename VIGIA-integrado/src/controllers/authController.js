@@ -4,6 +4,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const db = require('../models');
+const { validatePassword } = require('../utils/passwordPolicy');
+
+// Costo de bcrypt: cada +1 duplica el tiempo de cómputo del hash. 12 es
+// el estándar recomendado actual (10 se quedó corto con el hardware de
+// hoy) y sigue siendo rápido para un solo login (~250-300ms).
+const BCRYPT_ROUNDS = 12;
 
 function buildPayload(usuario, rol, extra = {}) {
   return {
@@ -27,6 +33,38 @@ function signToken(payload) {
 
 function tokenHash(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+// --- Cookie de sesión (httpOnly) --------------------------------------
+//
+// El token también se sigue devolviendo en el cuerpo JSON de login y
+// register (por compatibilidad con clientes que no son el navegador,
+// como Postman o una futura app móvil, según documenta el README). Pero
+// el frontend web incluido en public/ ya no lo guarda en localStorage:
+// en vez de eso, cada request del navegador lo manda automáticamente
+// vía esta cookie httpOnly, que JavaScript no puede leer ni un script
+// inyectado por XSS puede robar.
+const AUTH_COOKIE_NAME = 'vigia_token';
+
+function cookieOptions(maxAgeMs) {
+  const secure = process.env.COOKIE_SECURE === '1'
+    || (process.env.COOKIE_SECURE !== '0' && process.env.NODE_ENV === 'production');
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: 'strict',
+    path: '/',
+    ...(maxAgeMs ? { maxAge: maxAgeMs } : {}),
+  };
+}
+
+function setAuthCookie(res, token, expiresAt) {
+  const maxAgeMs = expiresAt ? Math.max(0, new Date(expiresAt).getTime() - Date.now()) : undefined;
+  res.cookie(AUTH_COOKIE_NAME, token, cookieOptions(maxAgeMs));
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie(AUTH_COOKIE_NAME, cookieOptions());
 }
 
 async function createSession(req, usuario, rol) {
@@ -67,6 +105,7 @@ async function login(req, res, next) {
     const rol = await db.Roles.findByPk(usuario.rol_id);
     const sessionData = await createSession(req, usuario, rol);
     await usuario.update({ ultimo_acceso: new Date() });
+    setAuthCookie(res, sessionData.token, sessionData.expira_en);
     res.json(sessionData);
   } catch (err) {
     next(err);
@@ -82,9 +121,10 @@ async function register(req, res, next) {
       await transaction.rollback();
       return res.status(400).json({ error: 'Completa todos los campos requeridos.' });
     }
-    if (String(password).length < 8) {
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.ok) {
       await transaction.rollback();
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+      return res.status(400).json({ error: passwordCheck.error });
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
@@ -131,7 +171,7 @@ async function register(req, res, next) {
     const parts = String(name).trim().split(/\s+/);
     const nombre = parts.shift();
     const apellido = parts.join(' ') || nombre;
-    const password_hash = await bcrypt.hash(password, 10);
+    const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const usuario = await db.Usuarios.create({
       residencial_id: residencial.id,
@@ -154,6 +194,7 @@ async function register(req, res, next) {
 
     await transaction.commit();
     const sessionData = await createSession(req, usuario, rol);
+    setAuthCookie(res, sessionData.token, sessionData.expira_en);
     res.status(201).json(sessionData);
   } catch (err) {
     if (!transaction.finished) await transaction.rollback();
@@ -180,6 +221,7 @@ async function logout(req, res, next) {
         { where: { usuario_id: req.user.id, token_hash: tokenHash(req.authToken) } }
       );
     }
+    clearAuthCookie(res);
     res.json({ mensaje: 'Sesion cerrada correctamente.' });
   } catch (err) { next(err); }
 }

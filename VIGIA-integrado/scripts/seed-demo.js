@@ -9,7 +9,7 @@ async function upsertUser({ email, password, nombre, apellido, rolCodigo, reside
   const rol = await db.Roles.findOne({ where: { codigo: rolCodigo } });
   if (!rol) throw new Error(`No existe el rol ${rolCodigo}. Importa primero database/vigia_schema.sql.`);
 
-  const password_hash = await bcrypt.hash(password, 10);
+  const password_hash = await bcrypt.hash(password, 12);
   const [usuario, created] = await db.Usuarios.findOrCreate({
     where: { email },
     defaults: {
