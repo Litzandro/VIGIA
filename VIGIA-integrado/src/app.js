@@ -40,23 +40,37 @@ app.use(helmet({
 }));
 
 // CORS: el frontend en public/ se sirve desde el mismo origen que la
-// API, asi que no necesita CORS para nada (los navegadores no aplican
-// CORS a peticiones same-origin). Esto solo habilita llamadas desde
-// OTROS dominios (apps moviles, paneles externos), y unicamente los que
-// esten en CORS_ORIGIN. Si no se configura, no se permite ningun origen
-// externo en vez de aceptar cualquiera.
+// API, asi que las peticiones normales del navegador NO necesitan pasar
+// por la lista de abajo -- se detectan comparando el host de la
+// peticion (Host, que Express siempre puede leer, no depende de
+// TRUST_PROXY) contra el host que mando el navegador en el header
+// Origin. Ese header SI viaja incluso en llamadas same-origin (fetch
+// con POST/PUT/DELETE lo manda siempre, no solo en llamadas cruzadas),
+// asi que sin este chequeo el propio frontend quedaba bloqueado por su
+// propia API (bug real: login devolvia 500 "Error interno del
+// servidor" en cuanto se activo este middleware).
+// CORS_ORIGIN sigue existiendo para habilitar dominios EXTERNOS de
+// verdad (apps moviles, paneles aparte); si no se configura, no se
+// permite ningun origen externo en vez de aceptar cualquiera.
 const allowedOrigins = String(process.env.CORS_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(cors({
-  origin(origin, callback) {
-    // Sin header Origin (curl, apps nativas, same-origin) -> se permite.
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Origen no autorizado por CORS'));
-  },
-  credentials: true,
+function esMismoOrigen(origin, req) {
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === req.get('host');
+  } catch (e) {
+    return false;
+  }
+}
+
+app.use(cors((req, callback) => {
+  const origin = req.headers.origin;
+  const permitido = esMismoOrigen(origin, req) || allowedOrigins.includes(origin);
+  if (!permitido) console.warn(`CORS: origen rechazado -> ${origin}`);
+  callback(null, { origin: permitido, credentials: true });
 }));
 
 app.use(cookieParser());
