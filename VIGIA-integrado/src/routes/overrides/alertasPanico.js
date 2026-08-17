@@ -11,6 +11,16 @@ const { Op } = require('sequelize');
 const db = require('../../models');
 const notificacionesService = require('../../services/notificacionesService');
 const { parsePagination, parseSort, buildFilters, applyOwnershipScope } = require('../../utils/crudFactory');
+const { esSuperadmin, resolverResidencialId } = require('../../config/estados');
+
+// Regla de negocio (Requisito 8): quien debe enterarse de inmediato de una
+// alerta de panico es el personal operativo de la residencial, no
+// cualquier usuario activo. Antes este criterio vivia como un arreglo
+// literal ['guardia', 'admin'] escrito directo dentro del where del
+// include, mezclado con la consulta SQL. Nombrarlo aca lo convierte en
+// una regla legible y reusable si otro flujo (por ejemplo un reporte de
+// "quien recibe alertas") necesita el mismo criterio.
+const ROLES_NOTIFICAR_ALERTA = ['guardia', 'admin'];
 
 // El guardia tiene permiso para leer alertas_panico (AUTH_ONLY) pero NO
 // para consultar /api/usuarios (requiere "usuarios.gestionar", que solo
@@ -64,14 +74,14 @@ module.exports = function alertasPanicoOverride({ router, model, handlers, pkPat
       const body = {
         ...req.body,
         usuario_id: req.user.id,
-        residencial_id: req.user.rol_codigo === 'superadmin' ? req.body.residencial_id : req.user.residencial_id,
+        residencial_id: resolverResidencialId(req.user, req.body),
       };
 
       const alerta = await model.create(body);
 
       const destinatarios = await db.Usuarios.findAll({
         where: { residencial_id: alerta.residencial_id, estado: 'activo' },
-        include: [{ model: db.Roles, as: 'rol', where: { codigo: ['guardia', 'admin'] } }],
+        include: [{ model: db.Roles, as: 'rol', where: { codigo: ROLES_NOTIFICAR_ALERTA } }],
       });
 
       await Promise.all(
