@@ -26,6 +26,7 @@ const overrides = {
   invitaciones: require('./overrides/invitaciones'),
   accesos: require('./overrides/accesos'),
   alertas_panico: require('./overrides/alertasPanico'),
+  conflictos_permisos: require('./overrides/conflictosPermisos'),
   llegadas_seguras: require('./overrides/llegadasSeguras'),
   incidencias: require('./overrides/incidencias'),
   cola_acceso: require('./overrides/colaAcceso'),
