@@ -376,7 +376,14 @@ setInterval(tickClock,1000);tickClock();
 
 // ===== Accesibilidad global =====
 (function(){
-  const KEY='vigia_accessibility';
+  // La clave incluye el id de la cuenta activa: antes era una sola
+  // clave global para todo el navegador, asi que si un residente subia
+  // el tamano de letra y despues, en la misma computadora, entraba un
+  // guardia o un admin, veia esa misma preferencia (bug real reportado:
+  // "las configuraciones se comparten" entre cuentas del mismo
+  // dispositivo). Cada cuenta ahora tiene su propio espacio.
+  const session=VigiaAPI.getSession();
+  const KEY=session&&session.id?`vigia_accessibility_${session.id}`:'vigia_accessibility';
   const defaults={theme:'soft',filter:'none',font:'normal',simple:false,motion:'normal'};
   let prefs={...defaults};try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){}
   function applyAccessibility(){
