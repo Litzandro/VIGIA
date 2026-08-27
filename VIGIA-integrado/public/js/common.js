@@ -400,8 +400,21 @@ setInterval(tickClock,1000);tickClock();
   // dispositivo). Cada cuenta ahora tiene su propio espacio.
   const session=VigiaAPI.getSession();
   const KEY=session&&session.id?`vigia_accessibility_${session.id}`:'vigia_accessibility';
+  // Pero login.html/register.html/vigialanding.html no tienen sesion
+  // (nadie ha iniciado sesion todavia), asi que no hay cuenta de la
+  // cual leer -- por eso se quedaban siempre con el tema por defecto
+  // (o peor, con un valor viejo pegado en la clave compartida de antes
+  // del cambio anterior). DEVICE_KEY guarda "el ultimo tema que se vio
+  // en este dispositivo", sin importar que cuenta lo puso: se
+  // actualiza cada vez que una cuenta aplica su propio tema, y las
+  // paginas sin sesion lo usan como punto de partida.
+  const DEVICE_KEY='vigia_theme_device';
   const defaults={theme:'soft',filter:'none',font:'normal',simple:false,motion:'normal'};
-  let prefs={...defaults};try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){}
+  let prefs={...defaults};
+  try{
+    const origen=session&&session.id?KEY:DEVICE_KEY;
+    prefs={...prefs,...JSON.parse(localStorage.getItem(origen)||'{}')};
+  }catch(e){}
   function applyAccessibility(){
     document.body.classList.remove('theme-light','theme-soft','theme-high','filter-grayscale','filter-deuteranopia','filter-protanopia','filter-tritanopia','simple-mode','reduce-motion');
     // El tamano de texto (a11y-large/a11y-xl) va en <html>, no en <body>:
@@ -415,6 +428,13 @@ setInterval(tickClock,1000);tickClock();
     if(prefs.simple)document.body.classList.add('simple-mode');
     if(prefs.motion==='reduced')document.body.classList.add('reduce-motion');
     localStorage.setItem(KEY,JSON.stringify(prefs));
+    // Solo una cuenta real actualiza "lo ultimo que se vio en este
+    // dispositivo" -- una pagina publica no tiene preferencia propia
+    // que ofrecer, asi que no debe sobreescribir lo que dejo la ultima
+    // cuenta que si inicio sesion.
+    if(session&&session.id){
+      try{localStorage.setItem(DEVICE_KEY,JSON.stringify(prefs))}catch(e){}
+    }
   }
   window.VigiaAccessibility={get:()=>({...prefs}),set:(next)=>{prefs={...prefs,...next};applyAccessibility();return {...prefs}},reset:()=>{prefs={...defaults};applyAccessibility();return {...prefs}},apply:applyAccessibility};
   applyAccessibility();
