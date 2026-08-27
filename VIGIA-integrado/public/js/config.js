@@ -6,7 +6,11 @@
 // migracion), asi que por ahora se recuerdan por dispositivo via
 // localStorage, igual que otras preferencias locales de VIGIA.
 (function(){
-  const KEY='vigia_notif_prefs';
+  // Igual que vigia_accessibility en common.js: la clave se escopa por
+  // cuenta para que estas preferencias no se mezclen entre distintos
+  // usuarios que entran desde el mismo navegador/dispositivo.
+  const session=VigiaAPI.getSession();
+  const KEY=session&&session.id?`vigia_notif_prefs_${session.id}`:'vigia_notif_prefs';
   const DEFAULTS={visitas:true,incidencias:true,administracion:false,seguridad:true};
   let prefs={...DEFAULTS};
   try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){}
