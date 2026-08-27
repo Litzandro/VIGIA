@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const db = require('../models');
 const { validatePassword } = require('../utils/passwordPolicy');
+const { enviarCorreo } = require('../services/envioService');
 
 // Costo de bcrypt: cada +1 duplica el tiempo de cómputo del hash. 12 es
 // el estándar recomendado actual (10 se quedó corto con el hardware de
@@ -25,9 +26,9 @@ function buildPayload(usuario, rol, extra = {}) {
   };
 }
 
-function signToken(payload) {
+function signToken(payload, expiresIn) {
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '8h',
+    expiresIn: expiresIn || process.env.JWT_EXPIRES_IN || '8h',
   });
 }
 
@@ -67,10 +68,16 @@ function clearAuthCookie(res) {
   res.clearCookie(AUTH_COOKIE_NAME, cookieOptions());
 }
 
-async function createSession(req, usuario, rol) {
+// "Recordarme": el checkbox del login pide una sesion mas larga (30 dias)
+// en vez de la de siempre (JWT_EXPIRES_IN, por defecto 8h). El resto del
+// mecanismo de sesion (cookie httpOnly, tabla sesiones, revocacion) no
+// cambia: solo cambia por cuanto tiempo dura.
+const REMEMBER_EXPIRES_IN = '30d';
+
+async function createSession(req, usuario, rol, { remember = false } = {}) {
   const jti = crypto.randomUUID();
   const payload = buildPayload(usuario, rol, { jti });
-  const token = signToken(payload);
+  const token = signToken(payload, remember ? REMEMBER_EXPIRES_IN : undefined);
   const decoded = jwt.decode(token);
   const expiresAt = decoded && decoded.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 8 * 60 * 60 * 1000);
   const session = await db.Sesiones.create({
@@ -87,7 +94,7 @@ async function createSession(req, usuario, rol) {
 // POST /api/auth/login
 async function login(req, res, next) {
   try {
-    const { email, password } = req.body || {};
+    const { email, password, remember } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: 'El correo y la contraseña son requeridos.' });
     }
@@ -103,7 +110,7 @@ async function login(req, res, next) {
     }
 
     const rol = await db.Roles.findByPk(usuario.rol_id);
-    const sessionData = await createSession(req, usuario, rol);
+    const sessionData = await createSession(req, usuario, rol, { remember: Boolean(remember) });
     await usuario.update({ ultimo_acceso: new Date() });
     setAuthCookie(res, sessionData.token, sessionData.expira_en);
     res.json(sessionData);
@@ -247,4 +254,89 @@ async function revokeSession(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { login, register, me, logout, sessions, revokeSession, tokenHash };
+// Cuanto dura el enlace de recuperacion antes de vencer.
+const RESET_TOKEN_TTL_MIN = 30;
+
+// De donde arma el enlace del correo. Si no hay APP_URL en el .env, lo
+// arma con el host que llamo a la API (funciona igual para localhost que
+// para un dominio real detras de Railway/Render/Nginx).
+function frontendBaseUrl(req) {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/+$/, '');
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+// POST /api/auth/forgot-password
+// Siempre responde el mismo mensaje generico, exista o no el correo, para
+// no dejar adivinar desde afuera que direcciones estan registradas.
+async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body || {};
+    const mensajeGenerico = { mensaje: 'Si el correo esta registrado, te enviamos un enlace para recuperar tu contraseña.' };
+    if (!email) return res.status(400).json({ error: 'Escribe tu correo electronico.' });
+
+    const usuario = await db.Usuarios.findOne({ where: { email: String(email).trim().toLowerCase() } });
+    if (!usuario || usuario.estado !== 'activo') {
+      return res.json(mensajeGenerico);
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    await db.PasswordResets.create({
+      usuario_id: usuario.id,
+      token_hash: tokenHash(token),
+      ip_origen: String(req.ip || '').slice(0, 45) || null,
+      fecha_expiracion: new Date(Date.now() + RESET_TOKEN_TTL_MIN * 60 * 1000),
+      usado: false,
+    });
+
+    const enlace = `${frontendBaseUrl(req)}/restablecer-password.html?token=${token}`;
+    await enviarCorreo({
+      para: usuario.email,
+      asunto: 'Recupera tu contraseña de VIGIA',
+      texto: `Hola ${usuario.nombre},\n\nRecibimos una solicitud para restablecer tu contraseña de VIGIA. Este enlace es valido por ${RESET_TOKEN_TTL_MIN} minutos:\n\n${enlace}\n\nSi tu no pediste esto, puedes ignorar este correo: tu contraseña actual sigue funcionando.`,
+    });
+
+    res.json(mensajeGenerico);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/reset-password
+async function resetPassword(req, res, next) {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Faltan datos para restablecer la contraseña.' });
+    }
+
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.ok) {
+      return res.status(400).json({ error: passwordCheck.error });
+    }
+
+    const hash = tokenHash(token);
+    const reset = await db.PasswordResets.findOne({ where: { token_hash: hash, usado: false } });
+    if (!reset || new Date(reset.fecha_expiracion) <= new Date()) {
+      return res.status(400).json({ error: 'El enlace de recuperacion es invalido o ya vencio. Solicita uno nuevo.' });
+    }
+
+    const usuario = await db.Usuarios.findByPk(reset.usuario_id);
+    if (!usuario) return res.status(400).json({ error: 'El enlace de recuperacion ya no es valido.' });
+
+    const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await usuario.update({ password_hash });
+    await reset.update({ usado: true });
+
+    // Cambiar la contraseña cierra todas las sesiones activas de la
+    // cuenta (mismo criterio que "cerrar otras sesiones" en Seguridad):
+    // si alguien mas tenia una sesion abierta con la clave vieja, queda
+    // fuera.
+    await db.Sesiones.update({ activa: false }, { where: { usuario_id: usuario.id } });
+
+    res.json({ mensaje: 'Tu contraseña se actualizo correctamente. Ya puedes iniciar sesion.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { login, register, me, logout, sessions, revokeSession, forgotPassword, resetPassword, tokenHash };

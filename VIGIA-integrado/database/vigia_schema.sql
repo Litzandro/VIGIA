@@ -126,6 +126,23 @@ CREATE TABLE sesiones (
 
 CREATE INDEX idx_sesiones_usuario ON sesiones(usuario_id, activa);
 
+-- Recuperacion de contraseña olvidada. Se guarda el HASH del token (nunca
+-- el token en claro, igual que con las sesiones), con expiracion corta
+-- y de un solo uso. El correo con el enlace lo manda envioService.js.
+CREATE TABLE password_resets (
+    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id          BIGINT UNSIGNED NOT NULL,
+    token_hash          VARCHAR(255) NOT NULL,
+    ip_origen           VARCHAR(45)  NULL,
+    fecha_creacion      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_expiracion    DATETIME NOT NULL,
+    usado               BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT fk_password_resets_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_password_resets_usuario ON password_resets(usuario_id, usado);
+CREATE INDEX idx_password_resets_token   ON password_resets(token_hash);
+
 -- =====================================================================
 -- 3. VIVIENDAS Y RESIDENTES
 -- =====================================================================

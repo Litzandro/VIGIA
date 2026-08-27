@@ -66,7 +66,7 @@ const VigiaAPI=(function(){
     }
     const data=await response.json().catch(()=>({}));
     if(!response.ok){
-      if(response.status===401 && path!=='/auth/login')clearSession();
+      if(response.status===401 && path!=='/auth/login'){console.warn('[VIGIA] 401 en',path,'- se borro la sesion local.',data);clearSession();}
       throw new Error(data.error||data.message||`Error ${response.status}`);
     }
     return data;
@@ -96,10 +96,10 @@ const VigiaAPI=(function(){
 // Evita abrir paneles protegidos sin una sesion real y valida el rol.
 (function(){
   const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
-  const publicPages=new Set(['index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','']);
+  const publicPages=new Set(['index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','']);
   if(publicPages.has(page))return;
   const session=VigiaAPI.getSession();
-  if(!session){location.replace('login.html');return}
+  if(!session){console.warn('[VIGIA] Guard de pagina: no hay sesion en localStorage al cargar',page);location.replace('login.html');return}
   const role=session.rol_codigo;
   const guardPages=new Set(['guardia.html','control-acceso.html']);
   const staffPages=new Set(['conflictos.html','operaciones.html','integraciones.html','mensajeria.html']);
@@ -226,6 +226,22 @@ function attachTelefonoHNMask(input){
   input.addEventListener('input',()=>{input.value=formatTelefonoHN(input.value)});
 }
 window.attachTelefonoHNMask=attachTelefonoHNMask;
+
+// Antepone visualmente "+504" al campo de telefono (VIGIA opera solo en
+// Honduras por ahora, asi que es un prefijo fijo, no un dropdown de varios
+// paises). Envuelve el <input> existente en un grupo con el codigo de pais
+// a la izquierda, sin tocar el valor que guarda el input (sigue siendo solo
+// los 8 digitos locales; el backend decide si concatena el +504 al guardar).
+function attachPhoneCountryCode(input){
+  if(!input || input.closest('.phone-group'))return;
+  const group=document.createElement('div');group.className='phone-group';
+  const prefix=document.createElement('span');prefix.className='phone-group-prefix';
+  prefix.innerHTML='<span class="phone-flag" aria-hidden="true">🇭🇳</span> +504';
+  input.parentNode.insertBefore(group,input);
+  group.appendChild(prefix);group.appendChild(input);
+  input.setAttribute('aria-label','Telefono (Honduras, +504)');
+}
+window.attachPhoneCountryCode=attachPhoneCountryCode;
 
 // ---- Barra lateral unica, compartida por residentes y personal ----
 // Antes cada pagina traia su propio <aside class="sidebar">...</aside>
@@ -413,15 +429,40 @@ setInterval(tickClock,1000);tickClock();
 (function(){
   const session=VigiaAPI.getSession();if(!session)return;
   const expMs=session.expira_en?new Date(session.expira_en).getTime():null;
-  const logout=async(reason)=>{
+  const logout=async(reason,detalle)=>{
+    // Diagnostico: si la sesion se cierra sola, esto deja en la consola
+    // EXACTAMENTE por que (con que valores) para no tener que adivinar.
+    console.warn('[VIGIA] Cierre de sesion automatico.',{reason,detalle,expira_en:session.expira_en,ahora:new Date().toISOString()});
     try{await VigiaAPI.request('/auth/logout',{method:'POST',offline:false})}catch(e){}
     VigiaAPI.clearSession();
     if(reason)sessionStorage.setItem('vigia_logout_reason',reason);
     location.replace('login.html');
   };
-  if(expMs){const delay=expMs-Date.now();if(delay<=0){logout('Tu sesion expiro.');return}setTimeout(()=>logout('Tu sesion expiro.'),delay)}
+  if(expMs){
+    const delay=expMs-Date.now();
+    if(delay<=0){
+      console.warn('[VIGIA] expira_en ya estaba en el pasado al cargar la pagina.',{expira_en:session.expira_en,delay});
+      logout('Tu sesion expiro.','expira_en en el pasado al cargar');
+      return;
+    }
+    // setTimeout guarda el retraso en un entero de 32 bits: cualquier
+    // valor mayor a 2147483647ms (~24.8 dias) se desborda y el navegador
+    // dispara el callback casi de inmediato en vez de esperar. Con
+    // "Recordarme" (30 dias) esto cerraba la sesion al instante despues
+    // de iniciar sesion. encadenarTemporizador() lo resuelve esperando
+    // en tramos de como maximo ese limite hasta llegar a la fecha real.
+    const LIMITE_32BITS=2147483647;
+    function encadenarTemporizador(restante){
+      if(restante>LIMITE_32BITS){
+        setTimeout(()=>encadenarTemporizador(restante-LIMITE_32BITS),LIMITE_32BITS);
+        return;
+      }
+      setTimeout(()=>logout('Tu sesion expiro.','temporizador expira_en'),restante);
+    }
+    encadenarTemporizador(delay);
+  }
   const maxIdle=30*60*1000;let timer,warned=false;
-  function reset(){warned=false;clearTimeout(timer);timer=setTimeout(()=>logout('La sesion se cerro por inactividad.'),maxIdle)}
+  function reset(){warned=false;clearTimeout(timer);timer=setTimeout(()=>logout('La sesion se cerro por inactividad.','temporizador de inactividad (30 min)'),maxIdle)}
   ['click','keydown','touchstart','scroll'].forEach(ev=>addEventListener(ev,reset,{passive:true}));reset();
   setInterval(()=>{if(!warned&&timer&&expMs&&expMs-Date.now()<120000){warned=true;showToast('Tu sesion expirara pronto. Guarda tus cambios.','bi-clock-history')}},30000);
 })();
@@ -448,6 +489,12 @@ document.addEventListener('contextmenu',e=>{if(document.body.dataset.protectDemo
 // ---- Asistente VIGIA local (reglas, no envía conversaciones a terceros) ----
 (function(){
   if(document.getElementById('vigiaAssistantBtn'))return;
+  // No mostrar el asistente flotante en las paginas publicas (login,
+  // registro, landing, portales de guardia/admin): son pantallas de
+  // acceso, no tiene sentido ofrecer ayuda del panel ahi todavia.
+  const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+  const noAssistantPages=new Set(['index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','']);
+  if(noAssistantPages.has(page))return;
 
   const btn=document.createElement('button');
   btn.id='vigiaAssistantBtn';btn.className='assistant-fab';btn.type='button';

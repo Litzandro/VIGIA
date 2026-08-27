@@ -7,6 +7,7 @@
   const emailInput=document.getElementById('regEmail');
   const phoneInput=document.getElementById('regPhone');
   attachTelefonoHNMask(phoneInput);
+  attachPhoneCountryCode(phoneInput);
   const unidadInput=document.getElementById('regUnidad');
   const coloniaInput=document.getElementById('regColonia');
   const passwordInput=document.getElementById('regPassword');

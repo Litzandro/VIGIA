@@ -5,6 +5,7 @@
 
   const emailInput=document.getElementById('loginEmail');
   const passwordInput=document.getElementById('loginPassword');
+  const rememberInput=document.getElementById('rememberMe');
   const errorBox=document.getElementById('loginError');
   const toggleBtn=document.getElementById('toggleLoginPassword');
   const submitBtn=document.getElementById('loginSubmitBtn');
@@ -29,7 +30,7 @@
     submitBtn.disabled=true;
     submitBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> Verificando...';
 
-    const result=await AuthStore.login(email,password);
+    const result=await AuthStore.login(email,password,rememberInput&&rememberInput.checked);
     if(!result.ok){
       showError(result.error);
       submitBtn.disabled=false;

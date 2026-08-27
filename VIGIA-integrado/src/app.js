@@ -81,6 +81,11 @@ app.use('/api', apiLimiter);
 // contrasenas y creacion masiva de cuentas.
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+// Recuperacion de contraseña: mismo limite estricto, para que nadie use
+// el formulario para probar en masa que correos existen o para saturar
+// el envio de correos.
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/reset-password', authLimiter);
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));

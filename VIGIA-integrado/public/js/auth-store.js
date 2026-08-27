@@ -9,9 +9,9 @@ const AuthStore=(function(){
     }catch(error){ return {ok:false,error:error.message}; }
   }
 
-  async function login(email,password){
+  async function login(email,password,remember){
     try{
-      const data=await VigiaAPI.request('/auth/login',{method:'POST',body:JSON.stringify({email,password})});
+      const data=await VigiaAPI.request('/auth/login',{method:'POST',body:JSON.stringify({email,password,remember:Boolean(remember)})});
       VigiaAPI.setSession(data.usuario,data.expira_en);
       return {ok:true,user:data.usuario};
     }catch(error){ return {ok:false,error:error.message}; }

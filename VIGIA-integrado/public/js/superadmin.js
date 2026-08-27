@@ -13,7 +13,7 @@
     document.getElementById('subscriptionLink').style.display = 'none';
   }
 
-  attachTelefonoHNMask(document.getElementById('adPhone'));
+  attachTelefonoHNMask(document.getElementById('adPhone'));attachPhoneCountryCode(document.getElementById('adPhone'));
 
   const roleSelect = document.getElementById('adRole');
   function toggleFields() {

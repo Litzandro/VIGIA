@@ -15,7 +15,18 @@
   if(!session){ window.location.href='guardia-login.html'; return; }
 
   const guardShiftLine=document.getElementById('guardShiftLine');
-  if(guardShiftLine){const h=new Date().getHours();const jornada=h>=6&&h<18?'Jornada diurna':'Jornada nocturna';guardShiftLine.textContent=(session.turno||jornada)+' · '+jornada+' · Altavista Residencial';}
+  if(guardShiftLine){
+    // session.turno viene de la BD como codigo ('diurno'/'nocturno'). Antes
+    // se concatenaba con el texto calculado por la hora actual y, cuando
+    // session.turno faltaba, el mismo texto ("Jornada diurna") quedaba
+    // repetido dos veces seguidas. Ahora solo mostramos una etiqueta: la
+    // del turno asignado si existe, o si no, la que corresponde a la hora.
+    const h=new Date().getHours();
+    const jornadaPorHora=h>=6&&h<18?'Jornada diurna':'Jornada nocturna';
+    const turnoLabels={diurno:'Jornada diurna',nocturno:'Jornada nocturna'};
+    const jornada=turnoLabels[session.turno]||jornadaPorHora;
+    guardShiftLine.textContent=jornada+' · Altavista Residencial';
+  }
 
   // ---- Pestañas (Alertas / Chat) ----
   const tabsGroup=document.querySelector('.agenda-tabs');

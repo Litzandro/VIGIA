@@ -2379,6 +2379,10 @@ const session =
 
 if(!session){
 
+  console.warn(
+    "[VIGIA] Chequeo duplicado en dashboard.html: no hay sesion en localStorage."
+  );
+
   location.replace(
     "login.html"
   );

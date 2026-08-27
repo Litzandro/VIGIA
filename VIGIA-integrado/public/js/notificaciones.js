@@ -17,6 +17,8 @@
     comunidad:{icon:'bi-megaphone-fill',bg:'rgba(237,231,214,.08)',color:'var(--bone-dim)'},
     alerta:{icon:'bi-shield-x',bg:'var(--alert-soft)',color:'var(--alert)'},
     chat:{icon:'bi-chat-dots-fill',bg:'var(--accent-soft)',color:'var(--accent)'},
+    paquete:{icon:'bi-box-seam-fill',bg:'var(--accent-soft)',color:'var(--accent)'},
+    llegada_segura:{icon:'bi-geo-alt-fill',bg:'var(--accent-soft)',color:'var(--accent)'},
   };
   const DEFAULT_ICON={icon:'bi-bell-fill',bg:'rgba(237,231,214,.08)',color:'var(--bone-dim)'};
 
@@ -31,6 +33,8 @@
     accesos:()=>'accesos.html',
     alertas_panico:()=>'emergencias.html',
     mensaje:()=>'chat.html',
+    paquetes:()=>'paquetes.html',
+    llegadas_seguras:()=>'centro-seguridad.html',
   };
 
   function relativeTime(iso){
