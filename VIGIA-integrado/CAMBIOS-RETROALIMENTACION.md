@@ -29,3 +29,6 @@
 | Solo mis incidencias | Filtro obligatorio por residente en backend. | `incidencias.js` |
 | No cerrar incidencias innecesariamente | Residente sin acción de cierre; administración controla estados. | `incidencias.js` |
 | Bloquear F12 | Disuasión visual de atajos, aclarando que no sustituye seguridad del servidor. | `common.js`, `README.md` |
+| Cambio de textos en la interfaz | Se cambió "VIGIA STAFF" por "Personal de Vigía" y "Resuelta por" por "Atendida por". | `sidebar.html`, `guardia.js` |
+| Términos y Condiciones | Se creó una nueva página con las condiciones de uso, descripción del servicio, privacidad y manejo de datos, uso responsable, limitación de responsabilidad y contacto. | `terminos.html` |
+| Acceso a Términos y Condiciones | Se agregó el enlace "Términos y Condiciones" al sidebar de residentes y al sidebar de personal. | `sidebar.html` |
