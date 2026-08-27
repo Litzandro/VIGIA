@@ -124,7 +124,7 @@
     if(resuelta){
       const info=document.createElement('p');
       info.className='panic-card-note-saved';
-      info.innerHTML='<i class="bi bi-check2-circle"></i> Resuelta por '+escapeHtml(a.atendida_por_nombre||'personal')+' <span class="mono">— '+formatFecha(a.fecha_atencion)+'</span>';
+      info.innerHTML='<i class="bi bi-check2-circle"></i> Atendida por '+escapeHtml(a.atendida_por_nombre||'personal')+' <span class="mono">— '+formatFecha(a.fecha_atencion)+'</span>';
       card.appendChild(info);
     }
 
