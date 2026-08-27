@@ -39,6 +39,7 @@ const overrides = {
   integraciones: require('./overrides/integraciones'),
   turnos_guardia: require('./overrides/turnosGuardia'),
   mensajes: require('./overrides/mensajes'),
+  paquetes: require('./overrides/paquetes'),
 };
 
 function toKebabCase(snakeCase) {
@@ -142,5 +143,6 @@ router.get('/', (req, res) => {
 });
 
 router.use('/reportes', require('./reportes'));
+router.use('/centro-seguridad', require('./centroSeguridad'));
 
 module.exports = router;
