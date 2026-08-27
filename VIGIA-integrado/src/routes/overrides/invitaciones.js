@@ -17,6 +17,7 @@ const qrService = require('../../services/qrService');
 const envioService = require('../../services/envioService');
 const invitacionesService = require('../../services/invitacionesService');
 const { applyOwnershipOnCreate } = require('../../utils/crudFactory');
+const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 
 module.exports = function invitacionesOverride({ router, model, handlers, pkPath }) {
   router.post('/', async (req, res, next) => {
@@ -42,8 +43,11 @@ module.exports = function invitacionesOverride({ router, model, handlers, pkPath
         });
       }
       if (req.body.enviar_por === 'whatsapp' && req.body.telefono_destino) {
+        // Sin el +504 el enlace de WhatsApp que arma envioService.js
+        // (wa.me/<numero>) queda con solo 8 digitos y no abre ningun
+        // chat real -- necesita el numero completo con codigo de pais.
         envios.whatsapp = await envioService.enviarWhatsapp({
-          telefono: req.body.telefono_destino,
+          telefono: normalizarTelefonoHN(req.body.telefono_destino),
           mensaje: `Tu codigo de acceso VIGIA es: ${invitacion.codigo_qr}`,
         });
       }

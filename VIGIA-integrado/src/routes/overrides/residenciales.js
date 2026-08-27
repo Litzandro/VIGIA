@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../../models');
+const { sembrarTiposIncidenciaDefecto } = require('../../utils/catalogoTiposIncidencia');
 
 module.exports = function residencialesOverride({ router, model, handlers, pkPath }) {
   router.get('/', async (req, res, next) => {
@@ -45,6 +46,7 @@ module.exports = function residencialesOverride({ router, model, handlers, pkPat
         tiempo_sesion_inactiva_min: 30,
       }, { transaction });
       await db.PuntosAcceso.create({ residencial_id: row.id, nombre: 'Garita principal', tipo: 'mixto', activo: true }, { transaction });
+      await sembrarTiposIncidenciaDefecto(db, row.id, transaction);
       const plan = await db.PlanesServicio.findOne({ where: { codigo: 'esencial', activo: true }, transaction });
       if (plan) {
         const start = new Date();

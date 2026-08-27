@@ -1,6 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
+const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 
 module.exports = function contactosEmergenciaOverride({ router, model, pkPath }) {
   router.get('/', async (req, res, next) => {
@@ -25,8 +26,8 @@ module.exports = function contactosEmergenciaOverride({ router, model, pkPath })
         usuario_id: isAdmin && !req.body.privado ? null : req.user.id,
         categoria: req.body.categoria || 'familiar',
         nombre,
-        telefono,
-        telefono_alterno: req.body.telefono_alterno || null,
+        telefono: normalizarTelefonoHN(telefono),
+        telefono_alterno: normalizarTelefonoHN(req.body.telefono_alterno),
         disponible_24h: Boolean(req.body.disponible_24h),
         privado: isAdmin ? Boolean(req.body.privado) : true,
         orden_visual: Number(req.body.orden_visual || 0),
@@ -52,6 +53,8 @@ module.exports = function contactosEmergenciaOverride({ router, model, pkPath })
     try {
       const row = await owned(req); if (row === false) return res.status(403).json({ error: 'Solo puedes editar tus contactos.' }); if (!row) return res.status(404).json({ error: 'Contacto no encontrado.' });
       const allowed = {}; ['categoria','nombre','telefono','telefono_alterno','disponible_24h','orden_visual','activo'].forEach(k=>{if(req.body[k]!==undefined)allowed[k]=req.body[k]});
+      if (allowed.telefono !== undefined) allowed.telefono = normalizarTelefonoHN(allowed.telefono);
+      if (allowed.telefono_alterno !== undefined) allowed.telefono_alterno = normalizarTelefonoHN(allowed.telefono_alterno);
       if (['admin','superadmin'].includes(req.user.rol_codigo) && req.body.privado !== undefined) allowed.privado = Boolean(req.body.privado);
       await row.update(allowed); res.json({ data: row });
     } catch (err) { next(err); }

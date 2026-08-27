@@ -3,6 +3,7 @@
 const db = require('../../models');
 const { Op } = require('sequelize');
 const { primaryKeyWhere } = require('../../utils/crudFactory');
+const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 
 function activeStates() { return ['esperando', 'en_validacion']; }
 
@@ -176,7 +177,7 @@ module.exports = function colaAccesoOverride({ router, model, handlers, pkPath }
         nombre_persona: String(body.nombre_persona).trim(),
         tipo_documento: body.tipo_documento || null,
         numero_documento: body.numero_documento || null,
-        telefono: body.telefono || null,
+        telefono: normalizarTelefonoHN(body.telefono),
         placa_vehiculo: body.placa_vehiculo || null,
         foto_url: body.foto_url || null,
         motivo: body.motivo || null,

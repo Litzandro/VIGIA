@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../../models');
+const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 const { Op } = require('sequelize');
 const { primaryKeyWhere } = require('../../utils/crudFactory');
 const { VETO_ESTADO, VETO_ALCANCE, esAdmin, esSuperadmin } = require('../../config/estados');
@@ -72,7 +73,7 @@ module.exports = function vetosAccesoOverride({ router, model, handlers, pkPath 
         nombre_persona: nombre,
         tipo_documento: req.body.tipo_documento || null,
         numero_documento: req.body.numero_documento || null,
-        telefono: req.body.telefono || null,
+        telefono: normalizarTelefonoHN(req.body.telefono),
         alcance,
         motivo,
         evidencia_url: req.body.evidencia_url || null,

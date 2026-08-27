@@ -6,19 +6,41 @@ const crypto = require('crypto');
 const db = require('../models');
 const { validatePassword } = require('../utils/passwordPolicy');
 const { enviarCorreo } = require('../services/envioService');
+const { normalizarTelefonoHN } = require('../utils/telefonoHN');
+const { sembrarTiposIncidenciaDefecto } = require('../utils/catalogoTiposIncidencia');
 
 // Costo de bcrypt: cada +1 duplica el tiempo de cómputo del hash. 12 es
 // el estándar recomendado actual (10 se quedó corto con el hardware de
 // hoy) y sigue siendo rápido para un solo login (~250-300ms).
 const BCRYPT_ROUNDS = 12;
 
+// Deriva un nombre de cortesia a partir del correo cuando no hay nada
+// mejor que mostrar (mismo criterio que el respaldo que ya existe en el
+// frontend, public/js/dashboard.js -- se duplica aca a proposito: el
+// saludo del dashboard no deberia depender de que el navegador arregle
+// lo que el backend debio mandar completo desde un inicio).
+function nombreDesdeCorreo(email) {
+  if (!email) return 'Usuario';
+  const local = String(email).split('@')[0] || 'usuario';
+  const partes = local.split(/[.\-_]+/).filter(Boolean).map((p) => p[0].toUpperCase() + p.slice(1));
+  return partes.join(' ') || 'Usuario';
+}
+
 function buildPayload(usuario, rol, extra = {}) {
+  // nombre/apellido son NOT NULL en la base, pero eso no evita que
+  // alguien quede con un valor vacio (" ".trim() === "") si en algun
+  // punto se guarda sin pasar por una validacion que lo rechace antes.
+  // nombre_completo NUNCA debe llegar vacio al frontend: si pasa, cae
+  // al mismo nombre de cortesia derivado del correo que usa el
+  // dashboard, para que ninguna pantalla termine mostrando el correo
+  // completo tal cual ni un saludo en blanco.
+  const nombreCompleto = `${usuario.nombre || ''} ${usuario.apellido || ''}`.trim() || nombreDesdeCorreo(usuario.email);
   return {
     id: usuario.id,
     email: usuario.email,
     nombre: usuario.nombre,
     apellido: usuario.apellido,
-    nombre_completo: `${usuario.nombre} ${usuario.apellido}`.trim(),
+    nombre_completo: nombreCompleto,
     rol_id: usuario.rol_id,
     rol_codigo: rol ? rol.codigo : null,
     residencial_id: usuario.residencial_id,
@@ -128,6 +150,13 @@ async function register(req, res, next) {
       await transaction.rollback();
       return res.status(400).json({ error: 'Completa todos los campos requeridos.' });
     }
+    // "name" viene como un solo campo de texto libre; antes de dividirlo
+    // en nombre/apellido hay que asegurarse de que no sea solo espacios
+    // (" " es truthy en JS y pasaba la validacion de arriba tal cual).
+    if (!String(name).trim()) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'El nombre no puede estar vacío.' });
+    }
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.ok) {
       await transaction.rollback();
@@ -161,6 +190,14 @@ async function register(req, res, next) {
       transaction,
     });
 
+    // Sin esto, una residencial nueva (creada aca mismo, por
+    // autoregistro) se quedaba sin ningun tipo_incidencia -- y sin uno
+    // llamado "Otro" (el respaldo que usa incidencias.js), nadie ahi
+    // puede reportar NINGUNA incidencia hasta que alguien la cree a
+    // mano. Es idempotente: si la residencial ya existia y ya tenia
+    // tipos cargados, no duplica nada.
+    await sembrarTiposIncidenciaDefecto(db, residencial.id, transaction);
+
     const unitText = String(unidad).trim();
     let vivienda = await db.Viviendas.findOne({
       where: { residencial_id: residencial.id, numero: unitText },
@@ -177,7 +214,12 @@ async function register(req, res, next) {
 
     const parts = String(name).trim().split(/\s+/);
     const nombre = parts.shift();
-    const apellido = parts.join(' ') || nombre;
+    // Antes esto caia en "|| nombre" cuando la persona solo escribia un
+    // nombre (ej. "Ana"), duplicandolo como apellido y guardando
+    // "Ana Ana" -- apellido='' es un valor valido (la columna es
+    // VARCHAR NOT NULL, no exige que tenga texto), y nombre_completo ya
+    // sabe recortar el espacio sobrante cuando apellido viene vacio.
+    const apellido = parts.join(' ');
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const usuario = await db.Usuarios.create({
@@ -186,7 +228,7 @@ async function register(req, res, next) {
       nombre,
       apellido,
       email: normalizedEmail,
-      telefono: String(phone).trim(),
+      telefono: normalizarTelefonoHN(phone),
       password_hash,
       estado: 'activo',
       debe_cambiar_clave: false,

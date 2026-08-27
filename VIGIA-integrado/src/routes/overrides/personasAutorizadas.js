@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../../models');
+const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 const { Op } = require('sequelize');
 const { primaryKeyWhere, applyOwnershipScope, applyOwnershipOnCreate } = require('../../utils/crudFactory');
 
@@ -102,7 +103,7 @@ module.exports = function personasAutorizadasOverride({ router, model, handlers,
         nombre_completo: nombre,
         tipo_documento: body.tipo_documento || null,
         numero_documento: body.numero_documento || null,
-        telefono: body.telefono || null,
+        telefono: normalizarTelefonoHN(body.telefono),
         empresa: body.empresa || null,
         placa_vehiculo: body.placa_vehiculo || null,
         foto_url: body.foto_url || null,

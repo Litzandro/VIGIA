@@ -3,6 +3,7 @@
 const bcrypt = require('bcryptjs');
 const db = require('../../models');
 const { validatePassword } = require('../../utils/passwordPolicy');
+const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 
 // Mismo costo de bcrypt que authController.js (mantenerlos sincronizados).
 const BCRYPT_ROUNDS = 12;
@@ -33,6 +34,14 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         await transaction.rollback();
         return res.status(400).json({ error: 'Nombre, apellido, correo, contraseña y rol son requeridos.' });
       }
+      // "  " (solo espacios) pasa el chequeo de arriba porque es
+      // truthy -- sin este recorte previo, la cuenta quedaria creada
+      // con nombre o apellido vacios y el saludo/las listas de usuarios
+      // mostrarian un espacio en blanco en vez de un nombre real.
+      if (!String(nombre).trim() || !String(apellido).trim()) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'Nombre y apellido no pueden estar vacíos.' });
+      }
       const passwordCheck = validatePassword(password);
       if (!passwordCheck.ok) {
         await transaction.rollback();
@@ -60,7 +69,7 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         nombre: String(nombre).trim(),
         apellido: String(apellido).trim(),
         email: String(email).trim().toLowerCase(),
-        telefono: req.body.telefono || null,
+        telefono: normalizarTelefonoHN(req.body.telefono),
         password_hash: await bcrypt.hash(String(password), BCRYPT_ROUNDS),
         estado: 'activo',
         debe_cambiar_clave: true,
@@ -139,6 +148,11 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
 
       const { password_hash, rol_id, residencial_id, estado, ...permitido } = req.body || {};
+      // El "+504" que ve el residente en Perfil (attachPhoneCountryCode)
+      // es solo visual -- lo que llega aca sigue siendo el numero de 8
+      // digitos. Se normaliza al guardar para que quede consistente con
+      // el resto de la base, igual que en register/admin-create.
+      if (permitido.telefono !== undefined) permitido.telefono = normalizarTelefonoHN(permitido.telefono);
       await usuario.update(permitido);
       const data = usuario.toJSON(); delete data.password_hash;
       res.json({ data });
@@ -173,6 +187,7 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       if (!row) return res.status(404).json({ error: 'Usuario no encontrado.' });
       const allowed = {};
       ['nombre','apellido','email','telefono','foto_url','estado','debe_cambiar_clave'].forEach(k=>{ if(req.body[k]!==undefined) allowed[k]=req.body[k]; });
+      if (allowed.telefono !== undefined) allowed.telefono = normalizarTelefonoHN(allowed.telefono);
       if (req.user.rol_codigo === 'superadmin') {
         if (req.body.rol_id !== undefined) allowed.rol_id = req.body.rol_id;
         if (req.body.residencial_id !== undefined) allowed.residencial_id = req.body.residencial_id;
