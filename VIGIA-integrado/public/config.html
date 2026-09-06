@@ -68,8 +68,8 @@
           </div>
 
           <div class="settings-group">
-            <div class="settings-copy"><b>Uso simplificado</b><span>Reduce elementos visuales y movimiento para una experiencia más amigable con adultos mayores.</span></div>
-            <div class="choice-row"><button type="button" class="btn btn-ghost setting-pill" id="simpleModeBtn"><i class="bi bi-layout-text-window"></i> Modo simple</button><button type="button" class="btn btn-ghost setting-pill" id="reduceMotionBtn"><i class="bi bi-universal-access"></i> Reducir movimiento</button><button type="button" class="btn btn-ghost setting-pill" id="readPageBtn"><i class="bi bi-volume-up-fill"></i> Leer esta página</button></div>
+            <div class="settings-copy"><b>Lectura en voz alta</b><span>Para personas ciegas o con baja visión. Al activarla, VIGIA lee en voz alta cada página nueva que abras — no hace falta volver a esta pantalla. También puedes activarla o desactivarla desde cualquier página con el botón flotante de la esquina, o con el atajo de teclado Alt+L.</span></div>
+            <div class="choice-row"><button type="button" class="btn btn-ghost setting-pill" id="readToggleBtn"><i class="bi bi-volume-up-fill"></i> Activar lectura en voz alta</button><button type="button" class="btn btn-ghost setting-pill" id="readNowBtn"><i class="bi bi-play-fill"></i> Leer esta página ahora</button></div>
           </div>
 
           <div class="settings-footer">
@@ -90,32 +90,12 @@
         <div class="panel" style="margin-top:1.2rem;">
           <div class="panel-head"><h3>Seguridad de la cuenta</h3></div>
           <div class="config-list">
-            <div class="config-row"><div class="l"><b>Verificación en dos pasos</b><span>Protege tu cuenta con un código adicional al iniciar sesión</span></div><div class="toggle on"><div class="knob"></div></div></div>
-            <div class="config-row"><div class="l"><b>Sesiones activas</b><span>1 dispositivo conectado actualmente</span></div><a class="btn btn-ghost" id="viewSessionsBtn" href="seguridad.html">Ver sesiones y dispositivos</a></div>
+            <div class="config-row"><div class="l"><b>Verificación en dos pasos</b><span>Próximamente disponible — protegerá tu cuenta con un código adicional al iniciar sesión</span></div><div class="toggle disabled" title="Aún no disponible"><div class="knob"></div></div></div>
+            <div class="config-row"><div class="l"><b>Sesiones activas</b><span id="activeSessionsCount">Consultando…</span></div><a class="btn btn-ghost" id="viewSessionsBtn" href="seguridad.html">Ver sesiones y dispositivos</a></div>
             <div class="config-row"><div class="l"><b>Cerrar sesión</b><span>Saldrás de tu cuenta en este dispositivo</span></div><button type="button" class="btn btn-ghost" id="logoutBtn"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button></div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="sessionsModal">
-  <div class="modal-box" id="sessionsModalBox">
-    <div class="modal-icon"><i class="bi bi-laptop"></i></div>
-    <h3>Sesiones activas</h3>
-    <p>Tienes 1 dispositivo conectado actualmente a tu cuenta VIGIA.</p>
-    <div style="text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:1.6rem;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <b style="color:var(--bone);font-size:.88rem;">Este dispositivo</b>
-          <div class="mono" style="font-size:.72rem;color:var(--mist);margin-top:.25rem;">Última actividad: ahora mismo</div>
-        </div>
-        <span class="badge ok">ACTIVA</span>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-solid" id="sessionsClose" style="flex:1;">Entendido</button>
     </div>
   </div>
 </div>

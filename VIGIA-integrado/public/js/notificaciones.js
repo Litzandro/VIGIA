@@ -22,7 +22,7 @@
   };
   const DEFAULT_ICON={icon:'bi-bell-fill',bg:'rgba(237,231,214,.08)',color:'var(--bone-dim)'};
 
-  // Antes los 4 interruptores de "Configuración > Notificaciones" (Visitas,
+  // Los 4 interruptores de "Configuración > Notificaciones" (Visitas,
   // Incidencias, Administración, Seguridad) guardaban tu eleccion pero
   // ninguna pantalla la leia -- asi que "apagar" una categoria no evitaba
   // ver esas notificaciones aca. tipo_a_categoria conecta el "tipo" real

@@ -25,15 +25,28 @@
     });
   });
 })();
-document.querySelectorAll('.toggle:not([data-notif-pref])').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
+document.querySelectorAll('.toggle:not([data-notif-pref]):not(.disabled)').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
 (function(){
   if(!window.VigiaAccessibility)return;const status=document.getElementById('accessibilityStatus');let remote={};
-  const mapToApi=p=>({tema:{light:'claro',soft:'suave',dark:'oscuro',high:'alto_contraste'}[p.theme]||'suave',filtro_color:{none:'ninguno',grayscale:'escala_grises',deuteranopia:'deuteranopia',protanopia:'protanopia',tritanopia:'tritanopia'}[p.filter]||'ninguno',tamano_texto:{normal:'normal',large:'grande',xl:'extra_grande'}[p.font]||'normal',modo_simple:Boolean(p.simple),reducir_movimiento:p.motion==='reduced'});
-  const mapFromApi=p=>({theme:{claro:'light',suave:'soft',oscuro:'dark',alto_contraste:'high'}[p.tema]||'soft',filter:{ninguno:'none',escala_grises:'grayscale',deuteranopia:'deuteranopia',protanopia:'protanopia',tritanopia:'tritanopia'}[p.filtro_color]||'none',font:{normal:'normal',grande:'large',extra_grande:'xl'}[p.tamano_texto]||'normal',simple:Boolean(p.modo_simple),motion:p.reducir_movimiento?'reduced':'normal'});
-  function refresh(){const p=VigiaAccessibility.get();document.querySelectorAll('[data-theme]').forEach(b=>b.classList.toggle('active',b.dataset.theme===p.theme));document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===p.filter));document.querySelectorAll('[data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===p.font));document.getElementById('simpleModeBtn').classList.toggle('active',p.simple);document.getElementById('reduceMotionBtn').classList.toggle('active',p.motion==='reduced')}
+  const mapToApi=p=>({tema:{light:'claro',soft:'suave',dark:'oscuro',high:'alto_contraste'}[p.theme]||'suave',filtro_color:{none:'ninguno',grayscale:'escala_grises',deuteranopia:'deuteranopia',protanopia:'protanopia',tritanopia:'tritanopia'}[p.filter]||'ninguno',tamano_texto:{normal:'normal',large:'grande',xl:'extra_grande'}[p.font]||'normal',lectura_asistida:Boolean(p.readAloud)});
+  const mapFromApi=p=>({theme:{claro:'light',suave:'soft',oscuro:'dark',alto_contraste:'high'}[p.tema]||'soft',filter:{ninguno:'none',escala_grises:'grayscale',deuteranopia:'deuteranopia',protanopia:'protanopia',tritanopia:'tritanopia'}[p.filtro_color]||'none',font:{normal:'normal',grande:'large',extra_grande:'xl'}[p.tamano_texto]||'normal',readAloud:Boolean(p.lectura_asistida)});
+  function refresh(){const p=VigiaAccessibility.get();document.querySelectorAll('[data-theme]').forEach(b=>b.classList.toggle('active',b.dataset.theme===p.theme));document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===p.filter));document.querySelectorAll('[data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===p.font));document.getElementById('readToggleBtn').classList.toggle('active',p.readAloud)}
   async function save(next){const p=VigiaAccessibility.set(next);refresh();status.innerHTML='<i class="bi bi-cloud-check-fill"></i> Preferencias guardadas';try{await VigiaAPI.request('/preferencias-usuario/me',{method:'PUT',body:JSON.stringify(mapToApi(p)),offline:false})}catch(e){status.innerHTML='<i class="bi bi-device-ssd"></i> Guardado en este dispositivo'}clearTimeout(status._t);status._t=setTimeout(()=>status.innerHTML='<i class="bi bi-check-circle"></i> Preferencias guardadas automáticamente',1800)}
-  document.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>save({theme:b.dataset.theme}));document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>save({filter:b.dataset.filter}));document.querySelectorAll('[data-font]').forEach(b=>b.onclick=()=>save({font:b.dataset.font}));document.getElementById('simpleModeBtn').onclick=()=>save({simple:!VigiaAccessibility.get().simple});document.getElementById('reduceMotionBtn').onclick=()=>save({motion:VigiaAccessibility.get().motion==='reduced'?'normal':'reduced'});document.getElementById('resetAccessibility').onclick=async()=>{VigiaAccessibility.reset();refresh();await save({});showToast('Accesibilidad restablecida')};
-  document.getElementById('readPageBtn').onclick=()=>{if(!('speechSynthesis'in window)){showToast('La lectura asistida no está disponible en este navegador');return}speechSynthesis.cancel();const text=document.querySelector('.page').innerText.slice(0,5000);const u=new SpeechSynthesisUtterance(text);u.lang='es-HN';speechSynthesis.speak(u);showToast('Lectura asistida iniciada')};
+  document.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>save({theme:b.dataset.theme}));document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>save({filter:b.dataset.filter}));document.querySelectorAll('[data-font]').forEach(b=>b.onclick=()=>save({font:b.dataset.font}));
+  document.getElementById('resetAccessibility').onclick=async()=>{VigiaAccessibility.reset();refresh();await save({});showToast('Accesibilidad restablecida')};
+  document.getElementById('readToggleBtn').onclick=async()=>{const activo=!VigiaAccessibility.get().readAloud;await save({readAloud:activo});if(activo){VigiaAccessibility.announce('Lectura de pantalla activada.');setTimeout(()=>VigiaAccessibility.read(),1400)}else{VigiaAccessibility.announce('Lectura de pantalla desactivada.')}};
+  document.getElementById('readNowBtn').onclick=()=>{VigiaAccessibility.read();showToast('Lectura asistida iniciada')};
   VigiaAPI.request('/preferencias-usuario/me').then(r=>{remote=r.data||{};VigiaAccessibility.set(mapFromApi(remote));refresh()}).catch(()=>refresh());
   document.getElementById('logoutBtn').onclick=async()=>{try{await VigiaAPI.request('/auth/logout',{method:'POST',offline:false})}catch(e){}VigiaAPI.clearSession();location.replace('login.html')};refresh();
+  // "Sesiones activas" antes traia un "1 dispositivo conectado
+  // actualmente" fijo en el HTML. seguridad.html si consulta esto de
+  // verdad (GET /auth/sessions); aca se pide lo mismo solo para
+  // mostrar el numero correcto.
+  const sessionsCountEl=document.getElementById('activeSessionsCount');
+  if(sessionsCountEl){
+    VigiaAPI.request('/auth/sessions').then(r=>{
+      const activas=(r.data||[]).filter(x=>x.activa).length;
+      sessionsCountEl.textContent=`${activas} ${activas===1?'dispositivo conectado':'dispositivos conectados'} actualmente`;
+    }).catch(()=>{sessionsCountEl.textContent='No se pudo consultar tus sesiones activas.'});
+  }
 })();

@@ -34,31 +34,106 @@
   const frequencyGroup = document.getElementById('visitFrequencyGroup');
   const frequencyInput = document.getElementById('visitFrequency');
 
+  // ---- Selector de color libre para la visita que se está creando ----
+  const colorSwatches = document.getElementById('visitColorSwatches');
+  const colorCustomInput = document.getElementById('visitColorCustom');
+  let colorSeleccionado = '#12E8A0';
+
+  if (colorSwatches) {
+    colorSwatches.querySelectorAll('.color-swatch[data-color]').forEach(boton => {
+      boton.addEventListener('click', () => {
+        colorSwatches.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
+        boton.classList.add('active');
+        colorSeleccionado = boton.dataset.color;
+        if (colorCustomInput) colorCustomInput.value = boton.dataset.color;
+      });
+    });
+  }
+
+  if (colorCustomInput) {
+    colorCustomInput.addEventListener('input', () => {
+      if (colorSwatches) colorSwatches.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
+      colorSeleccionado = colorCustomInput.value;
+    });
+  }
+
+  function reiniciarSelectorColor() {
+    colorSeleccionado = '#12E8A0';
+    if (colorSwatches) {
+      colorSwatches.querySelectorAll('.color-swatch').forEach(b => b.classList.toggle('active', b.dataset.color === colorSeleccionado));
+    }
+    if (colorCustomInput) colorCustomInput.value = colorSeleccionado;
+  }
+
   // ==============================
-  // VISTA CALENDARIO (semana)
+  // VISTA CALENDARIO (mes)
   // ==============================
 
   let invitacionesCache = [];
-  let semanaReferencia = new Date();
+  let mesReferencia = new Date();
 
   const DIAS_CORTOS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   const DIAS_LARGOS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
-  const HORA_INICIO = 6;
-  const HORA_FIN = 22;
-  const ALTURA_HORA = 52;
-  const DURACION_VISUAL_MIN = 45;
+  const MAX_CHIPS_VISIBLES = 3;
 
   const viewSwitch = document.getElementById('viewSwitch');
   const listaView = document.getElementById('listaView');
   const calendarioView = document.getElementById('calendarioView');
-  const weekHeadRow = document.getElementById('weekHeadRow');
-  const weekAllDay = document.getElementById('weekAllDay');
-  const weekHours = document.getElementById('weekHours');
-  const weekDays = document.getElementById('weekDays');
-  const weekRange = document.getElementById('weekRange');
-  const weekPrevBtn = document.getElementById('weekPrev');
-  const weekNextBtn = document.getElementById('weekNext');
-  const weekTodayBtn = document.getElementById('weekToday');
+  const monthGrid = document.getElementById('monthGrid');
+  const monthLabel = document.getElementById('monthLabel');
+  const monthPrevBtn = document.getElementById('monthPrev');
+  const monthNextBtn = document.getElementById('monthNext');
+  const monthTodayBtn = document.getElementById('monthToday');
+  const heatSwitch = document.getElementById('heatSwitch');
+  const monthFilters = document.getElementById('monthFilters');
+
+  // ---- Filtros de categoria y estado (panel lateral del calendario) ----
+  // Empiezan con todo marcado (nada se oculta) para que el calendario se
+  // vea completo la primera vez que alguien lo abre.
+  const filtroCategoria = new Set(['familiar', 'entrega', 'mantenimiento', 'otro']);
+  const filtroEstado = new Set(['pendiente', 'usada', 'cancelada', 'expirada']);
+  let modoMapaCalor = false;
+
+  if (monthFilters) {
+    monthFilters.querySelectorAll('[data-cat-filter]').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const cat = chk.dataset.catFilter;
+        if (chk.checked) filtroCategoria.add(cat); else filtroCategoria.delete(cat);
+        renderMonthCalendar();
+      });
+    });
+    monthFilters.querySelectorAll('[data-estado-filter]').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const est = chk.dataset.estadoFilter;
+        if (chk.checked) filtroEstado.add(est); else filtroEstado.delete(est);
+        renderMonthCalendar();
+      });
+    });
+  }
+
+  if (heatSwitch) {
+    heatSwitch.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        heatSwitch.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        modoMapaCalor = btn.dataset.heat === 'on';
+        renderMonthCalendar();
+      });
+    });
+  }
+
+  // ---- Colores elegidos libremente por el usuario, por visita ----
+  // No hay columna de color en la base de datos, así que se guarda por
+  // cuenta en este dispositivo (igual que el tema o el tamaño de letra
+  // en common.js) -- puramente cosmético, no afecta a nadie más.
+  const CLAVE_COLORES = session && session.id ? `vigia_visit_colors_${session.id}` : 'vigia_visit_colors';
+  let coloresVisita = {};
+  try { coloresVisita = JSON.parse(localStorage.getItem(CLAVE_COLORES) || '{}'); } catch (e) {}
+
+  function guardarColorVisita(id, color) {
+    coloresVisita[id] = color;
+    try { localStorage.setItem(CLAVE_COLORES, JSON.stringify(coloresVisita)); } catch (e) {}
+  }
 
   const MESES = [
     'Ene',
@@ -519,8 +594,8 @@
 
       invitacionesCache = invitaciones;
 
-      if (typeof renderWeekCalendar === 'function') {
-        renderWeekCalendar();
+      if (typeof renderMonthCalendar === 'function') {
+        renderMonthCalendar();
       }
 
 
@@ -613,6 +688,7 @@
         }
 
         resetConditionalFields();
+        reiniciarSelectorColor();
 
         closeModal();
 
@@ -995,6 +1071,13 @@
           }
 
 
+          // Guarda el color que eligió libremente, asociado al id real
+          // que acaba de asignar la base de datos.
+          if (respuesta.data.id != null) {
+            guardarColorVisita(respuesta.data.id, colorSeleccionado);
+          }
+
+
           if (
             typeof showToast ===
             'function'
@@ -1015,6 +1098,7 @@
           form.reset();
 
           resetConditionalFields();
+          reiniciarSelectorColor();
 
           closeModal();
 
@@ -1075,8 +1159,9 @@
   }
 
 
+
   // ==============================
-  // CATEGORÍA / ICONOS
+  // CATEGORÍA / ICONOS / COLOR
   // ==============================
 
   function categoriaVisita(motivo) {
@@ -1100,100 +1185,75 @@
     return inv.tipo === 'temporal' && String(inv.notas || '').includes('Frecuencia:');
   }
 
+  const COLOR_POR_CATEGORIA = {
+    familiar: '#12E8A0',
+    entrega: '#579AFF',
+    mantenimiento: '#F0B43C',
+    otro: '#B98AFF'
+  };
+
+  // El color elegido a mano por el usuario (guardado en este dispositivo)
+  // siempre gana; si nunca eligió uno, se usa el color automático de su
+  // categoría detectada por el motivo -- así el calendario nunca se ve
+  // "sin color" aunque el usuario no haya tocado el selector.
+  function colorDeVisita(inv) {
+    if (coloresVisita[inv.id]) return coloresVisita[inv.id];
+    return COLOR_POR_CATEGORIA[categoriaVisita(inv.notas)] || '#8a8a86';
+  }
+
 
   // ==============================
-  // FECHAS DE LA SEMANA
+  // FECHAS DEL MES
   // ==============================
 
-  function inicioSemana(fecha) {
-    const d = new Date(fecha);
-    d.setHours(0, 0, 0, 0);
-    const offset = (d.getDay() + 6) % 7; // lunes = 0
+  function inicioMes(fecha) {
+    return new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+  }
+
+  function inicioGridMes(fecha) {
+    const primero = inicioMes(fecha);
+    const offset = (primero.getDay() + 6) % 7; // lunes = 0
+    const d = new Date(primero);
     d.setDate(d.getDate() - offset);
+    d.setHours(0, 0, 0, 0);
     return d;
   }
 
-  function etiquetaHora(h) {
-    const h12 = ((h + 11) % 12) + 1;
-    return `${h12} ${h < 12 ? 'AM' : 'PM'}`;
-  }
-
-  function formatRangoSemana(inicio, fin) {
-    const mismoMes = inicio.getMonth() === fin.getMonth();
-    const mesInicio = MESES[inicio.getMonth()];
-    const mesFin = MESES[fin.getMonth()];
-    if (mismoMes) {
-      return `${inicio.getDate()}–${fin.getDate()} ${mesInicio} ${fin.getFullYear()}`;
-    }
-    return `${inicio.getDate()} ${mesInicio} – ${fin.getDate()} ${mesFin} ${fin.getFullYear()}`;
+  function formatMesEtiqueta(fecha) {
+    const nombres = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    return `${nombres[fecha.getMonth()]} ${fecha.getFullYear()}`;
   }
 
   function fechaISOLocal(d) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
-
-  // ==============================
-  // EMPAQUETAR EVENTOS QUE SE CRUZAN
-  // ==============================
-
-  function empaquetarEventos(eventos) {
-    eventos.sort((a, b) => a.inicioMin - b.inicioMin);
-    const columnas = [];
-    eventos.forEach(ev => {
-      let colocado = false;
-      for (let c = 0; c < columnas.length; c++) {
-        if (columnas[c] <= ev.inicioMin) {
-          ev._col = c;
-          columnas[c] = ev.finMin;
-          colocado = true;
-          break;
-        }
-      }
-      if (!colocado) {
-        ev._col = columnas.length;
-        columnas.push(ev.finMin);
-      }
-    });
-    eventos.forEach(ev => { ev._totalCol = columnas.length; });
+  // Numero de semana del año (ISO 8601: la semana que contiene el primer
+  // jueves de enero es la semana 1). Es solo una referencia visual junto
+  // a cada fila del calendario, como en la mayoria de apps de agenda.
+  function numeroSemana(fecha) {
+    const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
+    const diaISO = (d.getUTCDay() + 6) % 7; // lunes=0 ... domingo=6
+    d.setUTCDate(d.getUTCDate() - diaISO + 3); // mueve al jueves de esa semana
+    const primerJueves = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    const diferenciaDias = (d - primerJueves) / 86400000;
+    return 1 + Math.round(diferenciaDias / 7);
   }
 
 
   // ==============================
-  // HTML DE UN CHIP DE VISITA
+  // HTML DE UN CHIP DEL MES
   // ==============================
 
-  function chipHTML(inv, opts) {
-    opts = opts || {};
-    const cat = categoriaVisita(inv.notas);
-    const icon = iconoCategoria(cat);
+  function chipMesHTML(inv, delay) {
+    const color = colorDeVisita(inv);
     const nombre = escapeHTML(inv.nombre_evento || 'Visitante');
     const estado = String(inv.estado || '').toLowerCase();
-
-    const cls = ['visit-chip', 'cat-' + cat];
+    const cls = ['month-chip'];
     if (estado === 'cancelada') cls.push('estado-cancelada');
     if (estado === 'expirada') cls.push('estado-expirada');
-
-    const styleParts = [`animation-delay:${opts.delay || 0}s`];
-    let horaTxt;
-
-    if (opts.allDay) {
-      cls.push('allday');
-      horaTxt = esRecurrente(inv) ? 'Recurrente' : 'Todo el día';
-    } else {
-      styleParts.push(`top:${opts.top}px`, `height:${opts.height}px`);
-      if (opts.anchoPct != null) {
-        styleParts.push(`width:calc(${opts.anchoPct}% - 4px)`, `left:calc(${opts.leftPct}% + 2px)`);
-      }
-      horaTxt = formatTime(inv.fecha_valida_desde);
-    }
-
-    return `<div class="${cls.join(' ')}" style="${styleParts.join(';')}" data-id="${inv.id}">
-      <span class="vc-icon"><i class="bi ${icon}"></i></span>
-      <span class="vc-body">
-        <span class="vc-title">${nombre}</span>
-        <span class="vc-time">${horaTxt}</span>
-      </span>
+    return `<div class="${cls.join(' ')}" style="--chip-color:${color};animation-delay:${delay}s" data-id="${inv.id}">
+      <span class="mc-title">${nombre}</span>
     </div>`;
   }
 
@@ -1202,138 +1262,143 @@
   // RENDER PRINCIPAL DEL CALENDARIO
   // ==============================
 
-  function renderWeekCalendar(direction) {
+  // Un evento pasa el filtro si su categoria Y su estado estan
+  // marcados en el panel lateral -- ambos filtros se combinan con "Y",
+  // no con "O" (asi "solo entregas pendientes" funciona como se espera).
+  function pasaFiltros(inv) {
+    const cat = categoriaVisita(inv.notas);
+    const estado = String(inv.estado || '').toLowerCase();
+    return filtroCategoria.has(cat) && filtroEstado.has(estado);
+  }
 
-    if (!weekDays || !weekHeadRow || !weekAllDay || !weekHours || !weekRange) {
+  function renderMonthCalendar(direction) {
+
+    if (!monthGrid || !monthLabel) {
       return;
     }
 
-    const inicio = inicioSemana(semanaReferencia);
+    const inicioGrid = inicioGridMes(mesReferencia);
+    const mesActual = mesReferencia.getMonth();
     const hoy = new Date();
-    const diasSemana = [];
+    const hoyISO = fechaISOLocal(hoy);
 
-    let headHTML = '<div class="gutter"></div>';
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(inicio);
-      d.setDate(inicio.getDate() + i);
-      diasSemana.push(d);
-      const esHoy = d.toDateString() === hoy.toDateString();
-      headHTML += `<div class="week-cal-daylabel${esHoy ? ' today' : ''}" data-idx="${i}"><div class="dow">${DIAS_CORTOS[i]}</div><div class="dnum">${d.getDate()}</div></div>`;
+    monthLabel.textContent = formatMesEtiqueta(mesReferencia);
+
+    const totalCeldas = 42; // 6 semanas x 7 dias, cubre cualquier mes
+    const dias = [];
+    for (let i = 0; i < totalCeldas; i++) {
+      const d = new Date(inicioGrid);
+      d.setDate(inicioGrid.getDate() + i);
+      dias.push(d);
     }
-    weekHeadRow.innerHTML = headHTML;
+    // Si el mes cabe en 5 semanas, no mostramos la sexta fila vacia.
+    const necesitaSexta = dias[34].getMonth() === mesActual || dias.slice(35).some(d => d.getMonth() === mesActual);
+    const diasVisibles = necesitaSexta ? dias : dias.slice(0, 35);
 
-    const fin = new Date(inicio);
-    fin.setDate(inicio.getDate() + 6);
-    weekRange.textContent = formatRangoSemana(inicio, fin);
-
-    const finExclusivo = new Date(inicio);
-    finExclusivo.setDate(inicio.getDate() + 7);
-
-    const invitacionesSemana = invitacionesCache.filter(inv => {
-      const d = new Date(inv.fecha_valida_desde);
-      if (Number.isNaN(d.getTime())) return false;
-      return d >= inicio && d < finExclusivo;
-    });
+    const finGrid = new Date(diasVisibles[diasVisibles.length - 1]);
+    finGrid.setHours(23, 59, 59, 999);
 
     const invitacionesRecurrentesActivas = invitacionesCache.filter(inv => {
       if (!esRecurrente(inv)) return false;
       if (String(inv.estado || '').toLowerCase() === 'cancelada') return false;
       const desde = new Date(inv.fecha_valida_desde);
       const hasta = new Date(inv.fecha_valida_hasta);
-      return desde <= fin && hasta >= inicio;
+      return desde <= finGrid && hasta >= inicioGrid;
+    }).filter(pasaFiltros);
+
+    // Primera pasada: juntamos los eventos (ya filtrados) de cada dia,
+    // para poder calcular el maximo del mes antes de dibujar nada -- el
+    // mapa de calor necesita ese maximo para escalar la intensidad.
+    const todosPorDia = diasVisibles.map(d => {
+      const iso = fechaISOLocal(d);
+      const eventosDia = invitacionesCache.filter(inv => {
+        if (esRecurrente(inv)) return false;
+        const di = new Date(inv.fecha_valida_desde);
+        return !Number.isNaN(di.getTime()) && fechaISOLocal(di) === iso;
+      }).filter(pasaFiltros);
+
+      const recurrentesDelDia = invitacionesRecurrentesActivas.filter(inv => {
+        const desde = new Date(inv.fecha_valida_desde);
+        const hasta = new Date(inv.fecha_valida_hasta);
+        return d >= new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()) &&
+               d <= new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+      });
+
+      return [...recurrentesDelDia, ...eventosDia];
     });
 
-    const porDiaTimed = [[], [], [], [], [], [], []];
-    const porDiaAllDay = [[], [], [], [], [], [], []];
+    const maxDelMes = Math.max(1, ...todosPorDia.map(t => t.length));
 
-    invitacionesSemana.forEach(inv => {
-      if (esRecurrente(inv)) return; // ya cubierta abajo, para no duplicar
-      const d = new Date(inv.fecha_valida_desde);
-      const idx = (d.getDay() + 6) % 7;
-      const duracionHoras = (new Date(inv.fecha_valida_hasta) - d) / 3600000;
-      if (duracionHoras >= 20) {
-        porDiaAllDay[idx].push(inv);
-      } else {
-        porDiaTimed[idx].push(inv);
+    let gridHTML = '';
+
+    diasVisibles.forEach((d, idx) => {
+      const iso = fechaISOLocal(d);
+      const esOtroMes = d.getMonth() !== mesActual;
+      const esHoy = iso === hoyISO;
+      const todos = todosPorDia[idx];
+
+      // Al inicio de cada fila (cada 7 dias) va la columna con el
+      // numero de semana, antes que la primera casilla (lunes) de esa
+      // fila -- por eso se agrega fuera del div de la celda del dia.
+      if (idx % 7 === 0) {
+        gridHTML += `<div class="mc-weeknum">${numeroSemana(d)}</div>`;
       }
-    });
 
-    invitacionesRecurrentesActivas.forEach(inv => {
-      for (let i = 0; i < 7; i++) {
-        porDiaAllDay[i].push(inv);
+      const clases = ['month-cal-cell'];
+      if (esOtroMes) clases.push('other-month');
+      if (esHoy) clases.push('today');
+
+      if (modoMapaCalor) {
+        clases.push('heat-cell');
+        const alpha = todos.length ? 0.08 + (todos.length / maxDelMes) * 0.55 : 0;
+        gridHTML += `<div class="${clases.join(' ')}" data-fecha="${iso}" data-idx="${idx}" style="--heat-alpha:${alpha}">
+          <span class="mc-daynum">${d.getDate()}</span>
+          ${todos.length ? `<span class="heat-count">${todos.length}</span><span class="heat-label">visita${todos.length === 1 ? '' : 's'}</span>` : ''}
+        </div>`;
+        return;
       }
+
+      let chipsHTML = '';
+      todos.slice(0, MAX_CHIPS_VISIBLES).forEach((inv, ordinal) => {
+        chipsHTML += chipMesHTML(inv, ordinal * 0.04);
+      });
+
+      const restantes = todos.length - MAX_CHIPS_VISIBLES;
+      if (restantes > 0) {
+        chipsHTML += `<div class="mc-more" data-fecha="${iso}">+${restantes} más</div>`;
+      }
+
+      gridHTML += `<div class="${clases.join(' ')}" data-fecha="${iso}" data-idx="${idx}">
+        <span class="mc-daynum">${d.getDate()}</span>
+        <div class="mc-chips">${chipsHTML}</div>
+        <span class="month-cal-empty-hint"><i class="bi bi-plus-lg"></i></span>
+      </div>`;
     });
 
-    let allDayHTML = '<div class="gutter">Todo<br>el día</div>';
-    for (let i = 0; i < 7; i++) {
-      allDayHTML += `<div class="week-cal-allday-cell" data-idx="${i}">`;
-      porDiaAllDay[i].forEach((inv, ordinal) => {
-        allDayHTML += chipHTML(inv, { allDay: true, delay: ordinal * 0.04 });
+    monthGrid.innerHTML = gridHTML;
+
+    // En modo mapa de calor no hay chips que abrir ni "+N mas" que
+    // expandir -- solo dejamos que se pueda seguir agendando una visita
+    // nueva haciendo clic en cualquier dia, igual que en modo normal.
+    if (modoMapaCalor) {
+      monthGrid.querySelectorAll('.month-cal-cell').forEach(celda => {
+        celda.addEventListener('click', () => alClicEnDiaVacio(celda.dataset.fecha));
       });
-      allDayHTML += '</div>';
-    }
-    weekAllDay.innerHTML = allDayHTML;
-
-    let horasHTML = '';
-    for (let h = HORA_INICIO; h < HORA_FIN; h++) {
-      horasHTML += `<div class="week-cal-hour-label" style="height:${ALTURA_HORA}px">${etiquetaHora(h)}</div>`;
-    }
-    weekHours.innerHTML = horasHTML;
-
-    const alturaTotal = (HORA_FIN - HORA_INICIO) * ALTURA_HORA;
-    let diasHTML = '';
-
-    for (let i = 0; i < 7; i++) {
-      const d = diasSemana[i];
-      const esHoy = d.toDateString() === hoy.toDateString();
-
-      diasHTML += `<div class="week-cal-daycol${esHoy ? ' today' : ''}" data-idx="${i}" style="height:${alturaTotal}px">`;
-      diasHTML += '<div class="week-cal-empty-hint">+ visita</div>';
-
-      const eventosDia = porDiaTimed[i].map(inv => {
-        const d0 = new Date(inv.fecha_valida_desde);
-        const inicioMin = d0.getHours() * 60 + d0.getMinutes();
-        return { inv, inicioMin, finMin: inicioMin + DURACION_VISUAL_MIN };
-      });
-      empaquetarEventos(eventosDia);
-
-      eventosDia.forEach(ev => {
-        const topPx = Math.max(0, (ev.inicioMin - HORA_INICIO * 60) / 60 * ALTURA_HORA);
-        const heightPx = Math.max(26, (ev.finMin - ev.inicioMin) / 60 * ALTURA_HORA - 2);
-        const anchoPct = 100 / ev._totalCol;
-        const leftPct = anchoPct * ev._col;
-        diasHTML += chipHTML(ev.inv, { top: topPx, height: heightPx, leftPct, anchoPct });
-      });
-
-      if (esHoy) {
-        const ahoraMin = hoy.getHours() * 60 + hoy.getMinutes();
-        if (ahoraMin >= HORA_INICIO * 60 && ahoraMin <= HORA_FIN * 60) {
-          const topPx = (ahoraMin - HORA_INICIO * 60) / 60 * ALTURA_HORA;
-          diasHTML += `<div class="week-cal-nowline" style="top:${topPx}px"><span class="nl-time">${formatTime(hoy)}</span></div>`;
+      if (direction) {
+        const frame = document.querySelector('.month-cal-frame');
+        if (frame) {
+          frame.classList.remove('month-cal-slide');
+          void frame.offsetWidth;
+          frame.style.setProperty('--slide-from', direction === 'prev' ? '-14px' : '14px');
+          frame.classList.add('month-cal-slide');
         }
       }
-
-      diasHTML += '</div>';
+      return;
     }
-    weekDays.innerHTML = diasHTML;
 
-    // Clic en área vacía de un día → prellenar y abrir "Nueva visita"
-    weekDays.querySelectorAll('.week-cal-daycol').forEach((col, idx) => {
-      col.addEventListener('click', event => {
-        if (event.target.closest('.visit-chip')) return;
-        alClicEnDiaVacio(event, diasSemana[idx], col);
-      });
-    });
-
-    // Clic en un chip → popover con detalle y cancelar
-    weekDays.querySelectorAll('.visit-chip').forEach(chip => {
-      chip.addEventListener('click', event => {
-        event.stopPropagation();
-        const inv = invitacionesCache.find(x => String(x.id) === String(chip.dataset.id));
-        if (inv) abrirPopoverVisita(inv, chip);
-      });
-    });
-    weekAllDay.querySelectorAll('.visit-chip').forEach(chip => {
+    // Clic en un chip -> detalle. Clic en "+N más" -> abre el detalle del
+    // primer evento extra (rapido) y ademas expande la celda por completo.
+    monthGrid.querySelectorAll('.month-chip').forEach(chip => {
       chip.addEventListener('click', event => {
         event.stopPropagation();
         const inv = invitacionesCache.find(x => String(x.id) === String(chip.dataset.id));
@@ -1341,22 +1406,55 @@
       });
     });
 
-    // Clic en el nombre del día → centra esa columna (útil en móvil)
-    weekHeadRow.querySelectorAll('.week-cal-daylabel').forEach((label, idx) => {
-      label.addEventListener('click', () => {
-        const col = weekDays.querySelector(`.week-cal-daycol[data-idx="${idx}"]`);
-        if (col) col.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    monthGrid.querySelectorAll('.mc-more').forEach(masBtn => {
+      masBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        const celda = masBtn.closest('.month-cal-cell');
+        if (!celda) return;
+        const iso = celda.dataset.fecha;
+        const todos = [
+          ...invitacionesRecurrentesActivas.filter(inv => {
+            const desde = new Date(inv.fecha_valida_desde);
+            const hasta = new Date(inv.fecha_valida_hasta);
+            const d = new Date(iso + 'T00:00:00');
+            return d >= new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()) &&
+                   d <= new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+          }),
+          ...invitacionesCache.filter(inv => {
+            if (esRecurrente(inv)) return false;
+            const di = new Date(inv.fecha_valida_desde);
+            return !Number.isNaN(di.getTime()) && fechaISOLocal(di) === iso;
+          }).filter(pasaFiltros)
+        ];
+        let expandidoHTML = '';
+        todos.forEach((inv, ordinal) => { expandidoHTML += chipMesHTML(inv, ordinal * 0.03); });
+        const contenedor = celda.querySelector('.mc-chips');
+        contenedor.innerHTML = expandidoHTML;
+        contenedor.querySelectorAll('.month-chip').forEach(chip => {
+          chip.addEventListener('click', ev => {
+            ev.stopPropagation();
+            const inv = invitacionesCache.find(x => String(x.id) === String(chip.dataset.id));
+            if (inv) abrirPopoverVisita(inv, chip);
+          });
+        });
       });
     });
 
-    // Animación de deslizamiento al cambiar de semana
+    // Clic en un dia vacio -> prellenar y abrir "Nueva visita".
+    monthGrid.querySelectorAll('.month-cal-cell').forEach(celda => {
+      celda.addEventListener('click', event => {
+        if (event.target.closest('.month-chip') || event.target.closest('.mc-more')) return;
+        alClicEnDiaVacio(celda.dataset.fecha);
+      });
+    });
+
     if (direction) {
-      const frame = document.querySelector('.week-cal-frame');
+      const frame = document.querySelector('.month-cal-frame');
       if (frame) {
-        frame.classList.remove('week-cal-slide');
-        void frame.offsetWidth; // fuerza reflow para reiniciar la animación
-        frame.style.setProperty('--slide-from', direction === 'prev' ? '-12px' : '12px');
-        frame.classList.add('week-cal-slide');
+        frame.classList.remove('month-cal-slide');
+        void frame.offsetWidth;
+        frame.style.setProperty('--slide-from', direction === 'prev' ? '-14px' : '14px');
+        frame.classList.add('month-cal-slide');
       }
     }
   }
@@ -1372,6 +1470,8 @@
     document.querySelectorAll('.visit-popover-backdrop').forEach(b => b.remove());
   }
 
+  const PALETA_POPOVER = ['#12E8A0', '#579AFF', '#F0B43C', '#FF7B72', '#B98AFF', '#FF8AC4'];
+
   function abrirPopoverVisita(inv, targetEl) {
     cerrarPopover();
 
@@ -1383,6 +1483,11 @@
     const estado = String(inv.estado || '').toLowerCase();
     const estadoLabel = { pendiente: 'Pendiente', usada: 'Utilizada', expirada: 'Expirada', cancelada: 'Cancelada' }[estado] || estado;
     const estadoBadge = { pendiente: 'warn', usada: 'ok', expirada: 'neutral', cancelada: 'alert' }[estado] || 'neutral';
+    const colorActual = colorDeVisita(inv);
+
+    const swatchesHTML = PALETA_POPOVER.map(c =>
+      `<button type="button" class="color-swatch${c.toLowerCase() === colorActual.toLowerCase() ? ' active' : ''}" data-color="${c}" style="background:${c}"></button>`
+    ).join('') + `<label class="color-swatch-custom"><input type="color" id="vpColorCustom" value="${colorActual}"></label>`;
 
     const pop = document.createElement('div');
     pop.className = 'visit-popover';
@@ -1393,13 +1498,14 @@
       <div class="vp-row"><i class="bi bi-chat-left-text"></i> ${escapeHTML(inv.notas || 'Sin motivo indicado')}</div>
       <div class="vp-row"><i class="bi bi-qr-code"></i> ${escapeHTML(inv.codigo_qr || '—')}</div>
       <div class="vp-row"><span class="badge ${estadoBadge}">${estadoLabel}</span></div>
+      <div class="vp-row vp-color-row color-swatch-row">${swatchesHTML}</div>
       ${estado === 'pendiente' ? '<div class="vp-actions"><button type="button" class="btn btn-ghost" id="vpCancelar"><i class="bi bi-x-lg"></i> Cancelar</button></div>' : ''}
     `;
     document.body.appendChild(pop);
 
     const rect = targetEl.getBoundingClientRect();
-    const popW = pop.offsetWidth || 250;
-    const popH = pop.offsetHeight || 160;
+    const popW = pop.offsetWidth || 270;
+    const popH = pop.offsetHeight || 200;
     let left = rect.right + 10;
     let top = rect.top;
     if (left + popW > window.innerWidth - 12) left = rect.left - popW - 10;
@@ -1408,6 +1514,22 @@
     if (top < 8) top = 8;
     pop.style.left = left + 'px';
     pop.style.top = top + 'px';
+
+    // Volver a colorear esta visita, a mano, desde el detalle -- la
+    // libertad de elegir color no es solo al crearla, tambien despues.
+    function aplicarNuevoColor(color) {
+      guardarColorVisita(inv.id, color);
+      pop.querySelectorAll('.vp-color-row .color-swatch').forEach(b => b.classList.toggle('active', b.dataset.color && b.dataset.color.toLowerCase() === color.toLowerCase()));
+      renderMonthCalendar();
+    }
+
+    pop.querySelectorAll('.vp-color-row .color-swatch[data-color]').forEach(boton => {
+      boton.addEventListener('click', () => aplicarNuevoColor(boton.dataset.color));
+    });
+    const vpColorCustom = document.getElementById('vpColorCustom');
+    if (vpColorCustom) {
+      vpColorCustom.addEventListener('input', () => aplicarNuevoColor(vpColorCustom.value));
+    }
 
     const cancelarBtn = document.getElementById('vpCancelar');
     if (cancelarBtn) {
@@ -1434,42 +1556,38 @@
 
 
   // ==============================
-  // CLIC EN ÁREA VACÍA → PRELLENAR "NUEVA VISITA"
+  // CLIC EN DÍA VACÍO -> PRELLENAR "NUEVA VISITA"
   // ==============================
 
-  function alClicEnDiaVacio(event, fechaDia, colEl) {
-    const rect = colEl.getBoundingClientRect();
-    const y = event.clientY - rect.top + colEl.scrollTop;
-    let minutos = HORA_INICIO * 60 + (y / ALTURA_HORA) * 60;
-    minutos = Math.round(minutos / 15) * 15;
-    const h = Math.floor(minutos / 60);
-    const m = minutos % 60;
-
-    if (dateInput) dateInput.value = fechaISOLocal(fechaDia);
-    if (timeInput) timeInput.value = `${pad(h)}:${pad(m)}`;
+  function alClicEnDiaVacio(fechaISO) {
+    if (dateInput) dateInput.value = fechaISO;
+    if (timeInput) {
+      const ahora = new Date();
+      timeInput.value = `${pad(ahora.getHours())}:${pad(ahora.getMinutes())}`;
+    }
     if (nowCheckbox) nowCheckbox.checked = false;
     if (recurringCheckbox) recurringCheckbox.checked = false;
 
     resetConditionalFields();
+    reiniciarSelectorColor();
     openModal();
   }
 
 
   // ==============================
-  // NAVEGACIÓN DE SEMANA
+  // NAVEGACIÓN DE MES
   // ==============================
 
-  function cambiarSemana(delta, direccion) {
-    semanaReferencia = new Date(semanaReferencia);
-    semanaReferencia.setDate(semanaReferencia.getDate() + delta * 7);
-    renderWeekCalendar(direccion);
+  function cambiarMes(delta, direccion) {
+    mesReferencia = new Date(mesReferencia.getFullYear(), mesReferencia.getMonth() + delta, 1);
+    renderMonthCalendar(direccion);
   }
 
-  if (weekPrevBtn) weekPrevBtn.addEventListener('click', () => cambiarSemana(-1, 'prev'));
-  if (weekNextBtn) weekNextBtn.addEventListener('click', () => cambiarSemana(1, 'next'));
-  if (weekTodayBtn) weekTodayBtn.addEventListener('click', () => {
-    semanaReferencia = new Date();
-    renderWeekCalendar('today');
+  if (monthPrevBtn) monthPrevBtn.addEventListener('click', () => cambiarMes(-1, 'prev'));
+  if (monthNextBtn) monthNextBtn.addEventListener('click', () => cambiarMes(1, 'next'));
+  if (monthTodayBtn) monthTodayBtn.addEventListener('click', () => {
+    mesReferencia = new Date();
+    renderMonthCalendar('today');
   });
 
 
@@ -1486,7 +1604,7 @@
     if (vista === 'calendario') {
       if (listaView) listaView.hidden = true;
       if (calendarioView) calendarioView.hidden = false;
-      renderWeekCalendar();
+      renderMonthCalendar();
     } else {
       if (listaView) listaView.hidden = false;
       if (calendarioView) calendarioView.hidden = true;
@@ -1506,7 +1624,7 @@
   // ==============================
 
   // Si llegamos desde el mini calendario del dashboard (?fecha=2026-09-03&view=calendario),
-  // abrimos directo en esa semana en vista calendario.
+  // abrimos directo en el mes de esa fecha, en vista calendario.
   const parametros = new URLSearchParams(location.search);
   const fechaParam = parametros.get('fecha');
   const vistaParam = parametros.get('view');
@@ -1514,7 +1632,7 @@
   if (fechaParam) {
     const fechaDestino = new Date(`${fechaParam}T00:00:00`);
     if (!Number.isNaN(fechaDestino.getTime())) {
-      semanaReferencia = fechaDestino;
+      mesReferencia = fechaDestino;
     }
   }
 

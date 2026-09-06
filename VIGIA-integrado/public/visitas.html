@@ -46,21 +46,43 @@
         <div id="listaView">
           <p class="mono" id="visitEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:2rem 0;text-align:center;">Cargando…</p>
         </div>
-        <div id="calendarioView" class="week-cal" hidden>
-          <div class="week-cal-toolbar">
-            <div class="week-cal-nav">
-              <button type="button" class="icon-btn" id="weekPrev" title="Semana anterior"><i class="bi bi-chevron-left"></i></button>
-              <span class="week-cal-range mono" id="weekRange">—</span>
-              <button type="button" class="icon-btn" id="weekNext" title="Semana siguiente"><i class="bi bi-chevron-right"></i></button>
+        <div id="calendarioView" class="month-cal" hidden>
+          <div class="month-cal-toolbar">
+            <div class="month-cal-nav">
+              <button type="button" class="icon-btn" id="monthPrev" title="Mes anterior"><i class="bi bi-chevron-left"></i></button>
+              <span class="month-cal-label" id="monthLabel">—</span>
+              <button type="button" class="icon-btn" id="monthNext" title="Mes siguiente"><i class="bi bi-chevron-right"></i></button>
             </div>
-            <button type="button" class="btn btn-ghost week-cal-todaybtn" id="weekToday">Hoy</button>
+            <div class="month-cal-toolbar-right">
+              <div class="view-switch" id="heatSwitch">
+                <button type="button" class="active" data-heat="off"><i class="bi bi-grid-3x3-gap"></i> Normal</button>
+                <button type="button" data-heat="on"><i class="bi bi-fire"></i> Mapa de calor</button>
+              </div>
+              <button type="button" class="btn btn-ghost month-cal-todaybtn" id="monthToday">Hoy</button>
+            </div>
           </div>
-          <div class="week-cal-frame">
-            <div class="week-cal-headrow" id="weekHeadRow"></div>
-            <div class="week-cal-allday" id="weekAllDay"></div>
-            <div class="week-cal-body" id="weekBody">
-              <div class="week-cal-hours" id="weekHours"></div>
-              <div class="week-cal-days" id="weekDays"></div>
+          <div class="month-cal-layout">
+            <aside class="month-cal-filters" id="monthFilters">
+              <div class="mcf-group">
+                <b>Categoría</b>
+                <label class="mcf-check"><input type="checkbox" data-cat-filter="familiar" checked><span class="mcf-dot" style="--dot-color:#12E8A0"></span>Familiar</label>
+                <label class="mcf-check"><input type="checkbox" data-cat-filter="entrega" checked><span class="mcf-dot" style="--dot-color:#579AFF"></span>Entrega</label>
+                <label class="mcf-check"><input type="checkbox" data-cat-filter="mantenimiento" checked><span class="mcf-dot" style="--dot-color:#F0B43C"></span>Servicio técnico</label>
+                <label class="mcf-check"><input type="checkbox" data-cat-filter="otro" checked><span class="mcf-dot" style="--dot-color:#B98AFF"></span>Otro</label>
+              </div>
+              <div class="mcf-group">
+                <b>Estado</b>
+                <label class="mcf-check"><input type="checkbox" data-estado-filter="pendiente" checked>Pendiente</label>
+                <label class="mcf-check"><input type="checkbox" data-estado-filter="usada" checked>Utilizada</label>
+                <label class="mcf-check"><input type="checkbox" data-estado-filter="cancelada" checked>Cancelada</label>
+                <label class="mcf-check"><input type="checkbox" data-estado-filter="expirada" checked>Expirada</label>
+              </div>
+            </aside>
+            <div class="month-cal-frame">
+              <div class="month-cal-headrow">
+                <span class="mc-gutter"></span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+              </div>
+              <div class="month-cal-grid" id="monthGrid"></div>
             </div>
           </div>
         </div>
@@ -125,6 +147,20 @@
           <option value="Mantenimiento">Mantenimiento</option>
           <option value="Otro">Otro</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>Color en el calendario</label>
+        <div class="color-swatch-row" id="visitColorSwatches">
+          <button type="button" class="color-swatch active" data-color="#12E8A0" style="background:#12E8A0" title="Verde menta"></button>
+          <button type="button" class="color-swatch" data-color="#579AFF" style="background:#579AFF" title="Azul"></button>
+          <button type="button" class="color-swatch" data-color="#F0B43C" style="background:#F0B43C" title="Ámbar"></button>
+          <button type="button" class="color-swatch" data-color="#FF7B72" style="background:#FF7B72" title="Coral"></button>
+          <button type="button" class="color-swatch" data-color="#B98AFF" style="background:#B98AFF" title="Violeta"></button>
+          <button type="button" class="color-swatch" data-color="#FF8AC4" style="background:#FF8AC4" title="Rosa"></button>
+          <label class="color-swatch-custom" title="Elegir otro color">
+            <input type="color" id="visitColorCustom" value="#12E8A0">
+          </label>
+        </div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" id="newVisitCancel">Cancelar</button>

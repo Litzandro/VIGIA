@@ -334,7 +334,7 @@ body::before{
 .visit-info span{color:var(--mist);font-size:.8rem;font-family:var(--f-mono);}
 .visit-code{font-family:var(--f-mono);font-size:.78rem;color:var(--accent);}
 
-/* ============ VISITAS · VISTA CALENDARIO (semana) ============ */
+/* ============ VISITAS · VISTA CALENDARIO (mes) ============ */
 .view-switch{display:flex;gap:.4rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.3rem;}
 .view-switch button{
   background:none;border:none;color:var(--bone-dim);font-family:var(--f-body);font-size:.82rem;font-weight:600;
@@ -343,113 +343,134 @@ body::before{
 .view-switch button.active{background:var(--accent);color:var(--ink);}
 .view-switch button:not(.active):hover{color:var(--bone);}
 
-.week-cal{animation:fadeIn .35s ease;}
-.week-cal-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.8rem;}
-.week-cal-nav{display:flex;align-items:center;gap:.7rem;}
-.week-cal-nav .icon-btn{width:32px;height:32px;}
-.week-cal-range{font-size:.82rem;color:var(--bone);min-width:170px;text-align:center;text-transform:capitalize;}
-.week-cal-todaybtn{font-size:.78rem;}
+.month-cal{animation:fadeIn .35s ease;}
+.month-cal-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.8rem;}
+.month-cal-nav{display:flex;align-items:center;gap:.8rem;}
+.month-cal-nav .icon-btn{width:32px;height:32px;}
+.month-cal-label{font-family:var(--f-display);font-size:1.15rem;color:var(--bone);min-width:180px;text-align:center;text-transform:capitalize;}
+.month-cal-todaybtn{font-size:.78rem;}
+.month-cal-toolbar-right{display:flex;align-items:center;gap:.8rem;}
 
-.week-cal-frame{
-  background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
-}
-.week-cal-slide{animation:weekSlideIn .3s ease;}
-@keyframes weekSlideIn{from{opacity:0;transform:translateX(var(--slide-from,12px));}to{opacity:1;transform:translateX(0);}}
+.month-cal-layout{display:flex;align-items:flex-start;gap:1.2rem;}
 
-.week-cal-headrow{
-  display:grid;grid-template-columns:52px repeat(7,1fr);border-bottom:1px solid var(--line);
-  position:sticky;top:0;background:var(--card);z-index:3;
+/* ---- Panel de filtros (categoria / estado) ---- */
+.month-cal-filters{
+  flex:0 0 188px;background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:1rem;display:flex;flex-direction:column;gap:1.1rem;
 }
-.week-cal-headrow .gutter{border-right:1px solid var(--line);}
-.week-cal-daylabel{
-  padding:.7rem .3rem;text-align:center;border-right:1px solid var(--line);cursor:pointer;transition:background .2s;
+.mcf-group{display:flex;flex-direction:column;gap:.5rem;}
+.mcf-group b{font-family:var(--f-mono);font-size:.66rem;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;}
+.mcf-check{
+  display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--bone-dim);cursor:pointer;
+  text-transform:none;font-family:var(--f-body);transition:color .15s;
 }
-.week-cal-daylabel:last-child{border-right:none;}
-.week-cal-daylabel:hover{background:rgba(237,231,214,.04);}
-.week-cal-daylabel .dow{font-family:var(--f-mono);font-size:.62rem;color:var(--mist);text-transform:uppercase;letter-spacing:.06em;}
-.week-cal-daylabel .dnum{
-  font-family:var(--f-display);font-size:1.15rem;color:var(--bone);margin-top:.15rem;
-  width:30px;height:30px;line-height:30px;border-radius:50%;display:inline-block;transition:all .2s;
-}
-.week-cal-daylabel.today .dnum{background:var(--accent);color:var(--ink);font-weight:700;}
-.week-cal-daylabel.today{box-shadow:inset 0 -2px 0 var(--accent);}
+.mcf-check:hover{color:var(--bone);}
+.mcf-check input[type="checkbox"]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex:0 0 auto;}
+.mcf-dot{width:9px;height:9px;border-radius:50%;background:var(--dot-color);flex:0 0 auto;}
+@media (max-width:860px){.month-cal-layout{flex-direction:column;}.month-cal-filters{flex:1 1 auto;width:100%;flex-direction:row;flex-wrap:wrap;gap:1.6rem;}}
 
-.week-cal-allday{display:grid;grid-template-columns:52px repeat(7,1fr);border-bottom:1px solid var(--line);min-height:34px;}
-.week-cal-allday .gutter{border-right:1px solid var(--line);font-family:var(--f-mono);font-size:.58rem;color:var(--mist);
-  display:flex;align-items:center;justify-content:center;text-align:center;padding:.2rem;}
-.week-cal-allday-cell{border-right:1px solid var(--line);padding:.3rem;display:flex;flex-direction:column;gap:.3rem;}
-.week-cal-allday-cell:last-child{border-right:none;}
+.month-cal-frame{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;flex:1;min-width:0;}
+.month-cal-slide{animation:monthSlideIn .3s ease;}
+@keyframes monthSlideIn{from{opacity:0;transform:translateX(var(--slide-from,14px));}to{opacity:1;transform:translateX(0);}}
 
-.week-cal-body{display:grid;grid-template-columns:52px 1fr;max-height:520px;overflow-y:auto;}
-.week-cal-hours{display:flex;flex-direction:column;border-right:1px solid var(--line);}
-.week-cal-hour-label{
-  height:var(--hour-h,52px);font-family:var(--f-mono);font-size:.6rem;color:var(--mist);
-  text-align:right;padding-right:.5rem;transform:translateY(-.5em);
+.month-cal-headrow{display:grid;grid-template-columns:32px repeat(7,1fr);border-bottom:1px solid var(--line);}
+.month-cal-headrow span{
+  padding:.6rem .3rem;text-align:center;font-family:var(--f-mono);font-size:.66rem;color:var(--mist);
+  text-transform:uppercase;letter-spacing:.06em;border-right:1px solid var(--line);
 }
-.week-cal-days{display:grid;grid-template-columns:repeat(7,1fr);position:relative;}
-.week-cal-daycol{border-right:1px solid var(--line);position:relative;background-image:repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour-h,52px) - 1px), var(--line) calc(var(--hour-h,52px) - 1px), var(--line) var(--hour-h,52px));}
-.week-cal-daycol:last-child{border-right:none;}
-.week-cal-daycol.today{background-color:rgba(18,232,160,.05);}
-.week-cal-daycol.dropzone{background-color:rgba(18,232,160,.09);}
+.month-cal-headrow span:last-child{border-right:none;}
+.month-cal-headrow .mc-gutter{border-right:1px solid var(--line);}
 
-.week-cal-nowline{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--accent);z-index:2;pointer-events:none;}
-.week-cal-nowline::before{
-  content:"";position:absolute;left:-4px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--accent);
-  box-shadow:0 0 0 0 rgba(18,232,160,.6);animation:weekNowPulse 2s infinite;
+.month-cal-grid{display:grid;grid-template-columns:32px repeat(7,1fr);}
+.mc-weeknum{
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  display:flex;align-items:flex-start;justify-content:center;padding-top:.5rem;
+  font-family:var(--f-mono);font-size:.62rem;color:var(--mist);
 }
-.week-cal-nowline .nl-time{
-  position:absolute;left:6px;top:-9px;background:var(--accent);color:var(--ink);font-family:var(--f-mono);
-  font-size:.58rem;font-weight:700;padding:.1rem .35rem;border-radius:5px;white-space:nowrap;
+.month-cal-cell{
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:110px;
+  padding:.4rem;position:relative;transition:background .15s ease;cursor:pointer;
 }
-@keyframes weekNowPulse{0%{box-shadow:0 0 0 0 rgba(18,232,160,.55);}70%{box-shadow:0 0 0 7px rgba(18,232,160,0);}100%{box-shadow:0 0 0 0 rgba(18,232,160,0);}}
+.month-cal-cell:nth-child(8n){border-right:none;}
+.month-cal-cell:hover{background:rgba(237,231,214,.03);}
+.month-cal-cell.other-month{opacity:.35;}
+.month-cal-cell.today{background:rgba(18,232,160,.05);}
+.month-cal-cell .mc-daynum{
+  font-family:var(--f-mono);font-size:.72rem;color:var(--bone-dim);display:inline-flex;
+  align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;margin-bottom:.3rem;
+}
+.month-cal-cell.today .mc-daynum{background:var(--accent);color:var(--ink);font-weight:700;}
+.month-cal-cell .mc-chips{display:flex;flex-direction:column;gap:.22rem;}
+.month-cal-cell .mc-more{
+  font-family:var(--f-mono);font-size:.62rem;color:var(--accent);cursor:pointer;padding:.1rem .2rem;
+}
+.month-cal-cell .mc-more:hover{text-decoration:underline;}
+.month-cal-empty-hint{position:absolute;right:.5rem;top:.4rem;opacity:0;transition:opacity .15s;font-size:.8rem;color:var(--accent);}
+.month-cal-cell:hover .month-cal-empty-hint{opacity:.6;}
 
-/* Cada categoria tiene su propio color solido (icono) + fondo pastel
-   translucido (tarjeta), para que el calendario se vea colorido de
-   verdad -- no solo un borde de color sobre fondo gris. */
-.visit-chip{
-  --cat-color:var(--mist); --cat-bg:rgba(237,231,214,.10); --cat-border:rgba(237,231,214,.28);
-  position:absolute;left:3px;right:3px;border-radius:10px;padding:.3rem .4rem;overflow:hidden;cursor:pointer;
-  display:flex;align-items:flex-start;gap:.35rem;
-  border:1px solid var(--cat-border);background:var(--cat-bg);box-shadow:0 3px 10px -5px rgba(0,0,0,.55);
-  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;z-index:1;
-  animation:chipIn .28s ease backwards;
+/* ---- Modo mapa de calor: sin chips, solo intensidad + conteo ---- */
+.month-cal-cell.heat-cell{display:flex;flex-direction:column;}
+.month-cal-cell.heat-cell::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:var(--accent);opacity:var(--heat-alpha,0);transition:opacity .25s ease;
 }
-@keyframes chipIn{from{opacity:0;transform:translateY(4px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
-.visit-chip:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 10px 22px -8px rgba(0,0,0,.6);z-index:4;border-color:var(--cat-color);}
-.visit-chip .vc-icon{
-  flex:0 0 auto;width:18px;height:18px;border-radius:6px;background:var(--cat-color);color:var(--ink);
-  display:flex;align-items:center;justify-content:center;font-size:.58rem;margin-top:.05rem;
-}
-.visit-chip .vc-body{min-width:0;display:flex;flex-direction:column;}
-.visit-chip .vc-title{font-size:.72rem;font-weight:700;color:var(--bone);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.visit-chip .vc-time{font-family:var(--f-mono);font-size:.6rem;color:var(--bone-dim);display:block;}
-.visit-chip.cat-familiar{--cat-color:var(--accent);--cat-bg:rgba(18,232,160,.16);--cat-border:rgba(18,232,160,.4);}
-.visit-chip.cat-entrega{--cat-color:#579aff;--cat-bg:rgba(87,154,255,.16);--cat-border:rgba(87,154,255,.4);}
-.visit-chip.cat-mantenimiento{--cat-color:var(--warn);--cat-bg:rgba(240,180,60,.16);--cat-border:rgba(240,180,60,.4);}
-.visit-chip.cat-otro{--cat-color:#b98aff;--cat-bg:rgba(185,138,255,.16);--cat-border:rgba(185,138,255,.4);}
-.visit-chip.estado-cancelada{opacity:.5;text-decoration:line-through;}
-.visit-chip.estado-expirada{opacity:.55;}
-.visit-chip.allday{position:static;animation:chipIn .28s ease backwards;align-items:center;padding:.35rem .55rem;}
-.visit-chip.allday .vc-icon{width:20px;height:20px;border-radius:7px;margin-top:0;}
+.heat-count{position:relative;font-family:var(--f-display);font-size:1.3rem;color:var(--bone);margin-top:.4rem;}
+.heat-label{position:relative;font-family:var(--f-mono);font-size:.58rem;color:var(--bone-dim);text-transform:uppercase;letter-spacing:.04em;}
+.month-cal-cell.heat-cell.today .mc-daynum{background:var(--accent);color:var(--ink);}
 
-.week-cal-empty-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;pointer-events:none;font-family:var(--f-mono);font-size:.62rem;color:var(--mist);}
-.week-cal-daycol:hover .week-cal-empty-hint{opacity:.5;}
+/* Cada tarjeta usa el color elegido por el usuario (--user-color) si
+   existe; si no eligio ninguno, cae a un color de categoria detectado
+   automaticamente por el motivo -- pero la libertad de cambiarlo queda
+   siempre disponible desde el formulario o desde el detalle. */
+.month-chip{
+  --chip-color:var(--mist);
+  display:flex;align-items:center;gap:.3rem;border-radius:6px;padding:.18rem .35rem;overflow:hidden;cursor:pointer;
+  background:color-mix(in srgb, var(--chip-color) 18%, var(--card));
+  border-left:3px solid var(--chip-color);
+  transition:transform .15s ease,box-shadow .15s ease;
+  animation:chipIn .24s ease backwards;
+}
+@keyframes chipIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
+.month-chip:hover{transform:translateX(2px);box-shadow:0 4px 12px -6px rgba(0,0,0,.6);}
+.month-chip .mc-title{font-size:.68rem;font-weight:600;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+.month-chip.estado-cancelada{opacity:.5;text-decoration:line-through;}
+.month-chip.estado-expirada{opacity:.55;}
+
+/* ---- Selector de color libre (formulario + detalle) ---- */
+.color-swatch-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.color-swatch{
+  width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
+  transition:transform .15s ease,border-color .15s ease;position:relative;
+}
+.color-swatch:hover{transform:scale(1.12);}
+.color-swatch.active{border-color:var(--bone);}
+.color-swatch.active::after{content:"\f26e";font-family:"bootstrap-icons";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:#0b0f0d;text-shadow:0 0 3px rgba(255,255,255,.6);}
+.color-swatch-custom{
+  width:28px;height:28px;border-radius:50%;overflow:hidden;cursor:pointer;border:2px dashed var(--line-strong);
+  display:flex;align-items:center;justify-content:center;background:var(--panel);
+}
+.color-swatch-custom input[type="color"]{width:44px;height:44px;border:none;padding:0;cursor:pointer;background:none;}
 
 .visit-popover{
   position:fixed;z-index:400;background:var(--card);border:1px solid var(--line-strong);border-radius:14px;
-  padding:1rem 1.1rem;width:250px;box-shadow:0 20px 40px -12px rgba(0,0,0,.6);animation:fadeIn .18s ease;
+  padding:1rem 1.1rem;width:270px;box-shadow:0 20px 40px -12px rgba(0,0,0,.6);animation:fadeIn .18s ease;
 }
 .visit-popover h4{font-family:var(--f-display);font-size:1rem;color:var(--bone);margin-bottom:.3rem;}
 .visit-popover .vp-row{font-size:.78rem;color:var(--bone-dim);display:flex;align-items:center;gap:.4rem;margin-top:.35rem;}
 .visit-popover .vp-row i{color:var(--accent);width:14px;text-align:center;}
+.visit-popover .vp-color-row{margin-top:.6rem;}
+.visit-popover .vp-color-row .color-swatch,.visit-popover .vp-color-row .color-swatch-custom{width:22px;height:22px;}
 .visit-popover .vp-actions{display:flex;gap:.5rem;margin-top:.8rem;}
 .visit-popover .vp-actions .btn{flex:1;padding:.45rem .6rem;font-size:.76rem;justify-content:center;}
 .visit-popover-backdrop{position:fixed;inset:0;z-index:399;}
 
 @media (max-width:860px){
-  .week-cal-body{max-height:440px;}
-  .week-cal-headrow .dow{display:none;}
-  .week-cal-range{min-width:0;font-size:.72rem;}
+  .month-cal-headrow span:nth-child(n){font-size:.58rem;}
+  .month-cal-cell{min-height:76px;padding:.25rem;}
+  .month-cal-cell .mc-daynum{width:18px;height:18px;font-size:.62rem;}
+  .month-chip .mc-title{font-size:.6rem;}
+  .month-cal-label{min-width:0;font-size:.95rem;}
+  .month-cal-headrow,.month-cal-grid{grid-template-columns:22px repeat(7,1fr);}
 }
 
 /* ============ ACCESOS (timeline) ============ */
@@ -614,6 +635,11 @@ body::before{
 .toggle.on{background:var(--accent-soft);border-color:var(--accent-dim);}
 .toggle .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--mist);transition:all .25s ease;}
 .toggle.on .knob{left:20px;background:var(--accent);}
+/* Interruptor de una funcion que todavia no existe de verdad (ej. 2FA):
+   se ve igual que los demas pero sin poder interactuar, para no fingir
+   que hace algo. */
+.toggle.disabled{cursor:not-allowed;opacity:.45;}
+.toggle.disabled .knob{background:var(--mist);}
 
 /* ============ INCIDENCIAS — mejoras visuales ============ */
 .incidencias-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
@@ -763,6 +789,21 @@ select.form-control{cursor:pointer;}
 }
 .offline-banner.show{transform:translateY(0);}
 
+/* Boton flotante de lectura en voz alta: disponible en TODAS las
+   paginas (lo inyecta common.js), no solo en Configuracion -- para que
+   alguien que no puede ver la pantalla pueda activarlo, desactivarlo o
+   pedir que se repita la lectura sin importar en que pantalla este. */
+.a11y-read-fab{
+  position:fixed;left:1.4rem;bottom:1.4rem;z-index:500;width:52px;height:52px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line-strong);color:var(--bone-dim);
+  display:flex;align-items:center;justify-content:center;font-size:1.3rem;cursor:pointer;
+  box-shadow:0 8px 20px -6px rgba(0,0,0,.6);transition:all .2s ease;
+}
+.a11y-read-fab:hover{transform:scale(1.06);color:var(--bone);}
+.a11y-read-fab.active{background:var(--accent);color:var(--ink);border-color:var(--accent);animation:readFabPulse 2.4s infinite;}
+@keyframes readFabPulse{0%{box-shadow:0 0 0 0 rgba(18,232,160,.5);}70%{box-shadow:0 0 0 12px rgba(18,232,160,0);}100%{box-shadow:0 0 0 0 rgba(18,232,160,0);}}
+@media (max-width:700px){.a11y-read-fab{left:1rem;bottom:1rem;width:46px;height:46px;font-size:1.15rem;}}
+
 /* ============ LOGIN / REGISTRO ============ */
 .auth-page{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
 .auth-card{
@@ -776,6 +817,8 @@ select.form-control{cursor:pointer;}
 .auth-logo .mark i{color:var(--accent);font-size:1rem;filter:drop-shadow(0 0 6px rgba(18,232,160,.5));}
 .auth-card h1{font-size:1.5rem;color:var(--bone);text-align:center;margin-bottom:.4rem;}
 .auth-sub{color:var(--mist);font-size:.85rem;text-align:center;margin-bottom:1.8rem;}
+.auth-sub a{color:var(--accent);font-weight:600;}
+.auth-sub a:hover{text-decoration:underline;}
 .auth-divider{display:flex;align-items:center;gap:.8rem;margin:1.4rem 0;color:var(--mist);font-size:.68rem;font-family:var(--f-mono);text-transform:uppercase;}
 .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line);}
 .auth-footer-link{text-align:center;margin-top:1.6rem;font-size:.84rem;color:var(--mist);}
@@ -796,6 +839,8 @@ select.form-control{cursor:pointer;}
 .password-field .toggle-password{position:absolute;right:.6rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--mist);cursor:pointer;padding:.4rem;}
 .password-field input{padding-right:2.6rem;}
 .auth-check{display:flex;align-items:flex-start;gap:.55rem;font-size:.82rem;color:var(--bone-dim);margin-bottom:1.4rem;line-height:1.4;}
+.auth-check a{color:var(--accent);font-weight:600;}
+.auth-check a:hover{text-decoration:underline;}
 .auth-check input{width:auto;accent-color:var(--accent);margin-top:.2rem;}
 .auth-inline-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:-.4rem 0 .2rem;flex-wrap:wrap;}
 .auth-check-inline{margin-bottom:0;}
@@ -907,7 +952,7 @@ body.theme-high{--bg:#000;--card:#0b0b0b;--panel:#111;--bone:#fff;--bone-dim:#ff
    scroll o quedarian mal ubicados. Por eso el filtro se aplica aqui a
    cada pieza suelta (que no tiene, a su vez, descendientes fixed
    propios), nunca a un ancestro comun de todas ellas. */
-.filter-grayscale .sidebar,.filter-grayscale .main,.filter-grayscale .auth-page,.filter-grayscale .bg-photo,.filter-grayscale #bgCanvas,.filter-grayscale .assistant-fab,.filter-grayscale .assistant-panel,.filter-grayscale .toast,.filter-grayscale .panic-group,.filter-grayscale .modal-overlay,.filter-grayscale .offline-banner{filter:grayscale(1);}
+.filter-grayscale .sidebar,.filter-grayscale .main,.filter-grayscale .auth-page,.filter-grayscale .bg-photo,.filter-grayscale #bgCanvas,.filter-grayscale .assistant-fab,.filter-grayscale .assistant-panel,.filter-grayscale .toast,.filter-grayscale .panic-group,.filter-grayscale .modal-overlay,.filter-grayscale .offline-banner,.filter-grayscale .a11y-read-fab{filter:grayscale(1);}
 body.filter-deuteranopia{--accent:#4aa3ff;--accent-dim:#4aa3ff;--accent-soft:rgba(74,163,255,.16);--warn:#ffd166;--warn-soft:rgba(255,209,102,.16);--alert:#ff7b72;--alert-soft:rgba(255,123,114,.16)}.a11y-large{font-size:18px}.a11y-xl{font-size:20px}.a11y-large .btn,.a11y-xl .btn{min-height:44px}.a11y-large .nav-item,.a11y-xl .nav-item{font-size:.92rem}
 .a11y-panel{position:fixed;right:1rem;bottom:1rem;z-index:450;width:min(320px,calc(100vw - 2rem));background:var(--card);border:1px solid var(--line-strong);border-radius:16px;padding:1rem;box-shadow:0 20px 55px rgba(0,0,0,.35);display:none}.a11y-panel.open{display:block}.a11y-panel h3{font-size:1rem;margin-bottom:.8rem}.a11y-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}.a11y-grid button{justify-content:center}.a11y-fab{position:fixed;right:1rem;bottom:1rem;z-index:449;width:48px;height:48px;border-radius:50%;border:1px solid var(--line-strong);background:var(--accent);color:var(--ink);font-size:1.2rem;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3)}.a11y-panel.open+.a11y-fab{display:none}
 @media(max-width:700px){.incident-quickbar{align-items:stretch;flex-direction:column}.incident-main-btn{width:100%;justify-content:center}.kanban{grid-template-columns:1fr!important}}
@@ -1014,6 +1059,41 @@ body.theme-light .cam-disclaimer p{color:#5f6d64;}
   .page-banner-content{display:block;}
   .page-banner-content>*{max-width:100%;}
   .panel,.card,.profile-card,.panic-card{overflow:hidden;}
+
+  /* iOS hace zoom automatico al enfocar cualquier campo con letra menor
+     a 16px -- pasaba en TODOS los formularios de la app (login, nueva
+     visita, reportar incidencia, etc.) porque .form-control usa .85rem
+     (13.6px). Se sube solo en movil para no cambiar la densidad visual
+     del sitio en escritorio. */
+  .form-control,input,select,textarea,.toolbar-search input,.assistant-input input{font-size:16px;}
+
+  /* La tarjeta de login/registro con su padding completo mas el padding
+     de .auth-page dejaba muy poco ancho util en telefonos angostos
+     (320-360px) -- se reduce el "aire" alrededor sin tocarla en tablet
+     ni escritorio. */
+  .auth-page{padding:1rem;}
+  .auth-card{padding:1.8rem 1.4rem;}
+}
+
+/* El calendario de mes (semana + 7 dias + panel de filtros) es la
+   vista mas apretada de toda la app en telefono: a este ancho, los
+   textos completos de cada visita ya no caben con dignidad, asi que
+   se reduce a un punto de color por visita (como la mayoria de apps
+   de calendario en movil) en vez de forzar el nombre completo. Tocar
+   el dia sigue abriendo "Nueva visita" o el detalle igual que en
+   escritorio -- no se pierde ninguna funcion, solo se resume la vista. */
+@media(max-width:560px){
+  .month-cal-headrow,.month-cal-grid{grid-template-columns:16px repeat(7,1fr);}
+  .mc-weeknum{font-size:.52rem;padding-top:.35rem;}
+  .month-cal-cell{min-height:58px;padding:.2rem;}
+  .month-cal-cell .mc-daynum{width:16px;height:16px;font-size:.58rem;margin-bottom:.15rem;}
+  .month-cal-cell .mc-chips{gap:.12rem;}
+  .month-chip{padding:0;border-left:none;background:none;border-radius:0;justify-content:center;}
+  .month-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--chip-color);flex:0 0 auto;}
+  .month-chip .mc-title{display:none;}
+  .month-cal-cell .mc-more{font-size:.52rem;}
+  .month-cal-filters{padding:.8rem;gap:.8rem;}
+  .mcf-group{gap:.35rem;}
 }
 
 /* ===== CHAT: conservar funcionamiento y distribución original ===== */
@@ -1168,11 +1248,8 @@ html{
 .integration-head{display:flex;align-items:center;justify-content:space-between;gap:.8rem;}.integration-head>div{min-width:0;}.integration-head b{display:block;}.integration-head span{display:block;color:var(--mist);font-size:.72rem;margin-top:.2rem;}
 .plan-card{border:1px solid var(--line);border-radius:16px;padding:1.15rem;background:var(--card);position:relative;}.plan-price{font-family:var(--f-display);font-size:1.55rem;color:var(--accent);margin:.5rem 0;}.plan-features{margin:0;padding-left:1.1rem;color:var(--bone-dim);font-size:.78rem;line-height:1.7;}
 .accessibility-quick{position:fixed;right:16px;bottom:16px;z-index:150;display:flex;flex-direction:column;gap:.45rem;}.accessibility-quick .icon-btn{background:var(--panel);}
-.simple-mode .bg-photo,.simple-mode #bgCanvas,.reduce-motion #bgCanvas{display:none!important;}
-.simple-mode .page-banner-bg,.simple-mode .dash-hero-bg{opacity:.18;}.simple-mode .page-banner,.simple-mode .dash-hero{min-height:auto;padding:1.6rem;}.simple-mode .module-card,.simple-mode .panel{box-shadow:none;}
-.reduce-motion *,.reduce-motion *::before,.reduce-motion *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important;}
-.filter-protanopia .sidebar,.filter-protanopia .main,.filter-protanopia .auth-page,.filter-protanopia .bg-photo,.filter-protanopia #bgCanvas,.filter-protanopia .assistant-fab,.filter-protanopia .assistant-panel,.filter-protanopia .toast,.filter-protanopia .panic-group,.filter-protanopia .modal-overlay,.filter-protanopia .offline-banner{filter:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='p'><feColorMatrix type='matrix' values='0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0'/></filter></svg>#p");}
-.filter-tritanopia .sidebar,.filter-tritanopia .main,.filter-tritanopia .auth-page,.filter-tritanopia .bg-photo,.filter-tritanopia #bgCanvas,.filter-tritanopia .assistant-fab,.filter-tritanopia .assistant-panel,.filter-tritanopia .toast,.filter-tritanopia .panic-group,.filter-tritanopia .modal-overlay,.filter-tritanopia .offline-banner{filter:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='t'><feColorMatrix type='matrix' values='0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0'/></filter></svg>#t");}
+.filter-protanopia .sidebar,.filter-protanopia .main,.filter-protanopia .auth-page,.filter-protanopia .bg-photo,.filter-protanopia #bgCanvas,.filter-protanopia .assistant-fab,.filter-protanopia .assistant-panel,.filter-protanopia .toast,.filter-protanopia .panic-group,.filter-protanopia .modal-overlay,.filter-protanopia .offline-banner,.filter-protanopia .a11y-read-fab{filter:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='p'><feColorMatrix type='matrix' values='0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0'/></filter></svg>#p");}
+.filter-tritanopia .sidebar,.filter-tritanopia .main,.filter-tritanopia .auth-page,.filter-tritanopia .bg-photo,.filter-tritanopia #bgCanvas,.filter-tritanopia .assistant-fab,.filter-tritanopia .assistant-panel,.filter-tritanopia .toast,.filter-tritanopia .panic-group,.filter-tritanopia .modal-overlay,.filter-tritanopia .offline-banner,.filter-tritanopia .a11y-read-fab{filter:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='t'><feColorMatrix type='matrix' values='0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0'/></filter></svg>#t");}
 .offline-badge{font-family:var(--f-mono);font-size:.64rem;color:var(--warn);}
 .security-note{border-left:3px solid var(--accent);padding:.8rem 1rem;background:var(--accent-soft);color:var(--bone-dim);font-size:.78rem;line-height:1.55;border-radius:0 10px 10px 0;}
 

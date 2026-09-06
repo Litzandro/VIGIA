@@ -96,7 +96,13 @@ const VigiaAPI=(function(){
 // Evita abrir paneles protegidos sin una sesion real y valida el rol.
 (function(){
   const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
-  const publicPages=new Set(['index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','']);
+  // "terminos.html" se agrega aqui a proposito: antes no estaba en esta
+  // lista, asi que alguien sin sesion (por ejemplo, alguien en login.html
+  // que le da clic a "Terminos y Condiciones" antes de tener cuenta)
+  // quedaba atrapado en un ciclo -- este mismo guard lo rebotaba de
+  // vuelta a login.html apenas cargaba la pagina de terminos, sin llegar
+  // nunca a leerlos.
+  const publicPages=new Set(['index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','terminos.html','']);
   if(publicPages.has(page))return;
   const session=VigiaAPI.getSession();
   if(!session){console.warn('[VIGIA] Guard de pagina: no hay sesion en localStorage al cargar',page);location.replace('login.html');return}
@@ -271,14 +277,39 @@ window.attachPhoneCountryCode=attachPhoneCountryCode;
 // public/sidebar.html: aqui se descarga, se elige la plantilla segun el
 // tipo de pagina (residente o personal) y se inserta en el <aside
 // id="vigiaSidebar"> vacio que trae cada pagina.
-const VIGIA_STAFF_PAGES=new Set(['guardia.html','control-acceso.html','conflictos.html','operaciones.html','mensajeria.html','integraciones.html','superadmin.html','suscripciones.html','benchmark.html']);
+//
+// Bug real corregido: antes esto se decidia por una lista fija de
+// nombres de archivo (VIGIA_STAFF_PAGES) -- es decir, por la PAGINA en
+// la que estas, no por QUIEN inicio sesion. Cualquier pagina que no
+// estuviera en esa lista (terminos.html, config.html, perfil.html,
+// notificaciones.html, paquetes.html) siempre mostraba el sidebar de
+// residente, aunque un guardia o un admin la tuviera abierta -- por
+// eso un guardia que entraba a "Terminos y Condiciones" veia el menu y
+// el logo del portal de residente (el logo llevaba a dashboard.html en
+// vez de a su propio inicio). Ahora se decide por el ROL de la sesion
+// activa, que es lo correcto: una pagina compartida debe verse
+// distinta segun quien la abre, no siempre igual.
 const VIGIA_SIDEBAR_COLLAPSE_KEY='vigia_sidebar_collapsed';
+const VIGIA_ROLES_PERSONAL=['guardia','admin','superadmin'];
 
 async function cargarSidebarUnico(){
   const sidebar=document.getElementById('vigiaSidebar');
   if(!sidebar)return;
   const current=(location.pathname.split('/').pop()||'dashboard.html').toLowerCase();
-  const templateId=VIGIA_STAFF_PAGES.has(current)?'staffSidebarTemplate':'residentSidebarTemplate';
+  const session=VigiaAPI.getSession();
+
+  // Alguien sin sesion (por ejemplo, revisando "Terminos y Condiciones"
+  // desde login.html antes de tener cuenta) no deberia ver el menu
+  // completo de la app -- ningun enlace le serviria, todos lo rebotarian
+  // de vuelta a login. Se muestra un encabezado minimo en su lugar.
+  if(!session){
+    sidebar.innerHTML='<div class="sidebar-header"><a href="vigialanding.html" class="sidebar-logo"><span class="mark" aria-hidden="true"><i class="bi bi-shield-lock-fill"></i></span><span class="label">VIGIA</span></a></div><div style="margin-top:1rem;"><a href="login.html" class="nav-item"><i class="bi bi-box-arrow-in-right"></i><span class="label">Iniciar sesión</span></a></div>';
+    window.dispatchEvent(new CustomEvent('vigia:sidebar-ready'));
+    return;
+  }
+
+  const esPersonal=Boolean(session&&VIGIA_ROLES_PERSONAL.includes(session.rol_codigo));
+  const templateId=esPersonal?'staffSidebarTemplate':'residentSidebarTemplate';
 
   try{
     const response=await fetch('sidebar.html',{cache:'no-store'});
@@ -293,8 +324,7 @@ async function cargarSidebarUnico(){
   }catch(error){
     console.error('VIGIA: no se pudo cargar sidebar.html',error);
     const fallback=document.createElement('a');
-    const session=VigiaAPI.getSession();
-    fallback.href=VIGIA_STAFF_PAGES.has(current)?VigiaAPI.destinationForRole(session&&session.rol_codigo):'dashboard.html';
+    fallback.href=esPersonal?VigiaAPI.destinationForRole(session&&session.rol_codigo):'dashboard.html';
     fallback.className='sidebar-logo';
     fallback.textContent='VIGIA';
     sidebar.replaceChildren(fallback);
@@ -335,10 +365,9 @@ function prepararSidebarUnico(sidebar,current){
   }
 
   const dot=sidebar.querySelector('#bellDot');
-  // Antes esto SOLO leia 'vigia_notifs_unread' de localStorage, pero
-  // nada en todo el proyecto lo escribia jamas -- el punto rojo del
-  // timbre quedaba fijo segun el HTML, sin relacion con si de verdad
-  // tenias notificaciones sin leer. Ahora se consulta /notificaciones
+  // Nada en el proyecto escribia jamas 'vigia_notifs_unread' -- el punto
+  // rojo del timbre quedaba fijo segun el HTML, sin relacion con si de
+  // verdad tenias notificaciones sin leer. Se consulta /notificaciones
   // (la misma fuente que ya usa notificaciones.js) y se cuenta lo no
   // leido de verdad, respetando las categorias que la persona apago en
   // Configuracion (misma logica de notificaciones.js, duplicada aca a
@@ -403,7 +432,14 @@ cargarSidebarUnico();
 // ---- Fondo ambiental interactivo ----
 (function(){
   const canvas=document.getElementById('bgCanvas');if(!canvas)return;
-  if(document.body.classList.contains('reduce-motion')){canvas.style.display='none';return}
+  // Ya no existe el interruptor "Reducir movimiento" (se quitó junto con
+  // "Modo simple"), pero seguimos respetando la preferencia de
+  // accesibilidad que el sistema operativo del usuario ya trae —
+  // "prefers-reduced-motion" — para el fondo animado. Es automático y no
+  // depende de que alguien encuentre un botón: si Windows, macOS o el
+  // celular ya tienen activado "reducir movimiento", VIGIA lo respeta
+  // sin que el usuario tenga que configurar nada aparte.
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){canvas.style.display='none';return}
   const ctx=canvas.getContext('2d');let w,h,dpr=Math.min(window.devicePixelRatio||1,2);
   function resize(){w=window.innerWidth;h=window.innerHeight;canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
   window.addEventListener('resize',resize);resize();
@@ -458,14 +494,14 @@ setInterval(tickClock,1000);tickClock();
   // actualiza cada vez que una cuenta aplica su propio tema, y las
   // paginas sin sesion lo usan como punto de partida.
   const DEVICE_KEY='vigia_theme_device';
-  const defaults={theme:'soft',filter:'none',font:'normal',simple:false,motion:'normal'};
+  const defaults={theme:'soft',filter:'none',font:'normal',readAloud:false};
   let prefs={...defaults};
   try{
     const origen=session&&session.id?KEY:DEVICE_KEY;
     prefs={...prefs,...JSON.parse(localStorage.getItem(origen)||'{}')};
   }catch(e){}
   function applyAccessibility(){
-    document.body.classList.remove('theme-light','theme-soft','theme-high','filter-grayscale','filter-deuteranopia','filter-protanopia','filter-tritanopia','simple-mode','reduce-motion');
+    document.body.classList.remove('theme-light','theme-soft','theme-high','filter-grayscale','filter-deuteranopia','filter-protanopia','filter-tritanopia');
     // El tamano de texto (a11y-large/a11y-xl) va en <html>, no en <body>:
     // casi todo el tamano de letra del sitio esta en unidades "rem", que
     // siempre se calculan sobre el tamano de fuente del elemento raiz
@@ -474,8 +510,6 @@ setInterval(tickClock,1000);tickClock();
     if(prefs.theme!=='dark')document.body.classList.add('theme-'+prefs.theme);
     if(prefs.filter!=='none')document.body.classList.add('filter-'+prefs.filter);
     if(prefs.font!=='normal')document.documentElement.classList.add('a11y-'+prefs.font);
-    if(prefs.simple)document.body.classList.add('simple-mode');
-    if(prefs.motion==='reduced')document.body.classList.add('reduce-motion');
     localStorage.setItem(KEY,JSON.stringify(prefs));
     // Solo una cuenta real actualiza "lo ultimo que se vio en este
     // dispositivo" -- una pagina publica no tiene preferencia propia
@@ -485,8 +519,100 @@ setInterval(tickClock,1000);tickClock();
       try{localStorage.setItem(DEVICE_KEY,JSON.stringify(prefs))}catch(e){}
     }
   }
-  window.VigiaAccessibility={get:()=>({...prefs}),set:(next)=>{prefs={...prefs,...next};applyAccessibility();return {...prefs}},reset:()=>{prefs={...defaults};applyAccessibility();return {...prefs}},apply:applyAccessibility};
+  window.VigiaAccessibility={get:()=>({...prefs}),set:(next)=>{prefs={...prefs,...next};applyAccessibility();return {...prefs}},reset:()=>{prefs={...defaults};applyAccessibility();return {...prefs}},apply:applyAccessibility,read:leerPaginaActual,announce:anunciar};
   applyAccessibility();
+
+  // ===== Lectura en voz alta (para personas ciegas o con baja vision) =====
+  // Antes "Leer esta pagina" era un boton que solo existia dentro de
+  // config.html: leia la pagina una sola vez y, al cambiar de pantalla,
+  // no habia ninguna forma de volver a activarla sin ver la pantalla
+  // para navegar de vuelta a Configuracion -- exactamente lo contrario
+  // de para lo que se creo. Ahora es una preferencia mas (como el tema o
+  // el tamano de letra): se guarda, y en CADA pagina que carga VIGIA se
+  // ofrece el mismo boton flotante y el mismo atajo de teclado para
+  // activarla, desactivarla o volver a leer, sin depender de donde este
+  // parado el usuario.
+  function anunciar(texto){
+    if(!('speechSynthesis'in window))return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(texto);
+    u.lang='es-HN';
+    speechSynthesis.speak(u);
+  }
+
+  function leerPaginaActual(){
+    if(!('speechSynthesis'in window)){
+      if(typeof showToast==='function')showToast('La lectura asistida no está disponible en este navegador');
+      return;
+    }
+    speechSynthesis.cancel();
+    const contenedor=document.querySelector('.page')||document.querySelector('.content')||document.body;
+    const texto=(contenedor.innerText||contenedor.textContent||'').slice(0,5000);
+    const u=new SpeechSynthesisUtterance(texto);
+    u.lang='es-HN';
+    speechSynthesis.speak(u);
+  }
+
+  function alternarLectura(){
+    const activo=!VigiaAccessibility.get().readAloud;
+    VigiaAccessibility.set({readAloud:activo});
+    actualizarBotonLectura();
+    if(activo){
+      anunciar('Lectura de pantalla activada.');
+      setTimeout(leerPaginaActual,1400);
+    }else{
+      anunciar('Lectura de pantalla desactivada.');
+    }
+  }
+
+  let botonLectura=null;
+  function actualizarBotonLectura(){
+    if(!botonLectura)return;
+    const activo=VigiaAccessibility.get().readAloud;
+    botonLectura.classList.toggle('active',activo);
+    botonLectura.setAttribute('aria-pressed',activo?'true':'false');
+    botonLectura.setAttribute('aria-label',activo?'Desactivar lectura de pantalla (Alt+L)':'Activar lectura de pantalla (Alt+L)');
+    botonLectura.querySelector('i').className='bi '+(activo?'bi-volume-up-fill':'bi-volume-mute-fill');
+  }
+
+  function crearBotonLectura(){
+    if(document.getElementById('vigiaReadToggleBtn'))return;
+    botonLectura=document.createElement('button');
+    botonLectura.type='button';
+    botonLectura.id='vigiaReadToggleBtn';
+    botonLectura.className='a11y-read-fab';
+    botonLectura.innerHTML='<i class="bi bi-volume-mute-fill"></i>';
+    botonLectura.title='Leer esta página en voz alta (Alt+L)';
+    botonLectura.addEventListener('click',alternarLectura);
+    document.body.appendChild(botonLectura);
+    actualizarBotonLectura();
+  }
+
+  // Atajo de teclado global: funciona en cualquier pagina de VIGIA, sin
+  // necesidad de ver ni encontrar el boton -- justo lo que alguien que
+  // no puede ver la pantalla necesita para no depender de la vista.
+  document.addEventListener('keydown',evento=>{
+    if(evento.altKey&&(evento.key==='l'||evento.key==='L')){
+      evento.preventDefault();
+      alternarLectura();
+    }
+  });
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',crearBotonLectura);
+  }else{
+    crearBotonLectura();
+  }
+
+  // Si la preferencia ya estaba activada en una pagina anterior, lee la
+  // pagina nueva automaticamente al terminar de cargar -- esto es lo que
+  // permite que alguien vaya cambiando de pantalla en pantalla y VIGIA
+  // le lea cada una sin que tenga que volver a activar nada.
+  if(prefs.readAloud){
+    window.addEventListener('load',()=>{
+      setTimeout(leerPaginaActual,700);
+    });
+  }
 })();
 
 // ---- Seguridad de sesion: expiracion del JWT e inactividad ----
@@ -608,7 +734,7 @@ document.addEventListener('contextmenu',e=>{if(document.body.dataset.protectDemo
     else if(/incidencia|reporte/.test(t)){text='Abre Incidencias, agrega una descripción breve y una fotografía. Solo verás tus propios reportes.';href='incidencias.html'}
     else if(/veto|bloque/.test(t)){text='Desde Vetos puedes enviar una solicitud. Administración resuelve los conflictos antes de que garita permita el acceso.';href='vetos.html'}
     else if(/emergencia|ayuda|teléfono|telefono/.test(t)){text='Abre Contactos de emergencia para llamar rápidamente a seguridad, atención médica, administración o un contacto privado.';href='emergencias.html'}
-    else if(/acces|letra|color|anciano|mayor/.test(t)){text='En Configuración puedes activar modo simple, texto grande, alto contraste, filtros de color y lectura asistida.';href='config.html'}
+    else if(/acces|letra|color|anciano|mayor|cieg|ver|no veo|leer/.test(t)){text='En Configuración puedes activar texto grande, alto contraste, filtros de color y lectura en voz alta. La lectura en voz alta, una vez activada, también funciona en cualquier página con el botón flotante de la esquina o el atajo Alt+L.';href='config.html'}
     else if(/segur|robaron|dispositivo|sesión|sesion/.test(t)){text='En Seguridad puedes revocar el dispositivo perdido y cerrar las demás sesiones.';href='seguridad.html'}
 
     const mine=document.createElement('div');mine.className='assistant-msg user';mine.textContent=q;messages.appendChild(mine);
