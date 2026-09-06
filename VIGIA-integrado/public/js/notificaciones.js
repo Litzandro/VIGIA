@@ -22,6 +22,30 @@
   };
   const DEFAULT_ICON={icon:'bi-bell-fill',bg:'rgba(237,231,214,.08)',color:'var(--bone-dim)'};
 
+  // Antes los 4 interruptores de "Configuración > Notificaciones" (Visitas,
+  // Incidencias, Administración, Seguridad) guardaban tu eleccion pero
+  // ninguna pantalla la leia -- asi que "apagar" una categoria no evitaba
+  // ver esas notificaciones aca. tipo_a_categoria conecta el "tipo" real
+  // que ya trae cada notificacion (ver notificacionesService.js en el
+  // backend) con la categoria que el usuario puede silenciar. "comunidad"
+  // cubre tanto avisos oficiales de administracion como publicaciones de
+  // vecinos en el muro -- el backend no los distingue por tipo, solo por
+  // el texto del titulo, asi que quedan bajo el mismo interruptor
+  // "Administración" a falta de una categoria mas fina.
+  const TIPO_A_CATEGORIA={ingreso_visita:'visitas',incidencia:'incidencias',comunidad:'administracion',alerta:'seguridad'};
+  const NOTIF_PREFS_DEFAULT={visitas:true,incidencias:true,administracion:false,seguridad:true};
+  function leerPrefsNotificacion(){
+    const session=VigiaAPI.getSession();
+    const key=session&&session.id?`vigia_notif_prefs_${session.id}`:'vigia_notif_prefs';
+    let prefs={...NOTIF_PREFS_DEFAULT};
+    try{prefs={...prefs,...JSON.parse(localStorage.getItem(key)||'{}')}}catch(e){}
+    return prefs;
+  }
+  function categoriaSilenciada(n,prefs){
+    const cat=TIPO_A_CATEGORIA[n.tipo];
+    return cat && prefs[cat]===false;
+  }
+
   // referencia_tipo/referencia_id -> a donde navega la notificacion al
   // presionarla (requisito 2.6). Las claves deben coincidir EXACTO con
   // el "referencia_tipo" que cada override de notificacionesService.crear
@@ -91,7 +115,12 @@
   async function load(){
     try{
       const r=await VigiaAPI.request('/notificaciones?sort=fecha_creacion:desc&limit=100');
-      rows=r.data||[];
+      const prefs=leerPrefsNotificacion();
+      // Las que caen en una categoria que el usuario apago ni siquiera
+      // se muestran aca -- es lo que la persona esperaria de un
+      // interruptor de "no avisarme de esto", no solo que se recuerde
+      // la eleccion sin que haga nada.
+      rows=(r.data||[]).filter((n)=>!categoriaSilenciada(n,prefs));
       render();
     }catch(e){
       list.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;

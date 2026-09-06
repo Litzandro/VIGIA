@@ -335,7 +335,35 @@ function prepararSidebarUnico(sidebar,current){
   }
 
   const dot=sidebar.querySelector('#bellDot');
-  if(dot&&localStorage.getItem('vigia_notifs_unread')==='0')dot.hidden=true;
+  // Antes esto SOLO leia 'vigia_notifs_unread' de localStorage, pero
+  // nada en todo el proyecto lo escribia jamas -- el punto rojo del
+  // timbre quedaba fijo segun el HTML, sin relacion con si de verdad
+  // tenias notificaciones sin leer. Ahora se consulta /notificaciones
+  // (la misma fuente que ya usa notificaciones.js) y se cuenta lo no
+  // leido de verdad, respetando las categorias que la persona apago en
+  // Configuracion (misma logica de notificaciones.js, duplicada aca a
+  // proposito: cada script se carga por separado en cada pagina).
+  if(dot&&session){
+    (async()=>{
+      try{
+        const r=await VigiaAPI.request('/notificaciones?limit=100');
+        const KEY=session.id?`vigia_notif_prefs_${session.id}`:'vigia_notif_prefs';
+        const DEFAULTS={visitas:true,incidencias:true,administracion:false,seguridad:true};
+        let prefs={...DEFAULTS};
+        try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){}
+        const TIPO_A_CATEGORIA={ingreso_visita:'visitas',incidencia:'incidencias',comunidad:'administracion',alerta:'seguridad'};
+        const noLeidas=(r.data||[]).filter(n=>{
+          if(n.leida)return false;
+          const cat=TIPO_A_CATEGORIA[n.tipo];
+          return !(cat&&prefs[cat]===false);
+        }).length;
+        localStorage.setItem('vigia_notifs_unread',String(noLeidas));
+        dot.hidden=noLeidas===0;
+      }catch(e){/* si falla la consulta, se deja el punto como estaba */}
+    })();
+  }else if(dot&&localStorage.getItem('vigia_notifs_unread')==='0'){
+    dot.hidden=true;
+  }
 
   const logout=sidebar.querySelector('#vgLogoutBtn');
   if(logout){
