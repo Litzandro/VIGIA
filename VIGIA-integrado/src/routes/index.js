@@ -67,7 +67,16 @@ Object.keys(db)
     // igual de protegidos.
     resourceRouter.use((req, res, next) => {
       const accion = { GET: 'read', POST: 'create', PUT: 'update', PATCH: 'update', DELETE: 'remove' }[req.method];
-      const middlewares = buildAccessMiddleware(rules[accion]);
+      // Las rutas propias ("/me") ya vienen protegidas por diseño: cada
+      // override las limita a los datos del propio usuario autenticado
+      // (req.user.id), así que no deben exigir además el permiso
+      // administrativo completo del recurso (p.ej. "usuarios.gestionar").
+      // Sin este bypass, ningún residente o guardia podía ver ni editar
+      // su propio perfil vía GET/PUT /usuarios/me -- se quedaba
+      // bloqueado con 403 antes de llegar siquiera al handler de /me.
+      const middlewares = req.path === '/me'
+        ? buildAccessMiddleware(null)
+        : buildAccessMiddleware(rules[accion]);
       let i = 0;
       const runNext = (err) => {
         if (err) return next(err);
