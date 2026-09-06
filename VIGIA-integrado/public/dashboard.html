@@ -3337,12 +3337,15 @@ function renderizarCalendario(
     }
 
 
+    const fechaISO = `${anio}-${String(mes+1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+
     html += `
 
       <span
         class="${
           clases.join(" ")
-        }">
+        }"
+        data-fecha="${fechaISO}">
 
         ${dia}
 
@@ -3390,6 +3393,33 @@ function renderizarCalendario(
 
   grid.innerHTML =
     html;
+
+
+  // Clic en un día real (no relleno del mes anterior/siguiente) navega a
+  // la vista de calendario semanal de "Mis visitas", abierta justo en esa
+  // semana. Un solo listener delegado en el grid, no por cada casilla.
+  if(!grid.dataset.clickBound){
+
+    grid.dataset.clickBound = "1";
+
+    grid.addEventListener(
+      "click",
+      evento => {
+
+        const casilla =
+          evento.target.closest(
+            "[data-fecha]"
+          );
+
+        if(!casilla) return;
+
+        location.href =
+          `visitas.html?fecha=${casilla.dataset.fecha}&view=calendario`;
+
+      }
+    );
+
+  }
 
 }
 

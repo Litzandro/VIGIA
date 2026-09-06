@@ -129,10 +129,13 @@
     const text=input.value.trim(),check=moderate(text);
     if(!text){showToast('Escribe algo antes de publicar.','bi-exclamation-triangle-fill');return}
     if(!check.ok){showToast(check.msg,'bi-shield-exclamation');return}
-    try{
-      await VigiaAPI.request('/publicaciones-comunidad',{method:'POST',body:JSON.stringify({categoria:document.getElementById('postCategory').value,contenido:text,visibilidad:document.getElementById('postPrivate').checked?'administracion':'residencial'})});
-      form.reset();count.textContent='0/300';showToast(document.getElementById('postPrivate').checked?'Publicación privada enviada':'Publicación compartida');load();
-    }catch(err){showToast(err.message||'No fue posible publicar. Intenta nuevamente.','bi-exclamation-triangle-fill')}
+    const submitBtn=form.querySelector('button[type="submit"]');
+    await withSubmitLock(submitBtn,async()=>{
+      try{
+        await VigiaAPI.request('/publicaciones-comunidad',{method:'POST',body:JSON.stringify({categoria:document.getElementById('postCategory').value,contenido:text,visibilidad:document.getElementById('postPrivate').checked?'administracion':'residencial'})});
+        form.reset();count.textContent='0/300';showToast(document.getElementById('postPrivate').checked?'Publicación privada enviada':'Publicación compartida');load();
+      }catch(err){showToast(err.message||'No fue posible publicar. Intenta nuevamente.','bi-exclamation-triangle-fill')}
+    },'<i class="bi bi-arrow-repeat"></i> Publicando...');
   };
 
   load();

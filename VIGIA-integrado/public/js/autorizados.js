@@ -36,22 +36,25 @@
   form.onsubmit=async e=>{
     e.preventDefault();
     const days=[...document.querySelectorAll('#auDays input:checked')].map(x=>Number(x.value));
-    try{
-      await VigiaAPI.request('/personas-autorizadas',{method:'POST',body:JSON.stringify({
-        tipo:document.getElementById('auType').value,
-        nombre_completo:document.getElementById('auName').value.trim(),
-        numero_documento:document.getElementById('auDocument').value.trim()||null,
-        empresa:document.getElementById('auCompany').value.trim()||null,
-        placa_vehiculo:document.getElementById('auPlate').value.trim()||null,
-        dias_semana_json:days,
-        hora_desde:document.getElementById('auFrom').value||null,
-        hora_hasta:document.getElementById('auTo').value||null,
-        foto_url:photo||null,
-      })});
-      form.reset();photo='';
-      showToast('Autorización enviada. Administración debe aprobarla antes de que quede activa.');
-      load();
-    }catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}
+    const submitBtn=form.querySelector('button[type="submit"]');
+    await withSubmitLock(submitBtn,async()=>{
+      try{
+        await VigiaAPI.request('/personas-autorizadas',{method:'POST',body:JSON.stringify({
+          tipo:document.getElementById('auType').value,
+          nombre_completo:document.getElementById('auName').value.trim(),
+          numero_documento:document.getElementById('auDocument').value.trim()||null,
+          empresa:document.getElementById('auCompany').value.trim()||null,
+          placa_vehiculo:document.getElementById('auPlate').value.trim()||null,
+          dias_semana_json:days,
+          hora_desde:document.getElementById('auFrom').value||null,
+          hora_hasta:document.getElementById('auTo').value||null,
+          foto_url:photo||null,
+        })});
+        form.reset();photo='';
+        showToast('Autorización enviada. Administración debe aprobarla antes de que quede activa.');
+        load();
+      }catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}
+    },'<i class="bi bi-arrow-repeat"></i> Guardando...');
   };
   document.getElementById('reloadAuthorized').onclick=load;document.getElementById('newAuthorized').onclick=()=>document.getElementById('auName').focus();load();
 })();

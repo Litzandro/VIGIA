@@ -104,6 +104,7 @@ const VigiaAPI=(function(){
   const guardPages=new Set(['guardia.html','control-acceso.html']);
   const staffPages=new Set(['conflictos.html','operaciones.html','integraciones.html','mensajeria.html']);
   const superPages=new Set(['suscripciones.html','benchmark.html']);
+  if(page==='dashboard.html'&&role!=='residente')location.replace(VigiaAPI.destinationForRole(role));
   if(page==='guardia.html'&&!['guardia','admin','superadmin'].includes(role))location.replace(VigiaAPI.destinationForRole(role));
   if(page==='control-acceso.html'&&!['guardia','admin'].includes(role))location.replace(VigiaAPI.destinationForRole(role));
   if(staffPages.has(page)&&!['admin','superadmin','guardia'].includes(role))location.replace(VigiaAPI.destinationForRole(role));
@@ -207,6 +208,26 @@ function formatTelefonoHN(raw){
   return parts.join('-');
 }
 window.formatTelefonoHN=formatTelefonoHN;
+
+// Evita doble envio de formularios: deshabilita el boton y le pone un
+// texto de "enviando" mientras la promesa de fn() esta pendiente, y
+// siempre lo restaura al terminar (exito o error), para que quien haga
+// clic dos veces rapido -o tenga conexion lenta- no dispare la misma
+// peticion (crear incidencia, autorizacion, etc.) por duplicado.
+async function withSubmitLock(btn,fn,busyHTML){
+  if(!btn)return fn();
+  if(btn.disabled)return; // ya hay un envio en curso, ignora el clic
+  const originalHTML=btn.innerHTML;
+  btn.disabled=true;
+  if(busyHTML)btn.innerHTML=busyHTML;
+  try{
+    return await fn();
+  }finally{
+    btn.disabled=false;
+    btn.innerHTML=originalHTML;
+  }
+}
+window.withSubmitLock=withSubmitLock;
 
 // Engancha el bloqueo real de letras a un <input> de telefono: la tecla
 // se bloquea en el momento (keydown), asi la letra nunca llega ni a

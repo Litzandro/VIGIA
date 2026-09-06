@@ -33,13 +33,37 @@
           </div>
         </div>
         <div class="agenda-toolbar">
-          <div class="agenda-tabs">
+          <div class="agenda-tabs" id="agendaTabs">
             <button class="active">Próximas</button>
             <button>Historial</button>
             <button>Recurrentes</button>
           </div>
+          <div class="view-switch" id="viewSwitch">
+            <button type="button" class="active" data-view="lista"><i class="bi bi-list-ul"></i> Lista</button>
+            <button type="button" data-view="calendario"><i class="bi bi-calendar3"></i> Calendario</button>
+          </div>
         </div>
-        <p class="mono" id="visitEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:2rem 0;text-align:center;">Cargando…</p>
+        <div id="listaView">
+          <p class="mono" id="visitEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:2rem 0;text-align:center;">Cargando…</p>
+        </div>
+        <div id="calendarioView" class="week-cal" hidden>
+          <div class="week-cal-toolbar">
+            <div class="week-cal-nav">
+              <button type="button" class="icon-btn" id="weekPrev" title="Semana anterior"><i class="bi bi-chevron-left"></i></button>
+              <span class="week-cal-range mono" id="weekRange">—</span>
+              <button type="button" class="icon-btn" id="weekNext" title="Semana siguiente"><i class="bi bi-chevron-right"></i></button>
+            </div>
+            <button type="button" class="btn btn-ghost week-cal-todaybtn" id="weekToday">Hoy</button>
+          </div>
+          <div class="week-cal-frame">
+            <div class="week-cal-headrow" id="weekHeadRow"></div>
+            <div class="week-cal-allday" id="weekAllDay"></div>
+            <div class="week-cal-body" id="weekBody">
+              <div class="week-cal-hours" id="weekHours"></div>
+              <div class="week-cal-days" id="weekDays"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
