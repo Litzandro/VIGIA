@@ -1189,8 +1189,11 @@
     }
 
     return `<div class="${cls.join(' ')}" style="${styleParts.join(';')}" data-id="${inv.id}">
-      <span class="vc-title"><i class="bi ${icon}"></i> ${nombre}</span>
-      <span class="vc-time">${horaTxt}</span>
+      <span class="vc-icon"><i class="bi ${icon}"></i></span>
+      <span class="vc-body">
+        <span class="vc-title">${nombre}</span>
+        <span class="vc-time">${horaTxt}</span>
+      </span>
     </div>`;
   }
 
@@ -1306,7 +1309,7 @@
         const ahoraMin = hoy.getHours() * 60 + hoy.getMinutes();
         if (ahoraMin >= HORA_INICIO * 60 && ahoraMin <= HORA_FIN * 60) {
           const topPx = (ahoraMin - HORA_INICIO * 60) / 60 * ALTURA_HORA;
-          diasHTML += `<div class="week-cal-nowline" style="top:${topPx}px"></div>`;
+          diasHTML += `<div class="week-cal-nowline" style="top:${topPx}px"><span class="nl-time">${formatTime(hoy)}</span></div>`;
         }
       }
 
