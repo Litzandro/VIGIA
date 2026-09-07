@@ -48,7 +48,15 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         });
       }
       if (andConditions.length) where[Op.and] = andConditions;
-      const rows = await model.findAll({ where, order: [['fecha_hora', 'DESC']], limit: 200 });
+      // Se incluye el tipo para que el tablero pueda mostrar de que
+      // categoria es cada incidencia (antes no viajaba, asi que la
+      // tarjeta solo mostraba prioridad, nunca el tipo elegido).
+      const rows = await model.findAll({
+        where,
+        include: [{ model: db.TiposIncidencia, as: 'tipoIncidencia', attributes: ['id', 'nombre', 'nivel_urgencia'] }],
+        order: [['fecha_hora', 'DESC']],
+        limit: 200,
+      });
       res.json({ data: rows, meta: { total: rows.length } });
     } catch (err) { next(err); }
   });
@@ -73,19 +81,50 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         return res.status(400).json({ error: 'El guardia debe adjuntar una fotografia o evidencia.' });
       }
 
-      let tipoId = body.tipo_incidencia_id;
-      if (!tipoId) {
-        const tipo = await db.TiposIncidencia.findOne({
-          where: { nombre: 'Otro', activo: true },
+      const residencialId = req.user.residencial_id || body.residencial_id;
+
+      // El tipo elegido debe pertenecer a la misma residencial (o venir
+      // sin residencial_id, para catalogos compartidos/globales) -- si
+      // alguien manda un tipo_incidencia_id que no le corresponde, se
+      // trata igual que si no hubiera mandado nada.
+      let tipo = null;
+      if (body.tipo_incidencia_id) {
+        tipo = await db.TiposIncidencia.findOne({
+          where: { id: body.tipo_incidencia_id, [Op.or]: [{ residencial_id: residencialId }, { residencial_id: null }] },
           transaction,
         });
-        tipoId = tipo && tipo.id;
       }
-      if (!tipoId) throw new Error('No existe un tipo de incidencia disponible.');
+      if (!tipo) {
+        tipo = await db.TiposIncidencia.findOne({
+          where: { residencial_id: residencialId, nombre: 'Otro', activo: true },
+          transaction,
+        });
+      }
+      if (!tipo) throw new Error('No existe un tipo de incidencia disponible.');
+
+      // La prioridad ya no la decide libremente quien reporta: se deriva
+      // del nivel de urgencia real del tipo elegido
+      // (tipos_incidencia.nivel_urgencia). Hallazgo del equipo: sin esto,
+      // cualquier residente podia marcar su propio reporte como "alta" o
+      // "urgente" sin que nada lo validara -- si todos exageran la
+      // prioridad de lo suyo, las incidencias de verdad graves se pierden
+      // mezcladas con el resto. Guardia/admin/superadmin si conservan
+      // control manual (ya tienen criterio profesional, y de todos modos
+      // pueden ajustarla despues via PATCH); un residente reportando su
+      // propio caso, no.
+      const NIVEL_A_PRIORIDAD = { critico: 'urgente', alto: 'alta', medio: 'media', bajo: 'baja' };
+      const prioridadDerivada = NIVEL_A_PRIORIDAD[tipo.nivel_urgencia] || 'media';
+      const esStaff = ['guardia', 'admin', 'superadmin'].includes(req.user.rol_codigo);
+      // Guardia/admin conservan la posibilidad de fijarla a mano SOLO si
+      // la mandan explicitamente (ej. desde un panel de triage futuro) --
+      // si no mandan nada (como el formulario simplificado que usa
+      // guardia hoy), tambien reciben el valor derivado en vez de un
+      // "media" fijo sin relacion con el tipo.
+      const prioridad = (esStaff && body.prioridad) ? normalizePriority(body.prioridad) : prioridadDerivada;
 
       const incidencia = await model.create({
-        residencial_id: req.user.residencial_id || body.residencial_id,
-        tipo_incidencia_id: tipoId,
+        residencial_id: residencialId,
+        tipo_incidencia_id: tipo.id,
         reportado_por: req.user.id,
         asignado_a: body.asignado_a || null,
         guardia_original_nombre: req.user.rol_codigo === 'guardia' ? req.user.nombre_completo : null,
@@ -93,7 +132,7 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         descripcion,
         visibilidad: ['privada', 'administracion', 'comunidad'].includes(body.visibilidad) ? body.visibilidad : 'privada',
         ubicacion: body.ubicacion || null,
-        prioridad: normalizePriority(body.prioridad),
+        prioridad,
         estado: 'reportada',
       }, { transaction });
 
