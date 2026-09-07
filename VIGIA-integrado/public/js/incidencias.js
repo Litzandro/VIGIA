@@ -1,17 +1,65 @@
 (function(){
   const modal=document.getElementById('reportModal'),form=document.getElementById('reportForm'),kanban=document.querySelector('.kanban');if(!modal||!form||!kanban)return;
-  const desc=document.getElementById('reportDesc'),count=document.getElementById('reportDescCount'),priority=document.getElementById('reportPriority');let photoData='',types=[];
-  function open(){modal.classList.add('open');document.getElementById('reportTitle').focus()}function close(){modal.classList.remove('open')}
+  const desc=document.getElementById('reportDesc'),count=document.getElementById('reportDescCount'),tipoSelect=document.getElementById('reportTipo'),priorityInfo=document.getElementById('reportPriorityInfo');let photoData='',types=[];
+
+  // Antes esto se llamaba "Asistente de IA" y decidia sola la prioridad
+  // (que el usuario podia cambiar libremente en un select aparte) --
+  // ademas sugeria categorias ("Emergencia medica", "Dano a propiedad"...)
+  // que nunca coincidian con ningun tipo real del catalogo
+  // (tipos_incidencia solo tiene Robo/Incendio/Medico/Accidente/
+  // Sospechoso/Otro), asi que en la practica CUALQUIER incidencia
+  // terminaba cayendo en "Otro" sin que nadie lo notara. Ahora es una
+  // sugerencia honesta (no es IA, es una coincidencia de palabras clave
+  // local) que solo preselecciona el tipo real en el <select> -- el tipo
+  // siempre es visible y editable por la persona. La prioridad ya NO se
+  // elige aca: la calcula el backend segun el tipo (ver
+  // src/routes/overrides/incidencias.js), precisamente para que nadie
+  // pueda marcar su propio reporte como "urgente" sin que corresponda.
+  const NIVEL_A_PRIORIDAD_LABEL={critico:'Urgente',alto:'Alta',medio:'Media',bajo:'Baja'};
+  function sugerirTipo(texto){
+    const t=texto.toLowerCase();
+    if(/robo|ladr[oó]n|robaron|hurto|forzaron/.test(t))return'Robo';
+    if(/fuego|humo|incendio|quemando|quemad/.test(t))return'Incendio';
+    if(/médic|medic|desmay|convulsi[oó]n|infarto|sangr|ambulancia/.test(t))return'Médico';
+    if(/accidente|choque|ca[ií]da|golpe|atropell/.test(t))return'Accidente';
+    if(/sospech|extra[ñn]o|merode|ronda/.test(t))return'Sospechoso';
+    return null;
+  }
+  function actualizarPrioridadInfo(){
+    const tipo=types.find(x=>String(x.id)===String(tipoSelect.value));
+    const label=tipo?(NIVEL_A_PRIORIDAD_LABEL[tipo.nivel_urgencia]||'Media'):'—';
+    priorityInfo.textContent=`Se calcula según el tipo elegido — con "${tipo?tipo.nombre:'…'}" quedará en prioridad ${label.toLowerCase()}.`;
+  }
+  function poblarTipos(){
+    if(!tipoSelect||!types.length)return;
+    const actual=tipoSelect.value;
+    tipoSelect.innerHTML=types.map(t=>`<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('');
+    if(actual&&types.some(t=>String(t.id)===actual))tipoSelect.value=actual;
+    actualizarPrioridadInfo();
+  }
+  if(tipoSelect)tipoSelect.addEventListener('change',actualizarPrioridadInfo);
+  function open(){modal.classList.add('open');poblarTipos();document.getElementById('reportTitle').focus()}function close(){modal.classList.remove('open')}
   document.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open);document.getElementById('reportCancel').onclick=close;modal.onclick=e=>{if(e.target===modal)close()};
   desc.addEventListener('keydown',e=>{if(e.key==='Enter'&&(desc.value.match(/\n/g)||[]).length>=3)e.preventDefault()});
-  desc.addEventListener('input',()=>{desc.value=desc.value.replace(/\n{3,}/g,'\n\n');count.textContent=`${desc.value.length}/350`;const t=desc.value.toLowerCase();let p='media',cat='Otro';if(/fuego|humo|robo|intruso|arma|médic|medic|accidente/.test(t)){p='urgente';cat=/médic|medic|accidente/.test(t)?'Emergencia medica':'Robo'}else if(/luz|portón|porton|agua|fuga|sospech/.test(t)){p='alta';cat=/sospech/.test(t)?'Comportamiento sospechoso':'Dano a propiedad'}else if(/ruido|basura/.test(t)){p='baja';cat='Disturbio / ruido'}priority.value=p==='urgente'?'alta':p;document.getElementById('aiAssistText').textContent=`Sugerencia local: ${cat} · prioridad ${p}. Puedes cambiarla antes de enviar.`;document.getElementById('aiAssistBox').dataset.suggested=cat});
+  desc.addEventListener('input',()=>{
+    desc.value=desc.value.replace(/\n{3,}/g,'\n\n');count.textContent=`${desc.value.length}/350`;
+    const sugerido=sugerirTipo(desc.value);
+    if(sugerido&&tipoSelect){
+      const match=types.find(t=>t.nombre===sugerido);
+      if(match){
+        tipoSelect.value=match.id;
+        actualizarPrioridadInfo();
+        document.getElementById('aiAssistText').textContent=`Coincide con "${sugerido}" según tu descripción — cámbialo arriba si no es correcto.`;
+      }
+    }
+  });
   async function compress(file){if(!file)return'';const src=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src});const c=document.createElement('canvas'),s=Math.min(1,520/img.width);c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.55)}
   document.getElementById('reportPhoto').onchange=async e=>{photoData=await compress(e.target.files[0]);const im=document.getElementById('reportPhotoPreview');im.src=photoData;document.getElementById('reportPhotoPreviewWrap').style.display=photoData?'block':'none'};
   const stateLabel={reportada:'Abierta',en_revision:'En progreso',resuelta:'Resuelta',cerrada:'Historial'};
-  function card(x){return `<article class="kcard" data-priority="${escapeHtml(x.prioridad)}"><div class="kcard-top"><span class="kcard-icon ${x.prioridad==='urgente'||x.prioridad==='alta'?'warn':'ok'}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">VG</span> ${escapeHtml(x.visibilidad)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${new Date(x.fecha_hora).toLocaleDateString('es-HN')}</span></div></article>`}
+  function card(x){const tipoNombre=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin tipo';return `<article class="kcard" data-priority="${escapeHtml(x.prioridad)}"><div class="kcard-top"><span class="kcard-icon ${x.prioridad==='urgente'||x.prioridad==='alta'?'warn':'ok'}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span><span class="badge neutral" style="margin-left:.4rem;">${escapeHtml(tipoNombre)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">VG</span> ${escapeHtml(x.visibilidad)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${new Date(x.fecha_hora).toLocaleDateString('es-HN')}</span></div></article>`}
   function render(rows){const groups={reportada:[],en_revision:[],historial:[]};rows.forEach(x=>{if(x.estado==='reportada')groups.reportada.push(x);else if(x.estado==='en_revision')groups.en_revision.push(x);else groups.historial.push(x)});kanban.innerHTML=[['reportada','warn','Abierta'],['en_revision','ok','En progreso'],['historial','neutral','Historial']].map(([key,dot,title])=>`<section><div class="kanban-col-head"><span class="dot ${dot}"></span>${title} <span class="count">${groups[key].length}</span></div>${groups[key].length?groups[key].map(card).join(''):'<div class="incident-empty-note"><i class="bi bi-inbox"></i><span>Sin incidencias en esta etapa.</span></div>'}${key==='reportada'?'<div class="kcard-add" data-open-report><i class="bi bi-plus-lg"></i> Reportar otra incidencia</div>':''}</section>`).join('');kanban.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open)}
-  async function load(){try{const [i,t]=await Promise.all([VigiaAPI.request('/incidencias'),VigiaAPI.request('/tipos-incidencia?limit=100')]);types=t.data||[];render(i.data||[])}catch(e){kanban.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}
-  form.onsubmit=async e=>{e.preventDefault();const suggested=document.getElementById('aiAssistBox').dataset.suggested;const type=types.find(x=>x.nombre===suggested)||types.find(x=>x.nombre==='Otro')||types[0];const submitBtn=form.querySelector('button[type="submit"]');await withSubmitLock(submitBtn,async()=>{try{await VigiaAPI.request('/incidencias',{method:'POST',body:JSON.stringify({tipo_incidencia_id:type&&type.id,titulo:document.getElementById('reportTitle').value.trim(),descripcion:desc.value.trim(),prioridad:priority.value==='alta'&&/fuego|robo|médic|medic|intruso/.test(desc.value.toLowerCase())?'urgente':priority.value,visibilidad:document.getElementById('reportPrivate').checked?'privada':'comunidad',evidencia_url:photoData||null,evidencia_tipo:'imagen'})});form.reset();photoData='';count.textContent='0/350';document.getElementById('reportPhotoPreviewWrap').style.display='none';close();showToast('Incidencia enviada y guardada');load()}catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}},'<i class="bi bi-arrow-repeat"></i> Enviando...')};
+  async function load(){try{const [i,t]=await Promise.all([VigiaAPI.request('/incidencias'),VigiaAPI.request('/tipos-incidencia?limit=100')]);types=t.data||[];poblarTipos();render(i.data||[])}catch(e){kanban.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}
+  form.onsubmit=async e=>{e.preventDefault();const tipoId=tipoSelect&&tipoSelect.value?Number(tipoSelect.value):null;const submitBtn=form.querySelector('button[type="submit"]');await withSubmitLock(submitBtn,async()=>{try{await VigiaAPI.request('/incidencias',{method:'POST',body:JSON.stringify({tipo_incidencia_id:tipoId,titulo:document.getElementById('reportTitle').value.trim(),descripcion:desc.value.trim(),visibilidad:document.getElementById('reportPrivate').checked?'privada':'comunidad',evidencia_url:photoData||null,evidencia_tipo:'imagen'})});form.reset();photoData='';count.textContent='0/350';document.getElementById('reportPhotoPreviewWrap').style.display='none';close();showToast('Incidencia enviada y guardada');load()}catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}},'<i class="bi bi-arrow-repeat"></i> Enviando...')};
   document.getElementById('emergencyContactsBtn').onclick=()=>location.href='emergencias.html';
   async function panic(target){try{const r=await VigiaAPI.request('/tipos-alerta?limit=20');const type=(r.data||[]).find(x=>x.codigo==='otro')||(r.data||[])[0];if(!type)throw new Error('No hay tipo de alerta configurado.');await VigiaAPI.request('/alertas-panico',{method:'POST',body:JSON.stringify({tipo_alerta_id:type.id})});showToast(target==='guardia'?'Alerta privada enviada a garita':'Alerta enviada al sistema','bi-broadcast')}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}
   function modalPanic(button,mid,cancel,confirm,target){const m=document.getElementById(mid);document.getElementById(button).onclick=()=>m.classList.add('open');document.getElementById(cancel).onclick=()=>m.classList.remove('open');document.getElementById(confirm).onclick=async()=>{m.classList.remove('open');await panic(target)}}
