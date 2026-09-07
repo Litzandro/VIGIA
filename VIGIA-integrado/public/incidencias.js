@@ -1,126 +1,151 @@
-(function(){
-  const modal=document.getElementById('reportModal'),form=document.getElementById('reportForm'),kanban=document.querySelector('.kanban');if(!modal||!form||!kanban)return;
-  const desc=document.getElementById('reportDesc'),count=document.getElementById('reportDescCount'),priority=document.getElementById('reportPriority');let photoData='',types=[],rows=[];
-  function open(){modal.classList.add('open');document.getElementById('reportTitle').focus()}function close(){modal.classList.remove('open')}
-  document.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open);document.getElementById('reportCancel').onclick=close;modal.onclick=e=>{if(e.target===modal)close()};
-  desc.addEventListener('keydown',e=>{if(e.key==='Enter'&&(desc.value.match(/\n/g)||[]).length>=3)e.preventDefault()});
-  desc.addEventListener('input',()=>{desc.value=desc.value.replace(/\n{3,}/g,'\n\n');count.textContent=`${desc.value.length}/350`;const t=desc.value.toLowerCase();let p='media',cat='Otro';if(/fuego|humo|robo|intruso|arma|médic|medic|accidente/.test(t)){p='urgente';cat=/médic|medic|accidente/.test(t)?'Emergencia medica':'Robo'}else if(/luz|portón|porton|agua|fuga|sospech/.test(t)){p='alta';cat=/sospech/.test(t)?'Comportamiento sospechoso':'Dano a propiedad'}else if(/ruido|basura/.test(t)){p='baja';cat='Disturbio / ruido'}priority.value=p==='urgente'?'alta':p;document.getElementById('aiAssistText').textContent=`Sugerencia local: ${cat} · prioridad ${p}. Puedes cambiarla antes de enviar.`;document.getElementById('aiAssistBox').dataset.suggested=cat});
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Mis incidencias</title>
 
-  // ---- Validacion de foto: tipo y tamano (requisito 1.2) ----
-  const MAX_PHOTO_BYTES=4*1024*1024; // 4MB en el archivo original, antes de comprimir
-  async function compress(file){
-    if(!file)return '';
-    if(!/^image\//.test(file.type)){showToast('Solo se permiten imagenes (jpg, png, webp).','bi-exclamation-triangle-fill');return ''}
-    if(file.size>MAX_PHOTO_BYTES){showToast('Archivo demasiado grande. Máximo 4MB.','bi-exclamation-triangle-fill');return ''}
-    const src=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});
-    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src});
-    const c=document.createElement('canvas'),s=Math.min(1,520/img.width);c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-    return c.toDataURL('image/jpeg',.55)
-  }
-  document.getElementById('reportPhoto').onchange=async e=>{photoData=await compress(e.target.files[0]);const im=document.getElementById('reportPhotoPreview');im.src=photoData;document.getElementById('reportPhotoPreviewWrap').style.display=photoData?'block':'none';if(!photoData)e.target.value=''};
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
 
-  const stateLabel={reportada:'Reportada',en_revision:'En revisión',resuelta:'Resuelta',cerrada:'Cerrada'};
-  const stateBadge={reportada:'warn',en_revision:'ok',resuelta:'ok',cerrada:'neutral'};
+<div class="app">
+  <!-- ============ TOP NAV ============ -->
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="vigiaSidebar" aria-label="Navegación de VIGIA"></aside>
 
-  function relativeDays(iso){
-    const d=new Date(iso);const days=Math.floor((Date.now()-d.getTime())/86400000);
-    if(days<=0)return 'Hoy';if(days===1)return '1 día';return `${days} días`;
-  }
-  function matchesFilter(x,filter){
-    if(filter==='alta')return x.prioridad==='alta'||x.prioridad==='urgente';
-    if(filter==='semana')return (Date.now()-new Date(x.fecha_hora).getTime())<=7*86400000;
-    if(filter==='abiertas')return x.estado==='reportada';
-    if(filter==='progreso')return x.estado==='en_revision';
-    if(filter==='historial')return x.estado==='resuelta'||x.estado==='cerrada';
-    return true;
-  }
-  function matchesSearch(x,q){
-    if(!q)return true;
-    q=q.toLowerCase();
-    const folio=`inc-${String(x.id).padStart(4,'0')}`;
-    return folio.includes(q)||String(x.id).includes(q)||(x.titulo||'').toLowerCase().includes(q)||(x.descripcion||'').toLowerCase().includes(q)||(x.categoria||'').toLowerCase().includes(q);
-  }
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="content">
+      <div class="page">
+        <div class="page-banner">
+          <div class="page-banner-bg" style="background-image:url('https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1400&auto=format&fit=crop');"></div>
+          <div class="page-banner-glow"></div>
+          <div class="page-banner-content">
+            <div><span class="mono-tag">MIS INCIDENCIAS</span><h1>Incidencias reportadas</h1><p>Da seguimiento al estado de cada reporte.</p></div>
+            <button type="button" class="btn btn-solid incident-main-btn" data-open-report><i class="bi bi-plus-circle-fill"></i> Nueva incidencia</button>
+          </div>
+        </div>
 
-  function card(x){return `<article class="kcard" data-id="${x.id}" data-priority="${escapeHtml(x.prioridad)}"><div class="kcard-top"><span class="kcard-icon ${x.prioridad==='urgente'||x.prioridad==='alta'?'warn':'ok'}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">VG</span> ${escapeHtml(x.visibilidad)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${relativeDays(x.fecha_hora)}</span></div></article>`}
+        <div class="incident-quickbar">
+          <div><b>Solo tus reportes</b><span>Por privacidad, aquí únicamente aparecen las incidencias creadas por tu cuenta.</span></div>
+          <button class="btn btn-ghost" id="emergencyContactsBtn"><i class="bi bi-telephone-fill"></i> Contactos de emergencia</button>
+        </div>
 
-  function render(){
-    const chipFilter=(document.querySelector('.filter-chip.active')||{}).dataset?.filter||'todas';
-    const q=(document.getElementById('incidentSearch')||{}).value||'';
-    const filtered=rows.filter(x=>matchesFilter(x,chipFilter)&&matchesSearch(x,q));
-    const groups={reportada:[],en_revision:[],historial:[]};
-    filtered.forEach(x=>{if(x.estado==='reportada')groups.reportada.push(x);else if(x.estado==='en_revision')groups.en_revision.push(x);else groups.historial.push(x)});
-    kanban.innerHTML=[['reportada','warn','Abierta'],['en_revision','ok','En progreso'],['historial','neutral','Historial']].map(([key,dot,title])=>`<section><div class="kanban-col-head"><span class="dot ${dot}"></span>${title} <span class="count">${groups[key].length}</span></div>${groups[key].length?groups[key].map(card).join(''):'<div class="incident-empty-note"><i class="bi bi-inbox"></i><span>Sin incidencias en esta etapa.</span></div>'}${key==='reportada'?'<div class="kcard-add" data-open-report><i class="bi bi-plus-lg"></i> Reportar otra incidencia</div>':''}</section>`).join('');
-    kanban.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open);
-    kanban.querySelectorAll('.kcard[data-id]').forEach(el=>el.addEventListener('click',()=>openDetail(Number(el.dataset.id))));
-  }
+        <div class="incidencias-toolbar">
+          <div class="filter-chips">
+            <button class="filter-chip active" data-filter="todas">Todas</button>
+            <button class="filter-chip" data-filter="alta">Urgentes</button>
+            <button class="filter-chip" data-filter="semana">Recientes</button>
+          </div>
+          <div class="toolbar-search"><i class="bi bi-search"></i><input placeholder="Buscar en mis incidencias..."></div>
+        </div>
 
-  async function load(){try{const [i,t]=await Promise.all([VigiaAPI.request('/incidencias'),VigiaAPI.request('/tipos-incidencia?limit=100')]);types=t.data||[];rows=i.data||[];render();openFromQuery()}catch(e){kanban.innerHTML=`<div class="empty-state"><i class="bi bi-exclamation-triangle"></i><span>${escapeHtml(e.message)}</span></div>`}}
+        <div class="kanban">
+          <div class="incident-empty-note"><i class="bi bi-arrow-repeat"></i><span>Cargando…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  // Si se llega desde una notificacion de incidencia (propia o publica
-  // de un vecino), abre directamente su detalle en vez de solo dejar
-  // caer a la persona en el tablero general (requisito 2).
-  function openFromQuery(){
-    const id=new URLSearchParams(location.search).get('inc');
-    if(id) openDetail(Number(id));
-  }
+<div class="panic-group">
+  <div class="panic-fab-wrap">
+    <span class="panic-fab-label">Alertar al guardia</span>
+    <button class="panic-fab guard" id="panicGuardBtn" title="Alertar solo al guardia"><i class="bi bi-shield-fill-exclamation"></i></button>
+  </div>
+  <div class="panic-fab-wrap">
+    <span class="panic-fab-label">Alertar a residentes</span>
+    <button class="panic-fab residents" id="panicResidentsBtn" title="Alertar a los demás residentes"><i class="bi bi-megaphone-fill"></i></button>
+  </div>
+</div>
 
-  // ---- Filtros (requisito 1.7) ----
-  document.querySelectorAll('.filter-chip').forEach(chip=>chip.addEventListener('click',()=>{
-    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');render();
-  }));
-  const searchInput=document.getElementById('incidentSearch');
-  if(searchInput)searchInput.addEventListener('input',()=>render());
+<div class="modal-overlay" id="panicGuardModal">
+  <div class="modal-box" id="panicGuardModalBox">
+    <div class="modal-icon"><i class="bi bi-shield-fill-exclamation"></i></div>
+    <h3>¿Alertar al guardia?</h3>
+    <p>Se enviará una alerta directa y privada al guardia en turno de Altavista Residencial. Úsalo solo en caso de emergencia real.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="panicGuardCancel">Cancelar</button>
+      <button class="btn btn-alert" id="panicGuardConfirm"><i class="bi bi-broadcast"></i> Confirmar alerta</button>
+    </div>
+  </div>
+</div>
 
-  // ---- Detalle de incidencia + historial (requisito 1.5/1.6) ----
-  const detailModal=document.getElementById('detailModal');
-  function closeDetail(){detailModal.classList.remove('open')}
-  document.getElementById('detailClose').onclick=closeDetail;
-  document.getElementById('detailCloseBtn').onclick=closeDetail;
-  detailModal.onclick=e=>{if(e.target===detailModal)closeDetail()};
-  function fullName(u){if(!u)return 'Sin asignar';return `${u.nombre||''} ${u.apellido||''}`.trim()||'Sin asignar'}
-  async function openDetail(id){
-    try{
-      const r=await VigiaAPI.request(`/incidencias/${id}`);
-      const x=r.data;
-      document.getElementById('detailFolio').textContent=`#INC-${String(x.id).padStart(4,'0')}`;
-      document.getElementById('detailTitle').textContent=x.titulo;
-      document.getElementById('detailDescripcion').textContent=x.descripcion;
-      const estadoEl=document.getElementById('detailEstado');estadoEl.textContent=stateLabel[x.estado]||x.estado;estadoEl.className='badge '+(stateBadge[x.estado]||'neutral');
-      const prioEl=document.getElementById('detailPrioridad');prioEl.textContent=`Prioridad ${x.prioridad}`;prioEl.className='priority '+x.prioridad;
-      document.getElementById('detailCategoria').textContent=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin categoría';
-      document.getElementById('detailFecha').textContent=new Date(x.fecha_hora).toLocaleString('es-HN');
-      document.getElementById('detailReportadoPor').textContent=fullName(x.reportadoPor);
-      document.getElementById('detailAsignadoA').textContent=fullName(x.asignadoA);
-      document.getElementById('detailActualizado').textContent=(r.seguimiento&&r.seguimiento.length)?new Date(r.seguimiento[r.seguimiento.length-1].fecha_hora).toLocaleString('es-HN'):new Date(x.fecha_hora).toLocaleString('es-HN');
-      const evWrap=document.getElementById('detailEvidenciaWrap'),ev=document.getElementById('detailEvidencia');
-      if(r.evidencias&&r.evidencias.length){ev.src=r.evidencias[0].url_archivo;evWrap.style.display='block'}else{evWrap.style.display='none'}
-      const timeline=document.getElementById('detailTimeline');
-      const items=[{titulo:'Incidencia reportada',fecha:x.fecha_hora,comentario:null}].concat((r.seguimiento||[]).map(s=>({titulo:`Estado cambiado a "${stateLabel[s.estado_nuevo]||s.estado_nuevo}"`,fecha:s.fecha_hora,comentario:s.comentario,usuario:fullName(s.usuario)})));
-      timeline.innerHTML=items.map(it=>`<div class="timeline-item"><span class="timeline-dot"></span><div><b>${escapeHtml(it.titulo)}</b><span>${new Date(it.fecha).toLocaleString('es-HN')}${it.usuario?' · '+escapeHtml(it.usuario):''}</span>${it.comentario?`<p>${escapeHtml(it.comentario)}</p>`:''}</div></div>`).join('');
-      detailModal.classList.add('open');
-    }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
-  }
+<div class="modal-overlay" id="panicResidentsModal">
+  <div class="modal-box" id="panicResidentsModalBox">
+    <div class="modal-icon warn"><i class="bi bi-megaphone-fill"></i></div>
+    <h3>¿Alertar a los demás residentes?</h3>
+    <p>Se enviará una notificación a todos los residentes de tu torre para que tomen precaución. Úsalo solo en caso de emergencia real.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="panicResidentsCancel">Cancelar</button>
+      <button class="btn btn-warn" id="panicResidentsConfirm"><i class="bi bi-broadcast"></i> Confirmar alerta</button>
+    </div>
+  </div>
+</div>
 
-  form.onsubmit=async e=>{
-    e.preventDefault();
-    const titleVal=document.getElementById('reportTitle').value.trim();
-    if(!titleVal){showToast('Debes escribir un título.','bi-exclamation-triangle-fill');return}
-    if(!desc.value.trim()){showToast('Debes escribir una descripción.','bi-exclamation-triangle-fill');return}
-    const suggested=document.getElementById('aiAssistBox').dataset.suggested;
-    const type=types.find(x=>x.nombre===suggested)||types.find(x=>x.nombre==='Otro')||types[0];
-    try{
-      await VigiaAPI.request('/incidencias',{method:'POST',body:JSON.stringify({tipo_incidencia_id:type&&type.id,titulo:titleVal,descripcion:desc.value.trim(),prioridad:priority.value==='alta'&&/fuego|robo|médic|medic|intruso/.test(desc.value.toLowerCase())?'urgente':priority.value,visibilidad:document.getElementById('reportPrivate').checked?'privada':'comunidad',evidencia_url:photoData||null,evidencia_tipo:'imagen'})});
-      form.reset();photoData='';count.textContent='0/350';document.getElementById('reportPhotoPreviewWrap').style.display='none';close();showToast('Incidencia enviada y guardada');load();
-    }catch(err){showToast(err.message||'No fue posible crear la incidencia. Intenta nuevamente.','bi-exclamation-triangle-fill')}
-  };
-  document.getElementById('emergencyContactsBtn').onclick=()=>location.href='emergencias.html';
-  async function panic(target){try{const r=await VigiaAPI.request('/tipos-alerta?limit=20');const type=(r.data||[]).find(x=>x.codigo==='otro')||(r.data||[])[0];if(!type)throw new Error('No hay tipo de alerta configurado.');await VigiaAPI.request('/alertas-panico',{method:'POST',body:JSON.stringify({tipo_alerta_id:type.id})});showToast(target==='guardia'?'Alerta privada enviada a garita':'Alerta enviada al sistema','bi-broadcast')}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}
-  function modalPanic(button,mid,cancel,confirm,target){const m=document.getElementById(mid);document.getElementById(button).onclick=()=>m.classList.add('open');document.getElementById(cancel).onclick=()=>m.classList.remove('open');document.getElementById(confirm).onclick=async()=>{m.classList.remove('open');await panic(target)}}
-  modalPanic('panicGuardBtn','panicGuardModal','panicGuardCancel','panicGuardConfirm','guardia');modalPanic('panicResidentsBtn','panicResidentsModal','panicResidentsCancel','panicResidentsConfirm','residentes');
+<div class="modal-overlay" id="reportModal">
+  <div class="modal-box form-modal" id="reportModalBox">
+    <div class="modal-icon"><i class="bi bi-flag-fill"></i></div>
+    <h3>Reportar incidencia</h3>
+    <p>Cuéntanos qué sucede para darle seguimiento cuanto antes.</p>
+    <form id="reportForm" novalidate>
+      <div class="form-group">
+        <label for="reportTitle">Título</label>
+        <input type="text" class="form-control" id="reportTitle" maxlength="80" placeholder="Ej. Fuga de agua en pasillo A" required>
+      </div>
+      <div class="form-group">
+        <label for="reportDesc">Descripción</label>
+        <textarea class="form-control" id="reportDesc" maxlength="350" rows="4" placeholder="Describe lo esencial (máx. 350 caracteres)" required></textarea><div class="field-help"><span id="reportDescCount">0/350</span><span>Máximo 4 líneas</span></div>
+      </div>
+      <div class="form-group">
+        <label for="reportTipo">Tipo de incidencia</label>
+        <select class="form-control" id="reportTipo" required></select>
+      </div>
+      <div class="ai-assist-box" id="aiAssistBox">
+        <i class="bi bi-lightbulb"></i><div><b>Sugerencia</b><span id="aiAssistText">Escribe la descripción y te sugerimos el tipo — puedes cambiarlo si no es correcto.</span></div>
+      </div>
+      <div class="form-group">
+        <label>Prioridad</label>
+        <p class="field-hint" id="reportPriorityInfo" style="margin:0;">Se calcula según el tipo de incidencia que elijas — no la decides tú directamente, para que una incidencia real no se pierda entre reportes exagerados.</p>
+      </div>
+      <label class="privacy-check"><input type="checkbox" id="reportPrivate" checked><span><b>Reporte privado</b><small>Solo tú, administración y el guardia asignado podrán verlo.</small></span></label>
+      <div class="form-group">
+        <label for="reportPhoto">Evidencia fotográfica (opcional)</label>
+        <input type="file" class="form-control" id="reportPhoto" accept="image/*" capture="environment">
+        <div id="reportPhotoPreviewWrap" style="display:none;margin-top:.7rem;">
+          <img id="reportPhotoPreview" alt="Vista previa de la evidencia" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="reportCancel">Cancelar</button>
+        <button type="submit" class="btn btn-solid"><i class="bi bi-send-fill"></i> Enviar reporte</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-  // ---- Integracion con el Asistente VIGIA (requisito 4.1/4.2): si llega
-  // desde el asistente con ?open=report, abre "Nueva incidencia" sola.
-  if(new URLSearchParams(location.search).get('open')==='report') setTimeout(open,150);
+<div class="modal-overlay" id="emergencyContactsModal">
+  <div class="modal-box emergency-modal">
+    <div class="modal-icon warn"><i class="bi bi-telephone-fill"></i></div>
+    <h3>Contactos de emergencia</h3>
+    <div class="emergency-list">
+      <a href="tel:911"><b>Emergencias</b><span>911</span></a>
+      <div><b>Garita de seguridad</b><span>Ext. 101</span></div>
+      <div><b>Administración</b><span>Ext. 102</span></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-solid" id="emergencyContactsClose">Cerrar</button></div>
+  </div>
+</div>
 
-  load();
-})();
+<script src="js/common.js"></script>
+<script src="js/panic-store.js"></script>
+<script src="js/incidencias.js"></script>
+</body>
+</html>
