@@ -40,8 +40,6 @@ router.get('/resumen', async (req, res, next) => {
       incidenciasUrgentes,
       alertasActivas,
       turnosActivos,
-      paquetesPendientes,
-      llegadasEnCurso,
       invitacionesPendientes,
       qrUsadosHoy,
       actividad,
@@ -58,8 +56,6 @@ router.get('/resumen', async (req, res, next) => {
       db.Incidencias.count({ where: { ...base, prioridad: 'urgente', estado: { [Op.notIn]: ['resuelta', 'cerrada'] } } }),
       db.AlertasPanico.count({ where: { ...base, estado: 'activa' } }),
       db.TurnosGuardia.count({ where: { ...base, estado: 'activo' } }),
-      db.Paquetes.count({ where: { ...base, estado: 'pendiente' } }),
-      db.LlegadasSeguras.count({ where: { ...base, estado: 'en_curso' } }),
       db.Invitaciones.count({ where: { ...base, estado: 'pendiente', fecha_valida_hasta: { [Op.gte]: new Date() } } }),
       db.Invitaciones.count({ where: { ...base, estado: 'usada', fecha_creacion: { [Op.gte]: today } } }),
       db.Bitacora.findAll({ where: base, order: [['fecha_hora', 'DESC']], limit: 12 }),
@@ -85,7 +81,7 @@ router.get('/resumen', async (req, res, next) => {
 
     res.json({
       data: {
-        metricas: { accesos_hoy: accesosHoy, entradas_hoy: entradasHoy, salidas_hoy: salidasHoy, cola_activa: colaActiva, incidencias_abiertas: incidenciasAbiertas, incidencias_urgentes: incidenciasUrgentes, alertas_sos: alertasActivas, guardias_activos: turnosActivos, paquetes_pendientes: paquetesPendientes, llegadas_en_curso: llegadasEnCurso, invitaciones_vigentes: invitacionesPendientes, qr_usados_hoy: qrUsadosHoy },
+        metricas: { accesos_hoy: accesosHoy, entradas_hoy: entradasHoy, salidas_hoy: salidasHoy, cola_activa: colaActiva, incidencias_abiertas: incidenciasAbiertas, incidencias_urgentes: incidenciasUrgentes, alertas_sos: alertasActivas, guardias_activos: turnosActivos, invitaciones_vigentes: invitacionesPendientes, qr_usados_hoy: qrUsadosHoy },
         reglas,
         actividad,
         alertas,
