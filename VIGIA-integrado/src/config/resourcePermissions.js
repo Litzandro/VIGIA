@@ -56,9 +56,7 @@ module.exports = {
 
   tipos_alerta: { create: ADMIN, read: AUTH_ONLY, update: ADMIN, remove: ADMIN },
   alertas_panico: { create: { permission: 'alertas.emitir' }, read: AUTH_ONLY, update: { permission: 'alertas.atender' }, remove: ADMIN },
-  llegadas_seguras: { create: AUTH_ONLY, read: AUTH_ONLY, update: AUTH_ONLY, remove: ADMIN },
 
-  paquetes: { create: { roles: ['guardia', 'admin', 'superadmin'] }, read: AUTH_ONLY, update: { roles: ['guardia', 'admin', 'superadmin'] }, remove: ADMIN },
 
   // Las notificaciones las crea el backend (servicios internos), no un
   // usuario a mano por la API. La lectura queda abierta a cualquier
