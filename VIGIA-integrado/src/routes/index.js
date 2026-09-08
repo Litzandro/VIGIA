@@ -19,6 +19,7 @@ const resourcePermissions = require('../config/resourcePermissions');
 
 const router = express.Router();
 const NON_MODEL_KEYS = new Set(['sequelize', 'Sequelize']);
+const DISABLED_TABLES = new Set(['paquetes', 'llegadas_seguras']);
 
 const overrides = {
   residenciales: require('./overrides/residenciales'),
@@ -27,7 +28,6 @@ const overrides = {
   accesos: require('./overrides/accesos'),
   alertas_panico: require('./overrides/alertasPanico'),
   conflictos_permisos: require('./overrides/conflictosPermisos'),
-  llegadas_seguras: require('./overrides/llegadasSeguras'),
   incidencias: require('./overrides/incidencias'),
   cola_acceso: require('./overrides/colaAcceso'),
   vetos_acceso: require('./overrides/vetosAcceso'),
@@ -39,7 +39,6 @@ const overrides = {
   integraciones: require('./overrides/integraciones'),
   turnos_guardia: require('./overrides/turnosGuardia'),
   mensajes: require('./overrides/mensajes'),
-  paquetes: require('./overrides/paquetes'),
 };
 
 function toKebabCase(snakeCase) {
@@ -50,6 +49,7 @@ const registeredResources = [];
 
 Object.keys(db)
   .filter((key) => !NON_MODEL_KEYS.has(key))
+  .filter((key) => !DISABLED_TABLES.has(db[key].getTableName()))
   .forEach((modelName) => {
     const model = db[modelName];
     const tableName = model.getTableName();
