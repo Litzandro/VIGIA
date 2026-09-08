@@ -495,10 +495,56 @@ function prepararSidebarUnico(sidebar,current){
     });
   }
 
-  // Barra retractil: solo aplica en escritorio (la version movil ya se
-  // convierte en una barra superior horizontal via CSS). El estado
-  // elegido se recuerda entre paginas con localStorage.
+  // Barra retractil en escritorio (icono se achica) / cajon deslizable
+  // en movil (menu de pantalla completa con fondo oscuro detras) -- el
+  // mismo boton hace las dos cosas segun el ancho de pantalla, para no
+  // duplicar marcado. Antes, en movil, la navegacion se intentaba meter
+  // en una fila horizontal apretada junto con "Terminos y Condiciones",
+  // el reloj y el usuario -- en pantallas angostas de verdad eso dejaba
+  // la navegacion invisible (ver el comentario largo en style.css).
   const collapseBtn=sidebar.querySelector('#sidebarCollapseBtn');
+  const esMovil=()=>window.matchMedia('(max-width:860px)').matches;
+
+  let backdrop=document.querySelector('.sidebar-backdrop');
+  if(!backdrop){
+    backdrop=document.createElement('div');
+    backdrop.className='sidebar-backdrop';
+    document.body.appendChild(backdrop);
+  }
+
+  function cerrarCajonMovil(){
+    sidebar.classList.remove('mobile-open');
+    backdrop.classList.remove('show');
+    if(collapseBtn){
+      collapseBtn.querySelector('i').className='bi bi-list';
+      collapseBtn.setAttribute('aria-label','Abrir menú');
+      collapseBtn.title='Abrir menú';
+    }
+  }
+
+  function abrirCajonMovil(){
+    sidebar.classList.add('mobile-open');
+    backdrop.classList.add('show');
+    if(collapseBtn){
+      collapseBtn.querySelector('i').className='bi bi-x-lg';
+      collapseBtn.setAttribute('aria-label','Cerrar menú');
+      collapseBtn.title='Cerrar menú';
+    }
+  }
+
+  backdrop.addEventListener('click',cerrarCajonMovil);
+  // Si alguien toca un enlace del cajon, no hace falta cerrarlo primero
+  // -- la pagina va a cambiar por completo de todas formas -- pero se
+  // cierra igual para que, si vuelve con el boton "atras" del navegador,
+  // no se encuentre el menu ya abierto encima del contenido.
+  sidebar.querySelectorAll('.sidebar-drawer .nav-item').forEach(link=>{
+    link.addEventListener('click',cerrarCajonMovil);
+  });
+
+  window.addEventListener('resize',()=>{
+    if(!esMovil())cerrarCajonMovil();
+  });
+
   if(collapseBtn){
     const applyCollapsed=(collapsed)=>{
       sidebar.classList.toggle('collapsed',collapsed);
@@ -507,8 +553,13 @@ function prepararSidebarUnico(sidebar,current){
     };
     let collapsed=false;
     try{collapsed=localStorage.getItem(VIGIA_SIDEBAR_COLLAPSE_KEY)==='1'}catch(e){}
-    applyCollapsed(collapsed);
+    if(esMovil())cerrarCajonMovil();else applyCollapsed(collapsed);
+
     collapseBtn.addEventListener('click',()=>{
+      if(esMovil()){
+        if(sidebar.classList.contains('mobile-open'))cerrarCajonMovil();else abrirCajonMovil();
+        return;
+      }
       collapsed=!collapsed;
       applyCollapsed(collapsed);
       try{localStorage.setItem(VIGIA_SIDEBAR_COLLAPSE_KEY,collapsed?'1':'0')}catch(e){}

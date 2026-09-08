@@ -2,6 +2,19 @@
   const feed=document.getElementById('postsFeed'),form=document.getElementById('postForm');if(!feed||!form)return;
   const input=document.getElementById('postText'),count=document.getElementById('postCount'),session=VigiaAPI.getSession();
   let rows=[],filter='todas',editingId=null;
+
+  // El guardia puede ENTRAR a Comunidad (nuevo: antes no tenia ni
+  // enlace en su menu) pero no tiene el permiso "comunidad.publicar"
+  // -- solo residente y administracion lo tienen (ver
+  // database/vigia_schema.sql). Mostrarle el formulario de publicar de
+  // todas formas solo terminaria en un 403 al enviar; mejor ocultarlo
+  // directo y dejar claro por que.
+  const esGuardia=session&&session.rol_codigo==='guardia';
+  const esStaff=session&&['guardia','admin','superadmin'].includes(session.rol_codigo);
+  if(esGuardia&&form){
+    form.outerHTML='<div class="panel"><p class="mono" style="color:var(--mist);font-size:.85rem;margin:0;"><i class="bi bi-eye-fill"></i> Estás viendo el muro de vecinos en modo lectura. Si algo publicado aquí necesita atención, usa "Marcar como incidencia" en esa publicación.</p></div>';
+  }
+
   input.addEventListener('keydown',e=>{if(e.key==='Enter'&&(input.value.match(/\n/g)||[]).length>=3)e.preventDefault()});
   input.addEventListener('input',()=>{input.value=input.value.replace(/\n{3,}/g,'\n\n');count.textContent=`${input.value.length}/300`});
   const badges={'General':'neutral','Objetos perdidos':'warn','Compra-venta':'ok','Aviso importante':'alert'};
@@ -42,6 +55,14 @@
       `<div class="post-actions">`+
       (mine?`<button class="post-like" data-edit="${x.id}"><i class="bi bi-pencil"></i> Editar</button><button class="post-like" data-delete="${x.id}"><i class="bi bi-trash"></i> Eliminar</button>`:`<button class="post-like" data-report="${x.id}"><i class="bi bi-flag"></i> Reportar</button>`)+
       (isAdmin&&!mine?`<button class="post-like" data-hide="${x.id}"><i class="bi bi-eye-slash"></i> Ocultar</button>`:'')+
+      // Le sirve al guardia (que no tiene forma de publicar aqui) o a
+      // administracion convertir algo que un vecino conto en el muro
+      // (ej. "vi a alguien merodeando en el parqueo") en una incidencia
+      // formal, sin tener que copiar el texto a mano en otra pantalla.
+      // Lleva a incidencias.html con el formulario ya prellenado -- no
+      // lo envia solo: quien reporta sigue revisando el texto y, si es
+      // guardia, sigue teniendo que adjuntar su propia evidencia.
+      (esStaff?`<a class="post-like" href="incidencias.html?desde_comunidad=${x.id}&titulo=${encodeURIComponent('Reportado desde Comunidad: '+x.contenido.slice(0,60))}&descripcion=${encodeURIComponent('Publicado por '+authorName(x)+' en el muro de vecinos: "'+x.contenido+'"')}"><i class="bi bi-shield-exclamation"></i> Marcar como incidencia</a>`:'')+
       `</div>`;
     const del=card.querySelector('[data-delete]');
     if(del)del.onclick=async()=>{

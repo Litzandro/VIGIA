@@ -36,6 +36,8 @@
   }
   function scheduleAuthCheck(){clearTimeout(authTimer);authTimer=setTimeout(checkAuthorized,400)}
   attachDocumentoHNMask(docInput);
+  attachMayusculas(plateInput);
+  attachSoloLetras(document.getElementById('qaName'),180);
   docInput.addEventListener('input',scheduleAuthCheck);
   plateInput.addEventListener('input',scheduleAuthCheck);
   async function compress(file){
@@ -43,7 +45,21 @@
     const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=data});
     const max=520,scale=Math.min(1,max/img.width);const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.58);
   }
-  photo.addEventListener('change',async()=>{const f=photo.files[0];if(!f)return;photoData=await compress(f);preview.src=photoData;preview.classList.add('show');setMsg('Fotografía lista como evidencia.')});
+  photo.addEventListener('change',async()=>{
+    const f=photo.files[0];
+    if(!f)return;
+    try{
+      photoData=await compress(f);
+      preview.src=photoData;
+      preview.classList.add('show');
+      setMsg('Fotografía lista como evidencia.');
+    }catch(err){
+      photoData='';
+      photo.value='';
+      preview.classList.remove('show');
+      setMsg('No se pudo leer esa imagen. Prueba con otra foto.','warn');
+    }
+  });
 
   async function loadPoints(){
     try{const r=await VigiaAPI.request('/puntos-acceso?limit=100');const rows=r.data||[];point.innerHTML=rows.length?rows.map(x=>`<option value="${x.id}">${escapeHtml(x.nombre)}</option>`).join(''):'<option value="1">Garita principal</option>'}catch(e){point.innerHTML='<option value="1">Garita principal</option>';setMsg('No se pudieron cargar los puntos; se usará el punto 1.','warn')}

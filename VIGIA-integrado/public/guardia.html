@@ -36,32 +36,13 @@
         </div>
 
         <div class="incidencias-toolbar">
-          <div class="agenda-tabs">
-            <button class="active" data-tab="alertas">Alertas de pánico</button>
-            <button data-tab="chat">Chat con residentes</button>
-          </div>
+          <h3 style="margin:0;">Alertas de pánico</h3>
+          <a href="mensajeria.html" class="btn btn-ghost"><i class="bi bi-chat-dots-fill"></i> Ir a Mensajería</a>
         </div>
 
-        <div class="panel" data-panel="alertas">
+        <div class="panel">
           <div id="guardPanicList"></div>
           <p class="mono" id="guardPanicEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:1.5rem 0;text-align:center;">Aún no se ha activado ninguna alerta de pánico.</p>
-        </div>
-
-        <div class="panel" data-panel="chat" style="display:none;padding:0;">
-          <div class="admin-chat-layout">
-            <div class="admin-chat-list" id="guardChatList"></div>
-            <div class="admin-chat-conversation">
-              <div class="chat-header">
-                <div class="post-av" id="guardChatAv">JP</div>
-                <div class="post-who"><b id="guardChatName">Jorge Paz</b><span class="mono"><span class="chat-status-dot"></span> En línea</span></div>
-              </div>
-              <div class="chat-messages" id="guardChatMessages"></div>
-              <form id="guardChatForm" class="chat-input-row" autocomplete="off">
-                <input type="text" class="form-control" id="guardChatInput" placeholder="Escribe un mensaje...">
-                <button type="submit" class="btn btn-solid" id="guardChatSendBtn"><i class="bi bi-send-fill"></i></button>
-              </form>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -70,7 +51,6 @@
 
 <script src="js/common.js"></script>
 <script src="js/guard-auth-store.js"></script>
-<script src="js/chat-store.js"></script>
 <script src="js/guardia.js"></script>
 </body>
 </html>

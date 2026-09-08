@@ -4,11 +4,13 @@
   if(!form || typeof AuthStore==='undefined') return;
 
   const nameInput=document.getElementById('regName');
+  attachSoloLetras(nameInput,100);
   const emailInput=document.getElementById('regEmail');
   const phoneInput=document.getElementById('regPhone');
   attachTelefonoHNMask(phoneInput);
   attachPhoneCountryCode(phoneInput);
   const unidadInput=document.getElementById('regUnidad');
+  if(unidadInput)unidadInput.setAttribute('maxlength','60');
   const coloniaInput=document.getElementById('regColonia');
   const passwordInput=document.getElementById('regPassword');
   const passwordConfirmInput=document.getElementById('regPasswordConfirm');

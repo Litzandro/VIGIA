@@ -14,6 +14,8 @@
   }
 
   attachTelefonoHNMask(document.getElementById('adPhone'));attachPhoneCountryCode(document.getElementById('adPhone'));
+  attachSoloLetras(document.getElementById('adName'),100);
+  attachSoloLetras(document.getElementById('reName'),150);
 
   const roleSelect = document.getElementById('adRole');
   function toggleFields() {

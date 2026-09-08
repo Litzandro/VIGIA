@@ -12,6 +12,10 @@
   function showError(msg){errorBox.querySelector('span').textContent=msg;errorBox.classList.add('show');}
   function hideError(){errorBox.classList.remove('show');}
 
+  if(new URLSearchParams(location.search).get('sesion')==='expirada'){
+    showError('Tu sesión expiró por inactividad. Inicia sesión de nuevo.');
+  }
+
   toggleBtn.addEventListener('click',()=>{
     const isPw=passwordInput.type==='password';
     passwordInput.type=isPw?'text':'password';

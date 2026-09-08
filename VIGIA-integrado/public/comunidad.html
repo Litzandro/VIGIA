@@ -58,6 +58,37 @@
   </div>
 </div>
 
+<!-- comunidad.js ya esperaba estos ids desde antes (boton "Reportar" en
+     cada publicacion ajena) pero el modal nunca se agrego al HTML -- el
+     boton no hacia absolutamente nada al hacer clic. -->
+<div class="modal-overlay" id="reportPostModal">
+  <div class="modal-box form-modal" id="reportPostModalBox">
+    <div class="modal-icon warn"><i class="bi bi-flag-fill"></i></div>
+    <h3>Reportar publicación</h3>
+    <p>Cuéntanos por qué esta publicación necesita revisión. Solo administración puede ver los reportes.</p>
+    <form id="reportPostForm" novalidate>
+      <div class="form-group">
+        <label for="reportPostMotivo">Motivo</label>
+        <select class="form-control" id="reportPostMotivo" required>
+          <option value="spam">Spam o publicidad</option>
+          <option value="ofensivo">Contenido ofensivo</option>
+          <option value="acoso">Acoso a otro vecino</option>
+          <option value="informacion_falsa">Información falsa</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="reportPostComentario">Comentario (opcional)</label>
+        <textarea class="form-control" id="reportPostComentario" maxlength="255" rows="3" placeholder="Algún detalle que le ayude a administración a revisarlo"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="reportPostCancel">Cancelar</button>
+        <button type="submit" class="btn btn-solid"><i class="bi bi-flag-fill"></i> Enviar reporte</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="js/common.js"></script>
 <script src="js/comunidad.js"></script>
 </body>

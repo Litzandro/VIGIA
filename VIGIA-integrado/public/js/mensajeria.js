@@ -71,6 +71,29 @@
       await openThread(currentId,true);await loadInbox();
     }catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}
   });
-  document.getElementById('refreshInbox').onclick=loadInbox;loadInbox();
+  document.getElementById('refreshInbox').onclick=loadInbox;
+
+  // Permite llegar aqui directo desde otra pantalla ya sabiendo con
+  // que residente se quiere hablar (ej. el boton "Mensaje" de una
+  // alerta de panico en guardia.html) -- en vez de tener que buscarlo
+  // a mano en la bandeja. Si no existe todavia una conversacion con
+  // ese residente, /mensajes/con-residente la crea de una vez.
+  const residenteAAbrir=new URLSearchParams(location.search).get('abrir_residente');
+  (async()=>{
+    if(residenteAAbrir){
+      try{
+        const r=await VigiaAPI.request(`/mensajes/con-residente/${residenteAAbrir}`);
+        await loadInbox();
+        if(r.data&&r.data.conversacion_id)openThread(r.data.conversacion_id);
+        history.replaceState(null,'',location.pathname);
+      }catch(e){
+        showToast(e.message,'bi-exclamation-triangle-fill');
+        loadInbox();
+      }
+    }else{
+      loadInbox();
+    }
+  })();
+
   setInterval(()=>{loadInbox();if(currentId)openThread(currentId)},7000);
 })();

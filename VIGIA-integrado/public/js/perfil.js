@@ -82,6 +82,7 @@
       input.value=(usuario&&usuario[field])||'';
       div.replaceWith(input);
       if(field==='telefono'&&window.attachTelefonoHNMask){attachTelefonoHNMask(input);attachPhoneCountryCode(input);}
+      if((field==='nombre'||field==='apellido')&&window.attachSoloLetras)attachSoloLetras(input,100);
     });
     editBtn.textContent='GUARDAR';
     cancelBtn.style.display='';

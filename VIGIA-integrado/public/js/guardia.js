@@ -1,9 +1,8 @@
 // ============ GUARDIA.JS ============
 // Exclusivo de guardia.html: valida la sesion contra GuardAuthStore,
 // muestra las alertas de panico REALES (via /api/alertas-panico) con
-// acciones reales para el guardia (marcar atendida o falsa alarma) y
-// el chat con residentes (via ChatStore, sigue pendiente de conectar
-// a la API real de mensajes).
+// acciones reales para el guardia (marcar atendida, falsa alarma,
+// llamar al residente o escribirle por Mensajería).
 //
 // Nota: el nombre/avatar en la barra lateral y el boton de cerrar
 // sesion (id="vgLogoutBtn") ya los maneja common.js de forma generica
@@ -28,22 +27,50 @@
     guardShiftLine.textContent=jornada+' · Altavista Residencial';
   }
 
-  // ---- Pestañas (Alertas / Chat) ----
-  const tabsGroup=document.querySelector('.agenda-tabs');
-  const panels={
-    alertas: document.querySelector('[data-panel="alertas"]'),
-    chat: document.querySelector('[data-panel="chat"]')
-  };
-  if(tabsGroup){
-    tabsGroup.querySelectorAll('button').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        tabsGroup.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        Object.entries(panels).forEach(([key,panel])=>{
-          if(panel) panel.style.display=(key===btn.dataset.tab) ? '' : 'none';
-        });
+  // ============ SONIDO + NOTIFICACION DEL NAVEGADOR PARA ALERTAS NUEVAS ============
+  // Antes, una alerta de panico nueva no sonaba ni avisaba de ninguna
+  // forma: el guardia solo se enteraba si en ese momento tenia la vista
+  // puesta en esta pantalla, viendo la lista actualizarse cada 20
+  // segundos. Para algo que puede ser una emergencia real, eso no
+  // alcanza. Ahora: un tono audible (generado con Web Audio, no
+  // depende de ningun archivo de sonido) mas una notificacion del
+  // navegador si el guardia dio permiso, cada vez que aparece una
+  // alerta "activa" que no estaba en la lista la vez anterior.
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+
+  function reproducirTonoAlerta(){
+    try{
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      const ahora=ctx.currentTime;
+      // Dos tonos cortos y agudos en sucesion (patron tipo "beep-beep"),
+      // mas facil de notar que un solo tono largo.
+      [0,0.32].forEach(offset=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.type='sine';
+        osc.frequency.setValueAtTime(880,ahora+offset);
+        gain.gain.setValueAtTime(0,ahora+offset);
+        gain.gain.linearRampToValueAtTime(0.35,ahora+offset+0.03);
+        gain.gain.linearRampToValueAtTime(0,ahora+offset+0.26);
+        osc.connect(gain);gain.connect(ctx.destination);
+        osc.start(ahora+offset);osc.stop(ahora+offset+0.3);
       });
-    });
+    }catch(e){/* Web Audio no disponible en este navegador; sin sonido, sin romper nada */}
+  }
+
+  function notificarAlertaNueva(alerta){
+    reproducirTonoAlerta();
+    if('Notification' in window && Notification.permission==='granted'){
+      const quien=alerta.vivienda?`${alerta.usuario_nombre} · ${alerta.vivienda}`:alerta.usuario_nombre;
+      const n=new Notification('🚨 Alerta de pánico activa',{
+        body:quien,
+        tag:'vigia-panico-'+alerta.id,
+        requireInteraction:true,
+      });
+      n.onclick=()=>{window.focus();n.close();};
+    }
   }
 
   // ============ ALERTAS DE PANICO (API real: /api/alertas-panico) ============
@@ -57,16 +84,6 @@
   // (no existe "en_camino" ni reasignar guardia; eso era del store falso).
   const STATUS_LABEL={activa:'Pendiente', atendida:'Atendida', falsa_alarma:'Falsa alarma'};
   const STATUS_BADGE_CLASS={activa:'alert', atendida:'ok', falsa_alarma:'neutral'};
-
-  // Mapeo simple vivienda -> camara mas cercana en camaras.html. En un
-  // residencial real esto vendria de un mapa de unidades a camaras dado
-  // de alta por el superadmin; por ahora usa un enlace general por torre.
-  function nearestCameraAnchor(vivienda){
-    const u=(vivienda||'').toLowerCase();
-    if(u.includes('torre b')) return {id:'cam-area-comun', label:'Área común'};
-    if(u.includes('torre a')) return {id:'cam-porton-principal', label:'Portón principal'};
-    return {id:'cam-porton-principal', label:'Portón principal'};
-  }
 
   function formatFecha(iso){
     if(!iso) return '';
@@ -95,10 +112,20 @@
     card.className='panic-card'+(a.estado==='activa' ? ' is-pendiente' : '');
     card.dataset.id=a.id;
 
-    const cam=nearestCameraAnchor(a.vivienda);
     const who=a.vivienda ? `${a.usuario_nombre} · ${a.vivienda}` : a.usuario_nombre;
     const tipo=a.tipo_alerta_nombre || 'Alerta';
     const resuelta=a.estado!=='activa';
+
+    // Llamar y Mensaje solo tienen sentido si sabemos a quien -- si por
+    // algun motivo no hay telefono guardado (campo opcional) o no hay
+    // usuario_id, el boton correspondiente simplemente no aparece, en
+    // vez de mostrar un enlace roto.
+    const botonLlamar=a.usuario_telefono
+      ? `<a class="btn btn-ghost" href="tel:${escapeHtml(a.usuario_telefono)}"><i class="bi bi-telephone-fill"></i> Llamar</a>`
+      : '';
+    const botonMensaje=a.usuario_id
+      ? `<a class="btn btn-ghost" href="mensajeria.html?abrir_residente=${a.usuario_id}"><i class="bi bi-chat-dots-fill"></i> Mensaje</a>`
+      : '';
 
     card.innerHTML=
       '<div class="panic-card-head">'+
@@ -113,7 +140,16 @@
           '<button type="button" class="btn btn-solid panic-action-btn" data-status="atendida"><i class="bi bi-check-lg"></i> Atendida</button>'+
           '<button type="button" class="btn btn-ghost panic-action-btn" data-status="falsa_alarma"><i class="bi bi-x-lg"></i> Falsa alarma</button>'
         )+
-        '<a class="btn btn-ghost panic-card-cam-link" href="camaras.html#'+cam.id+'" target="_blank" rel="noopener"><i class="bi bi-camera-video-fill"></i> Ver cámara más cercana (' +cam.label+ ')</a>'+
+        botonLlamar+botonMensaje+
+        // Antes esto mostraba un enlace a "la camara mas cercana"
+        // adivinada por texto ("torre a"/"torre b" en el nombre de la
+        // vivienda, cualquier otro caso caia siempre al mismo default) --
+        // una adivinanza vestida de dato preciso es peor que no adivinar:
+        // el guardia podia confiar en una camara que en realidad no era
+        // la correcta durante una emergencia real. Hasta que exista un
+        // mapeo de verdad vivienda->camara (dado de alta por el admin),
+        // el enlace honesto es simplemente abrir todas las camaras.
+        '<a class="btn btn-ghost" href="camaras.html" target="_blank" rel="noopener"><i class="bi bi-camera-video-fill"></i> Ver cámaras</a>'+
       '</div>';
 
     card.querySelector('.panic-card-who-text b').textContent=who;
@@ -142,6 +178,7 @@
   }
 
   let panicAlerts=[];
+  let idsActivasConocidas=null; // null = primera carga; no suena en la primera carga, solo ante alertas NUEVAS
   function renderPanicAlerts(){
     if(!guardPanicList) return;
     guardPanicList.innerHTML='';
@@ -163,6 +200,14 @@
     try{
       const r=await VigiaAPI.request('/alertas-panico?limit=100&sort=fecha_hora:desc');
       panicAlerts=r.data||[];
+
+      const activasAhora=panicAlerts.filter(a=>a.estado==='activa');
+      if(idsActivasConocidas!==null){
+        const nuevas=activasAhora.filter(a=>!idsActivasConocidas.has(a.id));
+        nuevas.forEach(notificarAlertaNueva);
+      }
+      idsActivasConocidas=new Set(activasAhora.map(a=>a.id));
+
       renderPanicAlerts();
     }catch(e){
       guardPanicList.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;
@@ -171,90 +216,4 @@
 
   loadPanicAlerts();
   setInterval(loadPanicAlerts, 20000);
-
-  // ============ CHAT CON RESIDENTES ============
-  // Mismo canal (ChatStore/localStorage) que usan chat.html y la pestaña
-  // de chat de superadmin.html. En este demo solo hay un residente
-  // (Jorge Paz), igual que en el resto del prototipo.
-  const CHAT_CONTACTS=[{name:'Jorge Paz', detail:'Torre B · Depto 402'}];
-  const chatList=document.getElementById('guardChatList');
-  const chatMessagesEl=document.getElementById('guardChatMessages');
-  const chatForm=document.getElementById('guardChatForm');
-  const chatInput=document.getElementById('guardChatInput');
-  const chatNameEl=document.getElementById('guardChatName');
-  const chatAvEl=document.getElementById('guardChatAv');
-  const hasChatStore=typeof ChatStore!=='undefined';
-  let activeContact=null;
-
-  function initials(name){
-    return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
-  }
-
-  function renderConversation(name){
-    if(!chatMessagesEl || !hasChatStore) return;
-    chatMessagesEl.innerHTML='';
-    ChatStore.getThread(name).forEach(m=>{
-      const who = m.sender==='staff' ? 'resident' : 'guard';
-      const msg=document.createElement('div');
-      msg.className='chat-msg '+who;
-      msg.innerHTML='<div class="chat-bubble"></div><span class="chat-time mono"></span>';
-      msg.querySelector('.chat-bubble').textContent=m.text;
-      msg.querySelector('.chat-time').textContent=m.time;
-      chatMessagesEl.appendChild(msg);
-    });
-    chatMessagesEl.scrollTop=chatMessagesEl.scrollHeight;
-  }
-
-  function selectContact(name){
-    activeContact=name;
-    if(hasChatStore){
-      ChatStore.ensureSeed(name, [
-        {sender:'staff', text:'Buenas tardes, quedo atento por si necesita algo.', time:'3:40 PM'}
-      ]);
-    }
-    if(chatNameEl) chatNameEl.textContent=name;
-    if(chatAvEl) chatAvEl.textContent=initials(name);
-    if(chatList){
-      chatList.querySelectorAll('.admin-chat-contact').forEach(c=>{
-        c.classList.toggle('active', c.dataset.name===name);
-      });
-    }
-    renderConversation(name);
-  }
-
-  function renderChatContacts(){
-    if(!chatList) return;
-    chatList.innerHTML='';
-    CHAT_CONTACTS.forEach(r=>{
-      const c=document.createElement('div');
-      c.className='admin-chat-contact';
-      c.dataset.name=r.name;
-      c.innerHTML=
-        '<div class="post-av"></div>'+
-        '<div class="post-who"><b></b><span class="mono"></span></div>';
-      c.querySelector('.post-av').textContent=initials(r.name);
-      c.querySelector('.post-who b').textContent=r.name;
-      c.querySelector('.post-who span').textContent=r.detail;
-      c.addEventListener('click',()=>selectContact(r.name));
-      chatList.appendChild(c);
-    });
-    if(!activeContact && CHAT_CONTACTS.length) selectContact(CHAT_CONTACTS[0].name);
-  }
-
-  if(chatForm){
-    chatForm.addEventListener('submit',(e)=>{
-      e.preventDefault();
-      const text=chatInput.value.trim();
-      if(!text || !activeContact || !hasChatStore) return;
-      ChatStore.addMessage(activeContact, 'staff', text);
-      renderConversation(activeContact);
-      chatInput.value='';
-    });
-  }
-
-  if(hasChatStore){
-    ChatStore.onChange(()=>{ if(activeContact) renderConversation(activeContact); });
-  }
-
-  renderChatContacts();
 })();

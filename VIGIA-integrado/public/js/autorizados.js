@@ -2,8 +2,19 @@
   const form=document.getElementById('authorizedForm'); if(!form)return;
   let photo='';
   async function imageData(file){if(!file)return'';const src=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src});const max=480,scale=Math.min(1,max/img.width),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.55)}
-  document.getElementById('auPhoto').onchange=async e=>{photo=await imageData(e.target.files[0]);showToast('Fotografía lista')};
+  document.getElementById('auPhoto').onchange=async e=>{
+    try{
+      photo=await imageData(e.target.files[0]);
+      showToast('Fotografía lista');
+    }catch(err){
+      photo='';
+      e.target.value='';
+      showToast('No se pudo leer esa imagen. Prueba con otra foto.','bi-exclamation-triangle-fill');
+    }
+  };
   attachDocumentoHNMask(document.getElementById('auDocument'));
+  attachSoloLetras(document.getElementById('auName'),180);
+  attachMayusculas(document.getElementById('auPlate'));
   // Selects de 15 en 15 minutos con AM/PM (el value real sigue siendo
   // HH:MM en 24h, que es lo que ya entiende el backend).
   document.getElementById('auFrom').innerHTML=buildAmPmTimeOptions();

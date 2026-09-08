@@ -23,6 +23,7 @@
   const form = document.getElementById('newVisitForm');
 
   const nameInput = document.getElementById('visitName');
+  attachSoloLetras(nameInput, 150);
   const dateInput = document.getElementById('visitDate');
   const timeInput = document.getElementById('visitTime');
   const reasonInput = document.getElementById('visitReason');

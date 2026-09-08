@@ -925,6 +925,23 @@ CREATE TABLE publicaciones_comunidad (
     CONSTRAINT fk_pub_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- El frontend (public/js/comunidad.js) y el override de administracion
+-- (src/routes/overrides/publicacionesComunidad.js, GET /reportadas) ya
+-- venian escritos esperando esta tabla desde antes de que existiera --
+-- el boton "Reportar publicacion" no hacia nada al hacer clic, y la
+-- bandeja de moderacion de publicaciones reportadas fallaba al armar el
+-- include. Se agrega ahora para que ambos queden conectados de verdad.
+CREATE TABLE publicaciones_reportes (
+    id                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    publicacion_id        BIGINT UNSIGNED NOT NULL,
+    reportado_por         BIGINT UNSIGNED NOT NULL,
+    motivo                ENUM('spam','ofensivo','acoso','informacion_falsa','otro') NOT NULL,
+    comentario            VARCHAR(255) NULL,
+    fecha_creacion        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_pubrep_publicacion FOREIGN KEY (publicacion_id) REFERENCES publicaciones_comunidad(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pubrep_usuario FOREIGN KEY (reportado_por) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Resultado del filtro automático del chat. No se envía contenido a una
 -- IA externa por defecto; el adaptador puede activarse desde integraciones.
 CREATE TABLE moderacion_mensajes (
