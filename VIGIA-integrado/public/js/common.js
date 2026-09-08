@@ -282,7 +282,7 @@ window.attachPhoneCountryCode=attachPhoneCountryCode;
 // nombres de archivo (VIGIA_STAFF_PAGES) -- es decir, por la PAGINA en
 // la que estas, no por QUIEN inicio sesion. Cualquier pagina que no
 // estuviera en esa lista (terminos.html, config.html, perfil.html,
-// notificaciones.html, paquetes.html) siempre mostraba el sidebar de
+// notificaciones.html) siempre mostraba el sidebar de
 // residente, aunque un guardia o un admin la tuviera abierta -- por
 // eso un guardia que entraba a "Terminos y Condiciones" veia el menu y
 // el logo del portal de residente (el logo llevaba a dashboard.html en
@@ -382,7 +382,7 @@ function prepararSidebarUnico(sidebar,current){
         try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch(e){}
         const TIPO_A_CATEGORIA={ingreso_visita:'visitas',incidencia:'incidencias',comunidad:'administracion',alerta:'seguridad'};
         const noLeidas=(r.data||[]).filter(n=>{
-          if(n.leida)return false;
+          if(n.leida||['paquete','llegada_segura'].includes(n.tipo))return false;
           const cat=TIPO_A_CATEGORIA[n.tipo];
           return !(cat&&prefs[cat]===false);
         }).length;
