@@ -93,6 +93,89 @@ const VigiaAPI=(function(){
   return {request,getToken,getSession,setSession,clearSession,destinationForRole,BASE_URL,syncOffline,offlineCount:()=>readQueue().length};
 })();
 
+// ============ CONFIRMACION VISUAL VIGIA ============
+// Sustituye los confirm() nativos del navegador en acciones importantes.
+// Devuelve una Promise<boolean> para poder usar: if (!(await VigiaConfirm(...))) return;
+window.VigiaConfirm=function(options={}){
+  const config={
+    eyebrow:'SEGURIDAD DE CUENTA',
+    title:'¿Confirmar acción?',
+    message:'Esta acción requiere tu confirmación.',
+    confirmText:'Confirmar',
+    cancelText:'Cancelar',
+    icon:'bi-shield-check',
+    tone:'alert',
+    ...options
+  };
+
+  return new Promise(resolve=>{
+    const previous=document.querySelector('.vigia-confirm-overlay');
+    if(previous)previous.remove();
+
+    const overlay=document.createElement('div');
+    overlay.className='vigia-confirm-overlay';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','vigiaConfirmTitle');
+    overlay.setAttribute('aria-describedby','vigiaConfirmMessage');
+
+    const dialog=document.createElement('div');
+    dialog.className=`vigia-confirm-box ${config.tone==='alert'?'is-alert':''}`;
+    dialog.innerHTML=`
+      <button type="button" class="vigia-confirm-close" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+      <div class="vigia-confirm-icon" aria-hidden="true"><i class="bi ${config.icon}"></i></div>
+      <span class="vigia-confirm-eyebrow"></span>
+      <h3 id="vigiaConfirmTitle"></h3>
+      <p id="vigiaConfirmMessage"></p>
+      <div class="vigia-confirm-actions">
+        <button type="button" class="btn btn-ghost" data-vigia-cancel></button>
+        <button type="button" class="btn btn-alert" data-vigia-confirm><i class="bi bi-box-arrow-right"></i><span></span></button>
+      </div>`;
+
+    dialog.querySelector('.vigia-confirm-eyebrow').textContent=config.eyebrow;
+    dialog.querySelector('#vigiaConfirmTitle').textContent=config.title;
+    dialog.querySelector('#vigiaConfirmMessage').textContent=config.message;
+    dialog.querySelector('[data-vigia-cancel]').textContent=config.cancelText;
+    dialog.querySelector('[data-vigia-confirm] span').textContent=config.confirmText;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    const cancelBtn=dialog.querySelector('[data-vigia-cancel]');
+    const confirmBtn=dialog.querySelector('[data-vigia-confirm]');
+    const closeBtn=dialog.querySelector('.vigia-confirm-close');
+    let settled=false;
+
+    const finish=value=>{
+      if(settled)return;
+      settled=true;
+      document.removeEventListener('keydown',onKeydown);
+      overlay.classList.remove('open');
+      setTimeout(()=>overlay.remove(),180);
+      resolve(value);
+    };
+    const onKeydown=e=>{
+      if(e.key==='Escape')finish(false);
+      if(e.key==='Tab'){
+        const focusable=[closeBtn,cancelBtn,confirmBtn];
+        const current=focusable.indexOf(document.activeElement);
+        if(e.shiftKey&&current===0){e.preventDefault();confirmBtn.focus();}
+        else if(!e.shiftKey&&current===focusable.length-1){e.preventDefault();closeBtn.focus();}
+      }
+    };
+
+    cancelBtn.addEventListener('click',()=>finish(false));
+    closeBtn.addEventListener('click',()=>finish(false));
+    confirmBtn.addEventListener('click',()=>finish(true));
+    overlay.addEventListener('click',e=>{if(e.target===overlay)finish(false)});
+    document.addEventListener('keydown',onKeydown);
+
+    requestAnimationFrame(()=>{
+      overlay.classList.add('open');
+      cancelBtn.focus();
+    });
+  });
+};
+
 // Evita abrir paneles protegidos sin una sesion real y valida el rol.
 (function(){
   const page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
@@ -397,7 +480,15 @@ function prepararSidebarUnico(sidebar,current){
   const logout=sidebar.querySelector('#vgLogoutBtn');
   if(logout){
     logout.addEventListener('click',async()=>{
-      if(!confirm('¿Cerrar sesión?'))return;
+      const confirmed=await VigiaConfirm({
+        title:'¿Quieres cerrar tu sesión?',
+        message:'Saldrás de VIGIA en este dispositivo. Para volver a entrar tendrás que iniciar sesión nuevamente.',
+        confirmText:'Cerrar sesión',
+        cancelText:'Cancelar',
+        icon:'bi-box-arrow-right',
+        tone:'alert'
+      });
+      if(!confirmed)return;
       try{await VigiaAPI.request('/auth/logout',{method:'POST',offline:false})}catch(e){}
       VigiaAPI.clearSession();
       location.replace('login.html');
