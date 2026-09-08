@@ -1626,3 +1626,155 @@ body.has-panic-fab .assistant-panel{
   opacity:1 !important;
   visibility:visible !important;
 }
+
+
+/* =========================================================
+   CONFIRMACIÓN VISUAL — CERRAR SESIÓN
+   ========================================================= */
+.vigia-confirm-overlay{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:grid;
+  place-items:center;
+  padding:1.2rem;
+  background:rgba(5,10,7,.76);
+  backdrop-filter:blur(10px) saturate(120%);
+  -webkit-backdrop-filter:blur(10px) saturate(120%);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease;
+}
+
+.vigia-confirm-overlay.open{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.vigia-confirm-box{
+  position:relative;
+  width:min(430px,100%);
+  overflow:hidden;
+  padding:2.15rem 2rem 1.8rem;
+  text-align:center;
+  background:
+    radial-gradient(circle at 50% -10%,rgba(18,232,160,.12),transparent 38%),
+    var(--card);
+  border:1px solid var(--line-strong);
+  border-radius:24px;
+  box-shadow:0 30px 80px rgba(0,0,0,.48),0 0 0 1px rgba(255,255,255,.025) inset;
+  transform:translateY(14px) scale(.975);
+  transition:transform .2s ease;
+}
+
+.vigia-confirm-box::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:20%;
+  right:20%;
+  height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  opacity:.8;
+}
+
+.vigia-confirm-box.is-alert{
+  background:
+    radial-gradient(circle at 50% -8%,rgba(229,84,74,.13),transparent 39%),
+    var(--card);
+}
+
+.vigia-confirm-box.is-alert::before{
+  background:linear-gradient(90deg,transparent,var(--alert),transparent);
+}
+
+.vigia-confirm-overlay.open .vigia-confirm-box{
+  transform:translateY(0) scale(1);
+}
+
+.vigia-confirm-close{
+  position:absolute;
+  top:.85rem;
+  right:.85rem;
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:transparent;
+  color:var(--mist);
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.vigia-confirm-close:hover,
+.vigia-confirm-close:focus-visible{
+  color:var(--bone);
+  background:rgba(237,231,214,.06);
+  border-color:var(--line);
+  outline:none;
+}
+
+.vigia-confirm-icon{
+  width:68px;
+  height:68px;
+  display:grid;
+  place-items:center;
+  margin:0 auto 1rem;
+  border-radius:22px;
+  background:var(--alert-soft);
+  border:1px solid rgba(229,84,74,.28);
+  color:var(--alert);
+  font-size:1.65rem;
+  box-shadow:0 14px 35px -20px rgba(229,84,74,.9);
+}
+
+.vigia-confirm-eyebrow{
+  display:block;
+  margin-bottom:.55rem;
+  color:var(--alert);
+  font-family:var(--f-mono);
+  font-size:.61rem;
+  font-weight:700;
+  letter-spacing:.13em;
+}
+
+.vigia-confirm-box h3{
+  margin:0 0 .65rem;
+  color:var(--bone);
+  font-size:1.42rem;
+  line-height:1.2;
+}
+
+.vigia-confirm-box p{
+  max-width:350px;
+  margin:0 auto 1.55rem;
+  color:var(--bone-dim);
+  font-size:.86rem;
+  line-height:1.65;
+}
+
+.vigia-confirm-actions{
+  display:grid;
+  grid-template-columns:1fr 1.15fr;
+  gap:.75rem;
+}
+
+.vigia-confirm-actions .btn{
+  min-height:44px;
+  justify-content:center;
+  border-radius:12px;
+}
+
+.vigia-confirm-actions .btn-alert{
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+}
+
+@media (max-width:520px){
+  .vigia-confirm-box{padding:2rem 1.25rem 1.25rem;border-radius:20px;}
+  .vigia-confirm-actions{grid-template-columns:1fr;}
+  .vigia-confirm-actions [data-vigia-confirm]{order:-1;}
+}
