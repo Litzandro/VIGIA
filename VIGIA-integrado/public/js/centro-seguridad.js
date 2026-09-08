@@ -10,7 +10,7 @@
   async function load(){
     try{
       const r=await VigiaAPI.request('/centro-seguridad/resumen',{offline:false});const d=r.data||{},m=d.metricas||{};
-      $('mAccess').textContent=m.accesos_hoy||0;$('mQueue').textContent=m.cola_activa||0;$('mIncidents').textContent=m.incidencias_abiertas||0;$('mSOS').textContent=m.alertas_sos||0;$('mGuards').textContent=m.guardias_activos||0;$('mPackages').textContent=m.paquetes_pendientes||0;$('mArrivals').textContent=m.llegadas_en_curso||0;$('mInvites').textContent=m.invitaciones_vigentes||0;
+      $('mAccess').textContent=m.accesos_hoy||0;$('mQueue').textContent=m.cola_activa||0;$('mIncidents').textContent=m.incidencias_abiertas||0;$('mSOS').textContent=m.alertas_sos||0;$('mGuards').textContent=m.guardias_activos||0;$('mInvites').textContent=m.invitaciones_vigentes||0;
       $('updatedAt').textContent=d.actualizado_en?`Actualizado ${fmt(d.actualizado_en)}`:'';
       $('emergencyBanner').classList.toggle('active',(m.alertas_sos||0)>0);$('emergencyText').textContent=(m.alertas_sos||0)===1?'Hay 1 alerta SOS activa que requiere atención.':`Hay ${m.alertas_sos||0} alertas SOS activas que requieren atención.`;
       const rules=$('ruleList');clear(rules);(d.reglas||[]).forEach(x=>rules.appendChild(ruleItem(x)));if(!(d.reglas||[]).length)empty(rules,'Sin alertas inteligentes. La operación está dentro de parámetros normales.');
