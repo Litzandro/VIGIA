@@ -18,11 +18,16 @@ const envioService = require('../../services/envioService');
 const invitacionesService = require('../../services/invitacionesService');
 const { applyOwnershipOnCreate } = require('../../utils/crudFactory');
 const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
+const { validarCampos } = require('../../config/resourceValidation');
 
 module.exports = function invitacionesOverride({ router, model, handlers, pkPath }) {
   router.post('/', async (req, res, next) => {
     try {
       const body = applyOwnershipOnCreate(model, req.user, req.body || {});
+      const errores = validarCampos(model, body);
+      if (errores.length) {
+        return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+      }
       body.codigo_qr = qrService.generarCodigo();
       // el que crea la invitacion siempre es el residente logueado si
       // aplica; si la crea un admin/guardia a nombre de un residente,

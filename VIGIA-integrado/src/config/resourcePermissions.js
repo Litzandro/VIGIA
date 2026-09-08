@@ -56,7 +56,9 @@ module.exports = {
 
   tipos_alerta: { create: ADMIN, read: AUTH_ONLY, update: ADMIN, remove: ADMIN },
   alertas_panico: { create: { permission: 'alertas.emitir' }, read: AUTH_ONLY, update: { permission: 'alertas.atender' }, remove: ADMIN },
+  llegadas_seguras: { create: AUTH_ONLY, read: AUTH_ONLY, update: AUTH_ONLY, remove: ADMIN },
 
+  paquetes: { create: { roles: ['guardia', 'admin', 'superadmin'] }, read: AUTH_ONLY, update: { roles: ['guardia', 'admin', 'superadmin'] }, remove: ADMIN },
 
   // Las notificaciones las crea el backend (servicios internos), no un
   // usuario a mano por la API. La lectura queda abierta a cualquier
@@ -83,6 +85,13 @@ module.exports = {
   planes_servicio: { create: { roles: ['superadmin'] }, read: AUTH_ONLY, update: { roles: ['superadmin'] }, remove: { roles: ['superadmin'] } },
   suscripciones: { create: { permission: 'suscripciones.gestionar' }, read: { roles: ['superadmin'] }, update: { permission: 'suscripciones.gestionar' }, remove: { roles: ['superadmin'] } },
   contactos_emergencia: { create: AUTH_ONLY, read: AUTH_ONLY, update: AUTH_ONLY, remove: AUTH_ONLY },
+  // Reportar una publicacion es algo que cualquiera con sesion deberia
+  // poder hacer (residente, guardia o administracion) si ve algo
+  // inapropiado -- no hace falta un permiso especial para eso, igual
+  // que contactos_emergencia arriba. La bandeja de moderacion en si
+  // (GET /publicaciones-comunidad/reportadas) ya la protege aparte
+  // publicacionesComunidad.js, exigiendo admin/superadmin.
+  publicaciones_reportes: { create: AUTH_ONLY, read: AUTH_ONLY, update: AUTH_ONLY, remove: AUTH_ONLY },
   preferencias_usuario: { create: AUTH_ONLY, read: AUTH_ONLY, update: AUTH_ONLY, remove: AUTH_ONLY },
   acciones_offline: { create: { permission: 'offline.sincronizar' }, read: AUTH_ONLY, update: ADMIN, remove: ADMIN },
   publicaciones_comunidad: { create: { permission: 'comunidad.publicar' }, read: AUTH_ONLY, update: { permission: 'comunidad.publicar' }, remove: { permission: 'comunidad.publicar' } },

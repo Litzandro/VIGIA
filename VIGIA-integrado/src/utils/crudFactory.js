@@ -13,6 +13,7 @@
 // (permisos/roles) lo aplica buildAccessMiddleware antes de llegar aca.
 
 const RESERVED_QUERY_PARAMS = new Set(['page', 'limit', 'sort']);
+const { validarCampos } = require('../config/resourceValidation');
 
 function parsePagination(query) {
   const defaultSize = parseInt(process.env.DEFAULT_PAGE_SIZE, 10) || 20;
@@ -153,6 +154,10 @@ function createCrudHandlers(model) {
     async create(req, res, next) {
       try {
         const data = applyOwnershipOnCreate(model, req.user, req.body || {});
+        const errores = validarCampos(model, data);
+        if (errores.length) {
+          return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+        }
         const row = await model.create(data);
         res.status(201).json({ data: row });
       } catch (err) {
@@ -166,6 +171,10 @@ function createCrudHandlers(model) {
         where = applyOwnershipScope(model, req.user, where);
         const row = await model.findOne({ where });
         if (!row) return res.status(404).json({ error: `${model.name} no encontrado` });
+        const errores = validarCampos(model, req.body || {});
+        if (errores.length) {
+          return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+        }
         await row.update(req.body || {});
         res.json({ data: row });
       } catch (err) {

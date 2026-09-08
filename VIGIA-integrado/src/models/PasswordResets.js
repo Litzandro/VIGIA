@@ -1,12 +1,7 @@
 'use strict';
-// A diferencia de la mayoria de archivos en esta carpeta, este NO lo
-// genero scripts/generate-models.js (ese script lee database/vigia_schema.sql
-// y en este entregable no se pudo volver a correr contra una base real).
-// Se agrego a mano siguiendo exactamente el mismo formato que los demas
-// modelos generados, para que src/models/index.js lo recoja solo (escanea
-// todos los .js de esta carpeta). Si mas adelante se corre
-// "npm run generate:models", este archivo se puede reemplazar por la
-// version auto-generada sin perder nada (misma tabla, mismas columnas).
+// Archivo generado automaticamente por scripts/generate-models.js
+// a partir de database/vigia_schema.sql (tabla "password_resets").
+// No editar a mano: si el esquema SQL cambia, correr "npm run generate:models".
 
 module.exports = (sequelize, DataTypes) => {
   const PasswordResets = sequelize.define('PasswordResets', {

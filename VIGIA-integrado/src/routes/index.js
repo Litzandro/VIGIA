@@ -19,7 +19,16 @@ const resourcePermissions = require('../config/resourcePermissions');
 
 const router = express.Router();
 const NON_MODEL_KEYS = new Set(['sequelize', 'Sequelize']);
-const DISABLED_TABLES = new Set(['paquetes', 'llegadas_seguras']);
+
+// Paqueteria y Llegada segura se quitaron del sistema (el equipo ya las
+// habia quitado en otras partes del proyecto). Se excluyen aqui mismo,
+// en el registro automatico de rutas, en vez de borrar los modelos o
+// las tablas de la base de datos: asi ningun endpoint /api/paquetes ni
+// /api/llegadas-seguras queda expuesto (responden 404, como cualquier
+// ruta que no existe), pero el cambio es minimo y facil de revertir si
+// alguna vez hiciera falta -- no se toca database/vigia_schema.sql ni
+// se corre ninguna migracion.
+const RECURSOS_DESACTIVADOS = new Set(['paquetes', 'llegadas_seguras']);
 
 const overrides = {
   residenciales: require('./overrides/residenciales'),
@@ -36,6 +45,7 @@ const overrides = {
   dispositivos_usuario: require('./overrides/dispositivosUsuario'),
   contactos_emergencia: require('./overrides/contactosEmergencia'),
   publicaciones_comunidad: require('./overrides/publicacionesComunidad'),
+  publicaciones_reportes: require('./overrides/publicacionesReportes'),
   integraciones: require('./overrides/integraciones'),
   turnos_guardia: require('./overrides/turnosGuardia'),
   mensajes: require('./overrides/mensajes'),
@@ -49,10 +59,10 @@ const registeredResources = [];
 
 Object.keys(db)
   .filter((key) => !NON_MODEL_KEYS.has(key))
-  .filter((key) => !DISABLED_TABLES.has(db[key].getTableName()))
   .forEach((modelName) => {
     const model = db[modelName];
     const tableName = model.getTableName();
+    if (RECURSOS_DESACTIVADOS.has(tableName)) return;
     const handlers = createCrudHandlers(model);
     const resource = toKebabCase(tableName);
     const pkPath = model.primaryKeyAttributes.map((attr) => `:${attr}`).join('/');

@@ -8,6 +8,7 @@ const { validatePassword } = require('../utils/passwordPolicy');
 const { enviarCorreo } = require('../services/envioService');
 const { normalizarTelefonoHN } = require('../utils/telefonoHN');
 const { sembrarTiposIncidenciaDefecto } = require('../utils/catalogoTiposIncidencia');
+const { validarCampos } = require('../config/resourceValidation');
 
 // Costo de bcrypt: cada +1 duplica el tiempo de cómputo del hash. 12 es
 // el estándar recomendado actual (10 se quedó corto con el hardware de
@@ -220,6 +221,18 @@ async function register(req, res, next) {
     // VARCHAR NOT NULL, no exige que tenga texto), y nombre_completo ya
     // sabe recortar el espacio sobrante cuando apellido viene vacio.
     const apellido = parts.join(' ');
+
+    // El registro publico es el punto de entrada mas expuesto de toda la
+    // app -- cualquiera en internet puede llamarlo sin sesion. Antes de
+    // este chequeo, no habia NADA que impidiera registrarse con un
+    // nombre como "12345" o un telefono con letras: el unico requisito
+    // era que los campos no vinieran vacios.
+    const erroresRegistro = validarCampos(db.Usuarios, { nombre, apellido: apellido || null, telefono: phone });
+    if (erroresRegistro.length) {
+      await transaction.rollback();
+      return res.status(400).json({ error: erroresRegistro[0] });
+    }
+
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const usuario = await db.Usuarios.create({

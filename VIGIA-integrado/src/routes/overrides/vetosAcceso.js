@@ -5,6 +5,7 @@ const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 const { Op } = require('sequelize');
 const { primaryKeyWhere } = require('../../utils/crudFactory');
 const { VETO_ESTADO, VETO_ALCANCE, esAdmin, esSuperadmin } = require('../../config/estados');
+const { validarCampos } = require('../../config/resourceValidation');
 
 // Regla de negocio (Requisito de conflictos): si al activar un veto la
 // persona vetada tiene tambien una autorizacion recurrente vigente,
@@ -57,6 +58,14 @@ module.exports = function vetosAccesoOverride({ router, model, handlers, pkPath 
       const motivo = String(req.body.motivo || '').trim();
       if (!nombre || !motivo) return res.status(400).json({ error: 'Nombre y motivo son requeridos.' });
 
+      const errores = validarCampos(model, {
+        nombre_persona: nombre,
+        motivo,
+        numero_documento: req.body.numero_documento,
+        telefono: req.body.telefono,
+      });
+      if (errores.length) return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+
       // Un residente solo puede vetar dentro de su propia vivienda; solo
       // admin/superadmin puede pedir un veto a nivel de toda la
       // residencial. Igual, un residente no puede autoaprobar su propio
@@ -82,7 +91,20 @@ module.exports = function vetosAccesoOverride({ router, model, handlers, pkPath 
         fecha_hasta: req.body.fecha_hasta || null,
         fecha_resolucion: nace_activo ? new Date() : null,
       });
-      res.status(201).json({ data: row });
+
+      // Bug real: la deteccion de conflictos (alguien vetado que TAMBIEN
+      // tiene una autorizacion recurrente activa) solo estaba conectada
+      // en PATCH /resolver -- pero un admin puede crear un veto YA
+      // ACTIVO directo aqui mismo (linea de arriba, "estado" por defecto
+      // es VETO_ESTADO.ACTIVO para admin), sin pasar nunca por
+      // /resolver. Ese camino se saltaba la deteccion por completo.
+      // Encontrado probando el flujo admin -> vetos contra un servidor
+      // real: crear una autorizacion activa y un veto activo para la
+      // misma persona no generaba ningun conflicto en
+      // /conflictos-permisos, cuando si deberia.
+      const conflicto = nace_activo ? await detectarConflictoPorVetoActivo(row, req.user) : null;
+
+      res.status(201).json({ data: row, conflicto });
     } catch (err) { next(err); }
   });
 

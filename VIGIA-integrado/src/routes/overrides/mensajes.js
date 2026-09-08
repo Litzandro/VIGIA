@@ -169,6 +169,48 @@ async function messagesForConversation(conversationId) {
   return rows.map((row) => ({ ...row.toJSON(), autor_nombre: userMap.get(String(row.usuario_id)) || 'Usuario' }));
 }
 
+// Version de ensureResidentConversation pero iniciada por PERSONAL
+// (guardia/admin/superadmin) hacia un residente especifico -- la
+// version original solo sirve desde la perspectiva del residente
+// (implicitamente "mi" conversacion con quien este de turno). Esta la
+// necesita, por ejemplo, el boton "Mensaje" de una alerta de panico en
+// guardia.html: el guardia quiere escribirle a ESE residente en
+// concreto, no a "quien sea que le escriba primero".
+async function ensureStaffConversationWithResident(staffUser, residentId) {
+  const resident = await db.Usuarios.findOne({ where: { id: residentId, residencial_id: staffUser.residencial_id } });
+  if (!resident) throw Object.assign(new Error('Ese residente no existe en tu residencial.'), { status: 404 });
+
+  const residentConvIds = await participantConversationIds(resident.id);
+  if (residentConvIds.length) {
+    const existing = await db.Conversaciones.findOne({
+      where: { id: { [Op.in]: residentConvIds }, residencial_id: staffUser.residencial_id, tipo: 'directa' },
+      order: [['id', 'DESC']],
+    });
+    if (existing) {
+      const alreadyIn = await db.ConversacionesParticipantes.findOne({
+        where: { conversacion_id: existing.id, usuario_id: staffUser.id },
+      });
+      if (!alreadyIn) {
+        await db.ConversacionesParticipantes.create({ conversacion_id: existing.id, usuario_id: staffUser.id });
+      }
+      return existing;
+    }
+  }
+
+  return db.sequelize.transaction(async (transaction) => {
+    const conversation = await db.Conversaciones.create({
+      residencial_id: staffUser.residencial_id,
+      tipo: 'directa',
+      nombre: `Atención de ${resident.nombre || 'residente'}`.slice(0, 150),
+    }, { transaction });
+    await db.ConversacionesParticipantes.bulkCreate([
+      { conversacion_id: conversation.id, usuario_id: resident.id },
+      { conversacion_id: conversation.id, usuario_id: staffUser.id },
+    ], { transaction });
+    return conversation;
+  });
+}
+
 module.exports = function mensajesOverride({ router, model, handlers, pkPath }) {
   router.get('/hilo-principal', async (req, res, next) => {
     try {
@@ -192,6 +234,16 @@ module.exports = function mensajesOverride({ router, model, handlers, pkPath }) 
         messagesForConversation(conversation.id),
       ]);
       res.json({ data: { conversacion: conversation, participantes: participants, mensajes: messages, personal_actual: staff ? { id: staff.id, nombre_completo: `${staff.nombre} ${staff.apellido}`.trim() } : null } });
+    } catch (err) { next(err); }
+  });
+
+  router.get('/con-residente/:usuario_id', async (req, res, next) => {
+    try {
+      if (!['guardia', 'admin', 'superadmin'].includes(req.user.rol_codigo)) {
+        return res.status(403).json({ error: 'Solo el personal puede iniciar conversaciones desde aquí.' });
+      }
+      const conversation = await ensureStaffConversationWithResident(req.user, req.params.usuario_id);
+      res.json({ data: { conversacion_id: conversation.id } });
     } catch (err) { next(err); }
   });
 

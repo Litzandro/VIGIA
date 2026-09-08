@@ -36,6 +36,12 @@
     "onDelete": "CASCADE"
   },
   {
+    "table": "password_resets",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
     "table": "viviendas",
     "column": "residencial_id",
     "refTable": "residenciales",
@@ -614,6 +620,18 @@
   {
     "table": "publicaciones_comunidad",
     "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "publicaciones_reportes",
+    "column": "publicacion_id",
+    "refTable": "publicaciones_comunidad",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "publicaciones_reportes",
+    "column": "reportado_por",
     "refTable": "usuarios",
     "onDelete": "CASCADE"
   },

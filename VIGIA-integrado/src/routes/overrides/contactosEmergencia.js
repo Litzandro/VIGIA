@@ -2,6 +2,7 @@
 
 const { Op } = require('sequelize');
 const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
+const { validarCampos } = require('../../config/resourceValidation');
 
 module.exports = function contactosEmergenciaOverride({ router, model, pkPath }) {
   router.get('/', async (req, res, next) => {
@@ -21,6 +22,8 @@ module.exports = function contactosEmergenciaOverride({ router, model, pkPath })
       const nombre = String(req.body.nombre || '').trim();
       const telefono = String(req.body.telefono || '').trim();
       if (!nombre || !telefono) return res.status(400).json({ error: 'Nombre y teléfono son requeridos.' });
+      const errores = validarCampos(model, { nombre, telefono, telefono_alterno: req.body.telefono_alterno });
+      if (errores.length) return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
       const row = await model.create({
         residencial_id: req.user.rol_codigo === 'superadmin' ? req.body.residencial_id : req.user.residencial_id,
         usuario_id: isAdmin && !req.body.privado ? null : req.user.id,

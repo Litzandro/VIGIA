@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../../models');
 const { validatePassword } = require('../../utils/passwordPolicy');
 const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
+const { validarCampos } = require('../../config/resourceValidation');
 
 // Mismo costo de bcrypt que authController.js (mantenerlos sincronizados).
 const BCRYPT_ROUNDS = 12;
@@ -41,6 +42,16 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       if (!String(nombre).trim() || !String(apellido).trim()) {
         await transaction.rollback();
         return res.status(400).json({ error: 'Nombre y apellido no pueden estar vacíos.' });
+      }
+      // Mismo hueco que se encontro en el registro publico y en
+      // incidencias.js, aqui en la creacion de cuentas desde el panel
+      // de administracion: los chequeos de arriba solo verifican "no
+      // vacio", nunca formato ni un minimo razonable -- un admin podia
+      // crear una cuenta con nombre "123" o telefono "abcd".
+      const erroresUsuario = validarCampos(db.Usuarios, { nombre: String(nombre).trim(), apellido: String(apellido).trim(), telefono: req.body.telefono });
+      if (erroresUsuario.length) {
+        await transaction.rollback();
+        return res.status(400).json({ error: erroresUsuario[0] });
       }
       const passwordCheck = validatePassword(password);
       if (!passwordCheck.ok) {

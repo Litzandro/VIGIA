@@ -35,7 +35,7 @@ async function decorateAlertas(rows) {
 
   const [usuarios, residentes, tipos] = await Promise.all([
     allUserIds.length
-      ? db.Usuarios.findAll({ where: { id: { [Op.in]: allUserIds } }, attributes: ['id', 'nombre', 'apellido'] })
+      ? db.Usuarios.findAll({ where: { id: { [Op.in]: allUserIds } }, attributes: ['id', 'nombre', 'apellido', 'telefono'] })
       : [],
     usuarioIds.length
       ? db.Residentes.findAll({ where: { usuario_id: { [Op.in]: usuarioIds } } })
@@ -46,6 +46,14 @@ async function decorateAlertas(rows) {
   ]);
 
   const userMap = new Map(usuarios.map((u) => [String(u.id), `${u.nombre} ${u.apellido}`.trim()]));
+  // Antes esto se quedaba corto a proposito (id/nombre/apellido, sin
+  // telefono) para no exponerle a un guardia el listado completo de
+  // usuarios -- pero el guardia SI necesita poder llamar de inmediato a
+  // quien activo una alerta de panico real, no buscar su contacto en
+  // otro lado mientras la emergencia sigue activa. Esto expone
+  // unicamente el telefono de quien esta en la propia lista de alertas,
+  // no un listado general de usuarios.
+  const telefonoMap = new Map(usuarios.map((u) => [String(u.id), u.telefono || null]));
   const viviendaIds = [...new Set(residentes.map((r) => r.vivienda_id).filter(Boolean))];
   const viviendas = viviendaIds.length
     ? await db.Viviendas.findAll({ where: { id: { [Op.in]: viviendaIds } }, attributes: ['id', 'numero', 'bloque_torre'] })
@@ -57,6 +65,7 @@ async function decorateAlertas(rows) {
   return rows.map((r) => {
     const data = r.toJSON();
     data.usuario_nombre = userMap.get(String(r.usuario_id)) || `Usuario #${r.usuario_id}`;
+    data.usuario_telefono = telefonoMap.get(String(r.usuario_id)) || null;
     data.vivienda = residenteMap.get(String(r.usuario_id)) || null;
     const tipo = tipoMap.get(String(r.tipo_alerta_id));
     data.tipo_alerta_nombre = tipo ? tipo.nombre : null;
