@@ -37,7 +37,7 @@ document.querySelectorAll('.toggle:not([data-notif-pref]):not(.disabled)').forEa
   document.getElementById('readToggleBtn').onclick=async()=>{const activo=!VigiaAccessibility.get().readAloud;await save({readAloud:activo});if(activo){VigiaAccessibility.announce('Lectura de pantalla activada.');setTimeout(()=>VigiaAccessibility.read(),1400)}else{VigiaAccessibility.announce('Lectura de pantalla desactivada.')}};
   document.getElementById('readNowBtn').onclick=()=>{VigiaAccessibility.read();showToast('Lectura asistida iniciada')};
   VigiaAPI.request('/preferencias-usuario/me').then(r=>{remote=r.data||{};VigiaAccessibility.set(mapFromApi(remote));refresh()}).catch(()=>refresh());
-  document.getElementById('logoutBtn').onclick=async()=>{try{await VigiaAPI.request('/auth/logout',{method:'POST',offline:false})}catch(e){}VigiaAPI.clearSession();location.replace('login.html')};refresh();
+  document.getElementById('logoutBtn').onclick=async()=>{const confirmed=await VigiaConfirm({title:'¿Quieres cerrar tu sesión?',message:'Saldrás de VIGIA en este dispositivo. Para volver a entrar tendrás que iniciar sesión nuevamente.',confirmText:'Cerrar sesión',cancelText:'Cancelar',icon:'bi-box-arrow-right',tone:'alert'});if(!confirmed)return;try{await VigiaAPI.request('/auth/logout',{method:'POST',offline:false})}catch(e){}VigiaAPI.clearSession();location.replace('login.html')};refresh();
   // "Sesiones activas" antes traia un "1 dispositivo conectado
   // actualmente" fijo en el HTML. seguridad.html si consulta esto de
   // verdad (GET /auth/sessions); aca se pide lo mismo solo para
