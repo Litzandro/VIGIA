@@ -19,6 +19,10 @@
   if(new URLSearchParams(location.search).get('sesion')==='expirada'){
     showError('Tu sesión expiró por inactividad. Inicia sesión de nuevo.');
   }
+  if(new URLSearchParams(location.search).get('cuenta')==='creada'){
+    const successBox=document.getElementById('loginSuccess');
+    if(successBox){ successBox.querySelector('span').textContent='Tu cuenta se creó correctamente. Inicia sesión para continuar.'; successBox.classList.add('show'); }
+  }
 
   toggleBtn.addEventListener('click',()=>{
     const isPw=passwordInput.type==='password';

@@ -3,6 +3,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 const db = require('../models');
 const { validatePassword } = require('../utils/passwordPolicy');
 const { enviarCorreo } = require('../services/envioService');
@@ -103,6 +104,29 @@ async function createSession(req, usuario, rol, { remember = false } = {}) {
   const token = signToken(payload, remember ? REMEMBER_EXPIRES_IN : undefined);
   const decoded = jwt.decode(token);
   const expiresAt = decoded && decoded.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 8 * 60 * 60 * 1000);
+
+  // Limite de dispositivos por cuenta: sin esto, cualquier cantidad de
+  // personas podia iniciar sesion al mismo tiempo con la misma cuenta
+  // (ej. una contraseña compartida entre varios vecinos), sin ningun
+  // limite. Al llegar al maximo, se desactivan las sesiones activas
+  // MAS VIEJAS (nunca la que se esta creando ahora mismo) para dejar
+  // espacio -- quien estaba en ese dispositivo mas antiguo vera su
+  // sesion cerrada la proxima vez que el backend la revise (el mismo
+  // guard de 401 que ya redirige a login con "sesion expirada"), no de
+  // golpe ni a la mitad de algo que este haciendo.
+  const MAX_SESIONES_ACTIVAS = 3;
+  const activas = await db.Sesiones.findAll({
+    where: { usuario_id: usuario.id, activa: true },
+    order: [['fecha_inicio', 'ASC']],
+  });
+  if (activas.length >= MAX_SESIONES_ACTIVAS) {
+    const sobrantes = activas.slice(0, activas.length - MAX_SESIONES_ACTIVAS + 1);
+    await db.Sesiones.update(
+      { activa: false },
+      { where: { id: { [Op.in]: sobrantes.map((s) => s.id) } } }
+    );
+  }
+
   const session = await db.Sesiones.create({
     usuario_id: usuario.id,
     token_hash: tokenHash(token),
@@ -146,7 +170,7 @@ async function login(req, res, next) {
 async function register(req, res, next) {
   const transaction = await db.sequelize.transaction();
   try {
-    const { name, email, phone, unidad, colonia, password } = req.body || {};
+    const { name, email, phone, unidad, colonia, codigo_colonia, password } = req.body || {};
     if (!name || !email || !phone || !unidad || !colonia || !password) {
       await transaction.rollback();
       return res.status(400).json({ error: 'Completa todos los campos requeridos.' });
@@ -158,6 +182,17 @@ async function register(req, res, next) {
       await transaction.rollback();
       return res.status(400).json({ error: 'El nombre no puede estar vacío.' });
     }
+
+    // Correo con formato real (arroba + dominio) -- antes esto solo
+    // exigia "no vacio", asi que "juanperez" sin arroba ni dominio
+    // pasaba exactamente igual que un correo de verdad, tanto aqui como
+    // en el formulario (que tampoco lo revisaba).
+    const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!RE_EMAIL.test(String(email).trim())) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'Escribe un correo electronico valido.' });
+    }
+
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.ok) {
       await transaction.rollback();
@@ -174,16 +209,38 @@ async function register(req, res, next) {
     const rol = await db.Roles.findOne({ where: { codigo: 'residente' }, transaction });
     if (!rol) throw new Error('No existe el rol residente. Importa primero database/vigia_schema.sql.');
 
-    const [residencial] = await db.Residenciales.findOrCreate({
+    // Antes esto usaba findOrCreate: cualquiera podia registrarse
+    // escribiendo el nombre de una residencial que no existia todavia,
+    // y el sistema creaba una fila nueva en "residenciales" sin ninguna
+    // verificacion -- cualquiera podia inflar la base de datos con
+    // residenciales inventadas solo con registrarse una vez por cada
+    // nombre distinto. Ahora la residencial tiene que existir ya de
+    // antemano (dada de alta por un superadmin); si no existe, se
+    // rechaza el registro con un error claro en vez de crearla sola.
+    const residencial = await db.Residenciales.findOne({
       where: { nombre: String(colonia).trim() },
-      defaults: {
-        ciudad: 'La Ceiba',
-        pais: 'Honduras',
-        zona_horaria: 'America/Tegucigalpa',
-        activo: true,
-      },
       transaction,
     });
+    if (!residencial) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'Esa colonia/residencial no esta registrada en VIGIA. Contacta a soporte.' });
+    }
+
+    // Codigo de colonia (requisito nuevo): confirma que quien se
+    // registra de verdad tiene el codigo que administracion entrega a
+    // sus residentes reales -- sin esto, cualquiera podia elegir
+    // cualquier residencial de la lista y quedar adentro sin ninguna
+    // prueba de que vive ahi. Si la residencial todavia no tiene un
+    // codigo configurado (codigo_registro es NULL -- dato sembrado
+    // antes de este cambio), se deja pasar sin exigirlo, para no
+    // trabar de golpe residenciales ya en uso.
+    if (residencial.codigo_registro) {
+      const codigoNormalizado = String(codigo_colonia || '').trim().toUpperCase();
+      if (codigoNormalizado !== String(residencial.codigo_registro).trim().toUpperCase()) {
+        await transaction.rollback();
+        return res.status(403).json({ error: 'El código de la colonia no es correcto. Pídeselo a administración.' });
+      }
+    }
 
     await db.ConfiguracionesResidencial.findOrCreate({
       where: { residencial_id: residencial.id },

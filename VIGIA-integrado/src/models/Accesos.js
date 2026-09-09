@@ -21,6 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     duracion_proceso_seg: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     modo_registro: { type: DataTypes.ENUM('qr', 'foto', 'documento', 'manual', 'offline', 'integracion'), allowNull: false, defaultValue: 'manual' },
     observaciones: { type: DataTypes.STRING(255), allowNull: true },
+    foto_url: { type: DataTypes.TEXT, allowNull: true },
   }, {
     tableName: 'accesos',
     freezeTableName: true,

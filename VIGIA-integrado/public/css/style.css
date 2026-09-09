@@ -200,13 +200,30 @@ body::before{
     padding:4.4rem 1rem 1.3rem;overflow-y:auto;
     box-shadow:24px 0 48px -20px rgba(0,0,0,.65);
     animation:sidebarDrawerIn .24s ease;
+    /* Sin un z-index PROPIO (no heredado del padre .sidebar), este cajon
+       quedaba en "z-index:auto" -- posicion:fixed si crea su propio
+       contexto de apilamiento, pero sin un numero explicito, su orden
+       real frente a OTRO contenido de la pagina que tambien cree su
+       propio contexto (ej. el banner del dashboard, que usa "filter" en
+       .page-banner-bg) depende del navegador y no es confiable. Reportado
+       en un celular real: el menu se abria pero el contenido del
+       dashboard se seguia viendo por encima/alrededor en vez de quedar
+       tapado. z-index explicito y mas alto que cualquier otra cosa en la
+       pagina lo deja sin ambiguedad. */
+    z-index:301;
   }
   .sidebar.mobile-open .sidebar-drawer{display:flex;}
   @keyframes sidebarDrawerIn{from{transform:translateX(-16px);opacity:.4;}to{transform:translateX(0);opacity:1;}}
 
   .sidebar-backdrop{
     display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
-    z-index:290;animation:fadeIn .2s ease;
+    /* Por debajo de .sidebar (300): asi el encabezado fijo (logo +
+       boton de hamburguesa/cerrar) se queda SIEMPRE visible y
+       clicable por encima del fondo oscuro -- si quedara al mismo
+       nivel o mas arriba, el propio boton para cerrar el menu podria
+       quedar tapado por el fondo oscuro que se supone que el mismo
+       boton controla. */
+    z-index:299;animation:fadeIn .2s ease;
   }
   .sidebar-backdrop.show{display:block;}
 
@@ -899,6 +916,14 @@ select.form-control{cursor:pointer;}
 .auth-check a{color:var(--accent);font-weight:600;}
 .auth-check a:hover{text-decoration:underline;}
 .auth-check input{width:auto;accent-color:var(--accent);margin-top:.2rem;}
+/* Antes el texto de aceptar terminos se partia en 2-3 lineas
+   desalineadas (el check en una, "terminos de uso" solo en otra), lo
+   que a primera vista parecia decir otra cosa. Se acorto el texto y se
+   fuerza una sola linea real (con elipsis si el contenedor es
+   demasiado angosto, en vez de partirse a la mitad). */
+.auth-check-oneline{align-items:center;flex-wrap:nowrap;}
+.auth-check-oneline span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media(max-width:380px){.auth-check-oneline span{font-size:.76rem;}}
 .auth-inline-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin:-.4rem 0 .2rem;flex-wrap:wrap;}
 .auth-check-inline{margin-bottom:0;}
 .auth-forgot-link{font-size:.8rem;color:var(--accent);font-weight:600;}

@@ -14,6 +14,7 @@ const db = require('../../models');
 const notificacionesService = require('../../services/notificacionesService');
 const invitacionesService = require('../../services/invitacionesService');
 const { applyOwnershipOnCreate } = require('../../utils/crudFactory');
+const { validarImagenBase64 } = require('../../utils/imagenValidator');
 
 module.exports = function accesosOverride({ router, model, handlers, pkPath }) {
   router.post('/', async (req, res, next) => {
@@ -23,6 +24,20 @@ module.exports = function accesosOverride({ router, model, handlers, pkPath }) {
 
       if (req.user && req.user.rol_codigo === 'guardia') {
         body.guardia_id = req.user.id;
+      }
+
+      // Mismo hueco corregido en incidencias.js, personasAutorizadas.js
+      // y vetosAcceso.js: la columna foto_url en accesos ni siquiera
+      // existia hasta ahora (la foto que el guardia toma se descartaba
+      // en silencio) -- al agregarla, hay que revisar tambien que el
+      // contenido sea de verdad una imagen, no solo confiar en lo que
+      // mande el cliente.
+      if (body.foto_url) {
+        const chequeoImagen = validarImagenBase64(body.foto_url);
+        if (!chequeoImagen.ok) {
+          await transaction.rollback();
+          return res.status(400).json({ error: chequeoImagen.error });
+        }
       }
 
       let invitacion = null;

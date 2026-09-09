@@ -4,6 +4,8 @@ const db = require('../../models');
 const { Op } = require('sequelize');
 const { primaryKeyWhere } = require('../../utils/crudFactory');
 const notificacionesService = require('../../services/notificacionesService');
+const { validarCampos } = require('../../config/resourceValidation');
+const { validarImagenBase64 } = require('../../utils/imagenValidator');
 
 const ESTADO_LABEL = {
   reportada: 'fue registrada',
@@ -75,6 +77,18 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         await transaction.rollback();
         return res.status(400).json({ error: 'El titulo admite 150 caracteres y la descripcion 500.' });
       }
+      // Bug real encontrado probando el flujo completo contra un
+      // servidor de verdad (no solo revisando el codigo): el chequeo de
+      // arriba solo verifica "no vacio" y "no mas de 150/500
+      // caracteres" -- nunca un minimo razonable. Un titulo de una sola
+      // letra ("A") pasaba sin problema porque tecnicamente no esta
+      // vacio. Se agrega aqui el chequeo de minimo (3 caracteres, ya
+      // definido en resourceValidation.js) sin duplicar el de maximo
+      // que ya esta arriba.
+      if (titulo.length < 3 || descripcion.length < 3) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'El titulo y la descripcion necesitan al menos 3 caracteres.' });
+      }
       // El guardia debe adjuntar evidencia al reportar desde garita.
       if (req.user.rol_codigo === 'guardia' && !body.evidencia_url) {
         await transaction.rollback();
@@ -101,6 +115,12 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         });
       }
       if (!tipo) throw new Error('No existe un tipo de incidencia disponible.');
+
+      const errores = validarCampos(model, { ubicacion: body.ubicacion, guardia_original_nombre: req.user.rol_codigo === 'guardia' ? req.user.nombre_completo : null });
+      if (errores.length) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+      }
 
       // La prioridad ya no la decide libremente quien reporta: se deriva
       // del nivel de urgencia real del tipo elegido
@@ -141,6 +161,17 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         if (String(body.evidencia_url).length > 1500000) {
           await transaction.rollback();
           return res.status(413).json({ error: 'La fotografia es demasiado grande. Usa una imagen comprimida.' });
+        }
+        // Antes solo se revisaba el TAMAÑO del texto -- nada confirmaba
+        // que el contenido fuera de verdad una imagen. Se encontro que
+        // un archivo (un PDF) renombrado a .png se podia colar aqui si
+        // la peticion se mandaba directo a la API, sin pasar por el
+        // navegador (que si suele rechazar decodificar un PDF disfrazado
+        // de imagen).
+        const chequeoImagen = validarImagenBase64(body.evidencia_url);
+        if (!chequeoImagen.ok) {
+          await transaction.rollback();
+          return res.status(400).json({ error: chequeoImagen.error });
         }
         evidencia = await db.IncidenciasEvidencias.create({
           incidencia_id: incidencia.id,

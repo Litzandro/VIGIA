@@ -30,9 +30,15 @@
         <div class="auth-error" id="registerError"><i class="bi bi-exclamation-circle-fill"></i><span></span></div>
 
         <form id="registerForm" novalidate autocomplete="on">
-          <div class="form-group">
-            <label for="regName">Nombre completo</label>
-            <input type="text" class="form-control" id="regName" name="name" autocomplete="name" placeholder="Ej. Ana Martínez" required>
+          <div class="auth-row">
+            <div class="form-group">
+              <label for="regNombre">Nombre</label>
+              <input type="text" class="form-control" id="regNombre" name="given-name" autocomplete="given-name" placeholder="Ej. Ana" required>
+            </div>
+            <div class="form-group">
+              <label for="regApellido">Apellido</label>
+              <input type="text" class="form-control" id="regApellido" name="family-name" autocomplete="family-name" placeholder="Ej. Martínez" required>
+            </div>
           </div>
           <div class="form-group">
             <label for="regEmail">Correo electrónico</label>
@@ -45,7 +51,7 @@
             </div>
             <div class="form-group">
               <label for="regUnidad">Unidad</label>
-              <input type="text" class="form-control" id="regUnidad" placeholder="Torre B · Depto 402" required>
+              <input type="text" class="form-control" id="regUnidad" placeholder="Calle Casa Verde, Casa #12" required>
             </div>
           </div>
           <div class="form-group">
@@ -53,6 +59,11 @@
             <select class="form-control" id="regColonia">
               <option value="Altavista Residencial">Altavista Residencial</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="regCodigo">Código de la colonia</label>
+            <input type="text" class="form-control" id="regCodigo" placeholder="Pídelo con administración de tu residencial" required maxlength="20">
+            <p class="field-hint" style="margin-top:.35rem;">Confirma que de verdad vives ahí. Pregúntale a la administración o a un vecino si no lo tienes.</p>
           </div>
           <div class="auth-row">
             <div class="form-group">
@@ -68,9 +79,9 @@
             </div>
           </div>
           <p class="field-hint">Mínimo 8 caracteres, con al menos una mayúscula, una minúscula y un número.</p>
-          <label class="auth-check">
+          <label class="auth-check auth-check-oneline">
             <input type="checkbox" id="acceptTerms" required>
-            Acepto los <a href="terminos.html" target="_blank" rel="noopener">términos de uso</a> y el aviso de privacidad de VIGIA.
+            <span>Acepto los <a href="terminos.html" target="_blank" rel="noopener">Términos y Condiciones</a>.</span>
           </label>
           <button type="submit" class="btn btn-solid" style="width:100%;justify-content:center;" id="registerSubmitBtn">
             <i class="bi bi-person-plus-fill"></i> Crear cuenta

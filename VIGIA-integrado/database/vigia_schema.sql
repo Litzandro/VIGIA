@@ -42,6 +42,13 @@ CREATE TABLE residenciales (
     email_contacto      VARCHAR(150)    NULL,
     zona_horaria        VARCHAR(50)     NOT NULL DEFAULT 'America/Guatemala',
     logo_url            VARCHAR(255)    NULL,
+    -- Codigo que administracion le da a cada residente real para que
+    -- pueda registrarse (ej. lo entregan en portoneria o en la
+    -- convocatoria de vecinos) -- antes CUALQUIERA podia registrarse
+    -- eligiendo cualquier residencial del listado, sin ninguna prueba
+    -- de que de verdad vive ahi. NULL = esa residencial no exige
+    -- codigo (compatibilidad con datos ya sembrados).
+    codigo_registro     VARCHAR(20)     NULL,
     activo              BOOLEAN         NOT NULL DEFAULT TRUE,
     fecha_creacion      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -349,6 +356,13 @@ CREATE TABLE accesos (
     duracion_proceso_seg INT UNSIGNED NULL,
     modo_registro     ENUM('qr','foto','documento','manual','offline','integracion') NOT NULL DEFAULT 'manual',
     observaciones     VARCHAR(255) NULL,
+    -- El guardia debe adjuntar una foto al registrar un acceso manual
+    -- (public/js/control-acceso.js ya lo exige y bloquea el envio sin
+    -- ella) -- pero esta columna no existia todavia, asi que esa foto
+    -- se descartaba en silencio en cuanto llegaba al backend (Sequelize
+    -- ignora las claves del body que no correspondan a ninguna columna
+    -- del modelo, sin avisar ni fallar).
+    foto_url          TEXT NULL,
     CONSTRAINT fk_acc_residencial  FOREIGN KEY (residencial_id)  REFERENCES residenciales(id)      ON DELETE CASCADE,
     CONSTRAINT fk_acc_punto        FOREIGN KEY (punto_acceso_id) REFERENCES puntos_acceso(id)       ON DELETE RESTRICT,
     -- usuario_id/visitante_id usan RESTRICT (no SET NULL): MySQL no permite que una

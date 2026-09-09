@@ -6,6 +6,7 @@ const { Op } = require('sequelize');
 const { primaryKeyWhere } = require('../../utils/crudFactory');
 const { VETO_ESTADO, VETO_ALCANCE, esAdmin, esSuperadmin } = require('../../config/estados');
 const { validarCampos } = require('../../config/resourceValidation');
+const { validarImagenBase64 } = require('../../utils/imagenValidator');
 
 // Regla de negocio (Requisito de conflictos): si al activar un veto la
 // persona vetada tiene tambien una autorizacion recurrente vigente,
@@ -65,6 +66,14 @@ module.exports = function vetosAccesoOverride({ router, model, handlers, pkPath 
         telefono: req.body.telefono,
       });
       if (errores.length) return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+
+      // Mismo hueco corregido en incidencias.js y personasAutorizadas.js:
+      // antes evidencia_url se guardaba tal cual, sin revisar que el
+      // contenido fuera de verdad una imagen.
+      if (req.body.evidencia_url) {
+        const chequeoImagen = validarImagenBase64(req.body.evidencia_url);
+        if (!chequeoImagen.ok) return res.status(400).json({ error: chequeoImagen.error });
+      }
 
       // Un residente solo puede vetar dentro de su propia vivienda; solo
       // admin/superadmin puede pedir un veto a nivel de toda la

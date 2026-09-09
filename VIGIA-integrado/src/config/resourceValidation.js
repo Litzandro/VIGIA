@@ -21,7 +21,7 @@
 // ---- Validadores basicos reutilizables ----
 
 const RE_LETRAS = /^[A-Za-zÀ-ÖØ-öø-ÿÑñ][A-Za-zÀ-ÖØ-öø-ÿÑñ'.\- ]*$/; // nombres: letras, acentos, espacios, apostrofe, guion, punto (para "Jr.")
-const RE_TELEFONO_HN = /^\d{4}-?\d{4}$/; // 8 digitos, con o sin guion en medio
+const RE_TELEFONO_HN = /^[23789]\d{3}-?\d{4}$/; // 8 digitos, con o sin guion; el primero debe existir en el plan de numeracion real de Honduras (2=fijo, 3/8/9=celular, 7=algunos VoIP/rurales)
 const RE_DOCUMENTO = /^[A-Za-z0-9][A-Za-z0-9 .\-]*$/; // identidad hondurena (solo digitos) o pasaporte/otro (alfanumerico)
 const RE_PLACA = /^[A-Za-z0-9][A-Za-z0-9 \-]*$/; // placas de vehiculo, formato variable entre paises
 

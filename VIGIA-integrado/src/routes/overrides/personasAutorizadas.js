@@ -5,6 +5,7 @@ const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 const { Op } = require('sequelize');
 const { primaryKeyWhere, applyOwnershipScope, applyOwnershipOnCreate } = require('../../utils/crudFactory');
 const { validarCampos } = require('../../config/resourceValidation');
+const { validarImagenBase64 } = require('../../utils/imagenValidator');
 
 // Mismo criterio que los checkboxes de dias en autorizados.html: 0=domingo..6=sabado.
 function dayIndex(date) {
@@ -132,6 +133,14 @@ module.exports = function personasAutorizadasOverride({ router, model, handlers,
           const usuarioDelResidente = await db.Usuarios.findOne({ where: { id: body.residente_id, residencial_id: req.user.residencial_id } });
           if (!usuarioDelResidente) return res.status(400).json({ error: 'Ese residente no pertenece a tu residencial.' });
         }
+      }
+
+      // Mismo hueco que se encontro y corrigio en incidencias.js: antes
+      // "foto_url" se guardaba tal cual, sin revisar que el contenido
+      // fuera de verdad una imagen (ni siquiera un chequeo de tamaño).
+      if (body.foto_url) {
+        const chequeoImagen = validarImagenBase64(body.foto_url);
+        if (!chequeoImagen.ok) return res.status(400).json({ error: chequeoImagen.error });
       }
 
       const data = applyOwnershipOnCreate(model, req.user, {

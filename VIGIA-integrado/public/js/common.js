@@ -66,7 +66,27 @@ const VigiaAPI=(function(){
     }
     const data=await response.json().catch(()=>({}));
     if(!response.ok){
-      if(response.status===401 && path!=='/auth/login'){console.warn('[VIGIA] 401 en',path,'- se borro la sesion local.',data);clearSession();}
+      if(response.status===401 && path!=='/auth/login'){
+        console.warn('[VIGIA] 401 en',path,'- se borro la sesion local.',data);
+        const rolAntesDeLimpiar=(getSession()||{}).rol_codigo;
+        clearSession();
+        // Antes esto se quedaba aqui: la sesion se borraba en silencio
+        // pero la pantalla seguia mostrando el panel como si la persona
+        // siguiera con sesion activa (su nombre, su avatar, el sidebar
+        // completo ya estaban pintados desde antes). Si tocaba cualquier
+        // otro boton, volvia a chocar con el mismo error una y otra vez,
+        // sin que nada la mandara de vuelta a iniciar sesion. Pasa de
+        // verdad: el token expira solo (JWT_EXPIRES_IN, 8h por defecto),
+        // asi que dejar la pestana abierta toda la noche y volver a
+        // usarla al dia siguiente basta para reproducirlo.
+        const paginaActual=(location.pathname.split('/').pop()||'').toLowerCase();
+        const paginasPublicas=['','index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','terminos.html'];
+        if(!paginasPublicas.includes(paginaActual)){
+          const loginPorRol={guardia:'guardia-login.html',admin:'admin-login.html',superadmin:'admin-login.html'};
+          const destino=loginPorRol[rolAntesDeLimpiar]||'login.html';
+          location.replace(`${destino}?sesion=expirada`);
+        }
+      }
       throw new Error(data.error||data.message||`Error ${response.status}`);
     }
     return data;
@@ -336,6 +356,41 @@ function attachTelefonoHNMask(input){
   input.addEventListener('input',()=>{input.value=formatTelefonoHN(input.value)});
 }
 window.attachTelefonoHNMask=attachTelefonoHNMask;
+
+// Bloquea numeros y la mayoria de simbolos en un campo de nombre, en
+// tiempo real (no solo al enviar el formulario) -- deja pasar letras,
+// acentos, espacios, apostrofe y guion (para "O'Brien" o "Ana-Sofía").
+// El backend (src/config/resourceValidation.js) tiene la misma regla
+// como ultima linea de defensa; esto es solo para que la persona vea
+// el problema en el momento, no despues de enviar.
+const RE_LETRAS_INPUT=/[^A-Za-zÀ-ÖØ-öø-ÿÑñ'.\- ]/g;
+function attachSoloLetras(input,maxlength){
+  if(!input)return;
+  if(maxlength)input.setAttribute('maxlength',String(maxlength));
+  input.addEventListener('input',()=>{
+    const cursor=input.selectionStart;
+    const limpio=input.value.replace(RE_LETRAS_INPUT,'');
+    if(limpio!==input.value){
+      const quitados=input.value.length-limpio.length;
+      input.value=limpio;
+      if(cursor!=null)input.setSelectionRange(cursor-quitados,cursor-quitados);
+    }
+  });
+}
+window.attachSoloLetras=attachSoloLetras;
+
+// Convierte a mayusculas mientras se escribe -- placas de vehiculo
+// (HAA-1234) se ven y se buscan siempre en mayuscula por convencion,
+// asi que evita que "haa-1234" y "HAA-1234" parezcan cosas distintas.
+function attachMayusculas(input){
+  if(!input)return;
+  input.addEventListener('input',()=>{
+    const cursor=input.selectionStart;
+    input.value=input.value.toUpperCase();
+    if(cursor!=null)input.setSelectionRange(cursor,cursor);
+  });
+}
+window.attachMayusculas=attachMayusculas;
 
 // Antepone visualmente "+504" al campo de telefono (VIGIA opera solo en
 // Honduras por ahora, asi que es un prefijo fijo, no un dropdown de varios

@@ -54,7 +54,19 @@
     }
   });
   async function compress(file){if(!file)return'';const src=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src});const c=document.createElement('canvas'),s=Math.min(1,520/img.width);c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.55)}
-  document.getElementById('reportPhoto').onchange=async e=>{photoData=await compress(e.target.files[0]);const im=document.getElementById('reportPhotoPreview');im.src=photoData;document.getElementById('reportPhotoPreviewWrap').style.display=photoData?'block':'none'};
+  document.getElementById('reportPhoto').onchange=async e=>{
+    try{
+      photoData=await compress(e.target.files[0]);
+      const im=document.getElementById('reportPhotoPreview');
+      im.src=photoData;
+      document.getElementById('reportPhotoPreviewWrap').style.display=photoData?'block':'none';
+    }catch(err){
+      photoData='';
+      e.target.value='';
+      document.getElementById('reportPhotoPreviewWrap').style.display='none';
+      showToast('No se pudo leer esa imagen. Prueba con otra foto.','bi-exclamation-triangle-fill');
+    }
+  };
   const stateLabel={reportada:'Abierta',en_revision:'En progreso',resuelta:'Resuelta',cerrada:'Historial'};
   function card(x){const tipoNombre=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin tipo';return `<article class="kcard" data-priority="${escapeHtml(x.prioridad)}"><div class="kcard-top"><span class="kcard-icon ${x.prioridad==='urgente'||x.prioridad==='alta'?'warn':'ok'}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span><span class="badge neutral" style="margin-left:.4rem;">${escapeHtml(tipoNombre)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">VG</span> ${escapeHtml(x.visibilidad)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${new Date(x.fecha_hora).toLocaleDateString('es-HN')}</span></div></article>`}
   function render(rows){const groups={reportada:[],en_revision:[],historial:[]};rows.forEach(x=>{if(x.estado==='reportada')groups.reportada.push(x);else if(x.estado==='en_revision')groups.en_revision.push(x);else groups.historial.push(x)});kanban.innerHTML=[['reportada','warn','Abierta'],['en_revision','ok','En progreso'],['historial','neutral','Historial']].map(([key,dot,title])=>`<section><div class="kanban-col-head"><span class="dot ${dot}"></span>${title} <span class="count">${groups[key].length}</span></div>${groups[key].length?groups[key].map(card).join(''):'<div class="incident-empty-note"><i class="bi bi-inbox"></i><span>Sin incidencias en esta etapa.</span></div>'}${key==='reportada'?'<div class="kcard-add" data-open-report><i class="bi bi-plus-lg"></i> Reportar otra incidencia</div>':''}</section>`).join('');kanban.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open)}
@@ -64,5 +76,23 @@
   async function panic(target){try{const r=await VigiaAPI.request('/tipos-alerta?limit=20');const type=(r.data||[]).find(x=>x.codigo==='otro')||(r.data||[])[0];if(!type)throw new Error('No hay tipo de alerta configurado.');await VigiaAPI.request('/alertas-panico',{method:'POST',body:JSON.stringify({tipo_alerta_id:type.id})});showToast(target==='guardia'?'Alerta privada enviada a garita':'Alerta enviada al sistema','bi-broadcast')}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}
   function modalPanic(button,mid,cancel,confirm,target){const m=document.getElementById(mid);document.getElementById(button).onclick=()=>m.classList.add('open');document.getElementById(cancel).onclick=()=>m.classList.remove('open');document.getElementById(confirm).onclick=async()=>{m.classList.remove('open');await panic(target)}}
   modalPanic('panicGuardBtn','panicGuardModal','panicGuardCancel','panicGuardConfirm','guardia');modalPanic('panicResidentsBtn','panicResidentsModal','panicResidentsCancel','panicResidentsConfirm','residentes');
+
+  // Si se llega aqui desde el boton "Marcar como incidencia" de una
+  // publicacion de Comunidad (solo guardia/admin/superadmin la ven),
+  // se abre el formulario ya prellenado en vez de auto-enviarlo: el
+  // guardia sigue teniendo que adjuntar su propia evidencia (esa regla
+  // no se salta) y puede revisar/ajustar el texto antes de mandarlo.
+  const params=new URLSearchParams(location.search);
+  if(params.get('desde_comunidad')){
+    const tituloParam=params.get('titulo')||'';
+    const descParam=params.get('descripcion')||'';
+    document.getElementById('reportTitle').value=tituloParam.slice(0,80);
+    desc.value=descParam.slice(0,350);
+    count.textContent=`${desc.value.length}/350`;
+    document.getElementById('reportPrivate').checked=false;
+    open();
+    history.replaceState(null,'',location.pathname);
+  }
+
   load();
 })();

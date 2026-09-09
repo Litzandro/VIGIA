@@ -14,6 +14,7 @@ module.exports = (sequelize, DataTypes) => {
     email_contacto: { type: DataTypes.STRING(150), allowNull: true },
     zona_horaria: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'America/Guatemala' },
     logo_url: { type: DataTypes.STRING(255), allowNull: true },
+    codigo_registro: { type: DataTypes.STRING(20), allowNull: true },
     activo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     fecha_creacion: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     fecha_actualizacion: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
