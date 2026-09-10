@@ -175,10 +175,30 @@ body::before{
     flex-direction:column;align-items:stretch;
     padding:0;border-right:none;border-bottom:1px solid var(--line);
     overflow:visible;z-index:300;
+    /* CORRECCION BUG REAL (menu movil invisible): la regla base .sidebar
+       (arriba, fuera de este media query) trae background+backdrop-filter
+       para el efecto de vidrio esmerilado en escritorio. Ese backdrop-filter
+       NUNCA se quitaba en movil, y backdrop-filter crea su propio "contexto
+       de contencion" para cualquier descendiente position:fixed -- exactamente
+       el mismo fenomeno que el comentario de mas abajo en .sidebar-drawer ya
+       advertia sobre z-index con .page-banner-bg (filter), pero aqui afectaba
+       la POSICION, no el orden visual. Como .sidebar-drawer es position:fixed,
+       en vez de posicionarse contra toda la ventana (top:0/bottom:0 = pantalla
+       completa), se posicionaba contra la caja de .sidebar -- que en movil mide
+       apenas el alto del encabezado (~60px) porque el cajon arranca en
+       display:none. Resultado: el cajon quedaba aplastado a esos ~60px, con su
+       padding-top de 4.4rem empujando TODO el contenido fuera del area visible
+       de su propio scroll. El boton cambiaba de icono y el fondo oscuro
+       aparecia bien (ese backdrop es un div aparte, no vive dentro de
+       .sidebar) pero ningun enlace del menu se llegaba a ver -- justo el bug
+       reportado en celular real. Quitando el backdrop-filter de .sidebar en
+       movil, .sidebar-drawer vuelve a posicionarse contra la ventana completa
+       como se espera. */
+    background:transparent;backdrop-filter:none;
   }
   .sidebar-header{
     margin:0;padding:.7rem 1.1rem;flex-shrink:0;
-    background:rgba(10,15,12,.92);
+    background:rgba(10,15,12,.92);backdrop-filter:blur(16px) saturate(150%);
   }
   .sidebar-logo{min-width:0;overflow:hidden;}
   .sidebar-logo .label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
