@@ -3,6 +3,34 @@
   const session=VigiaAPI.getSession();let threads=[];let currentId=null;
   const messages=document.getElementById('staffMessages'),input=document.getElementById('staffChatInput'),send=document.getElementById('staffSendBtn'),charCount=document.getElementById('staffCharCount');
   let lastSignature='';
+
+  // El superadmin no tiene una residencial fija (ve todas), asi que el
+  // backend (/mensajes/inbox) no sabe de cual bandeja traerle las
+  // conversaciones sin que se lo digamos por query string -- antes esto
+  // no existia y el panel se quedaba mostrando el error "Selecciona una
+  // residencial." sin ninguna forma de elegir una. Guardia y admin
+  // normal ya traen su residencial_id fija en la sesion, para ellos
+  // este selector se queda oculto.
+  const residencialWrap=document.getElementById('mensajeriaResidencialWrap');
+  const residencialSelect=document.getElementById('mensajeriaResidencial');
+  let residencialElegida=null;
+  async function initResidencialSelector(){
+    if(session.rol_codigo!=='superadmin'||!residencialWrap)return;
+    try{
+      const r=await VigiaAPI.request('/residenciales?limit=300');
+      const residenciales=r.data||[];
+      residencialSelect.innerHTML=residenciales.map(x=>`<option value="${x.id}">${escapeHtml(x.nombre)}</option>`).join('');
+      if(residenciales.length){
+        residencialElegida=residenciales[0].id;
+        residencialWrap.style.display='block';
+      }
+      residencialSelect.addEventListener('change',()=>{
+        residencialElegida=residencialSelect.value;
+        currentId=null;
+        loadInbox();
+      });
+    }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
+  }
   function initials(name){return String(name||'VG').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'VG'}
   function counterpart(t){
     // Prioriza al residente como "la otra parte" del hilo: con turnos
@@ -27,7 +55,7 @@
     list.innerHTML=threads.length?'':'<div class="empty-state">No hay conversaciones.</div>';
     threads.forEach(t=>{const name=participantName(t);const el=document.createElement('button');el.type='button';el.className='queue-item thread-item'+(String(t.id)===String(currentId)?' active':'');el.innerHTML=`<div class="post-av">${escapeHtml(initials(name))}</div><div class="queue-copy"><b>${escapeHtml(name)}</b><span>${escapeHtml(t.ultimo_mensaje||'Sin mensajes')}</span><small class="mono">${escapeHtml(time(t.ultima_fecha))}</small></div>`;el.onclick=()=>openThread(t.id);list.appendChild(el)})
   }
-  async function loadInbox(){try{const r=await VigiaAPI.request('/mensajes/inbox');threads=r.data||[];renderInbox();if(!currentId&&threads.length)openThread(threads[0].id)}catch(e){list.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}
+  async function loadInbox(){try{const qs=(session.rol_codigo==='superadmin'&&residencialElegida)?`?residencial_id=${residencialElegida}`:'';const r=await VigiaAPI.request('/mensajes/inbox'+qs);threads=r.data||[];renderInbox();if(!currentId&&threads.length)openThread(threads[0].id)}catch(e){list.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}
   async function openThread(id,force){
     const switching=String(id)!==String(currentId);
     if(switching)lastSignature='';
@@ -80,6 +108,7 @@
   // ese residente, /mensajes/con-residente la crea de una vez.
   const residenteAAbrir=new URLSearchParams(location.search).get('abrir_residente');
   (async()=>{
+    await initResidencialSelector();
     if(residenteAAbrir){
       try{
         const r=await VigiaAPI.request(`/mensajes/con-residente/${residenteAAbrir}`);

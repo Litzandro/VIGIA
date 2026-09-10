@@ -1078,6 +1078,17 @@
             guardarColorVisita(respuesta.data.id, colorSeleccionado);
           }
 
+          // Antes esta imagen (que el backend ya generaba en cada
+          // creación, ver src/routes/overrides/invitaciones.js) se
+          // descartaba por completo -- el residente no tenía ninguna
+          // forma de ver un QR de verdad para pasárselo a su invitado,
+          // solo el código en texto. Se muestra apenas se crea, y
+          // también se puede volver a ver después desde el detalle de
+          // la visita (abrirPopoverVisita).
+          if (respuesta.qr) {
+            mostrarQR(respuesta.qr, respuesta.data.nombre_evento || nombre);
+          }
+
 
           if (
             typeof showToast ===
@@ -1471,6 +1482,41 @@
     document.querySelectorAll('.visit-popover-backdrop').forEach(b => b.remove());
   }
 
+  // ==============================
+  // MODAL DEL CODIGO QR
+  // ==============================
+  // Antes el residente solo veia el codigo_qr como texto plano (un
+  // UUID largo tipo "3f9a2b1c-...") -- servia para copiar/pegar a mano,
+  // pero no era algo que se le pudiera "pasar al invitado" para que la
+  // garita lo escaneara, que es justo para lo que existe un QR. Esto
+  // muestra la imagen real (PNG) que ya generaba el backend
+  // (qrService.js) pero que el frontend nunca pintaba.
+  function cerrarModalQr() {
+    const existente = document.getElementById('qrModal');
+    if (existente) existente.remove();
+  }
+
+  function mostrarQR(dataUrl, titulo) {
+    cerrarModalQr();
+    const backdrop = document.createElement('div');
+    backdrop.className = 'qr-modal-backdrop';
+    backdrop.id = 'qrModal';
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cerrarModalQr(); });
+    backdrop.innerHTML = `
+      <div class="qr-modal">
+        <h4>${escapeHTML(titulo || 'Código de acceso')}</h4>
+        <p>Muéstraselo a tu invitado para que lo enseñe en garita, o descárgalo y envíaselo.</p>
+        <img src="${dataUrl}" alt="Código QR de acceso">
+        <div class="qr-modal-actions">
+          <a class="btn btn-ghost" href="${dataUrl}" download="vigia-qr.png"><i class="bi bi-download"></i> Descargar</a>
+          <button type="button" class="btn btn-solid" id="qrModalCerrar"><i class="bi bi-check-lg"></i> Listo</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    document.getElementById('qrModalCerrar').addEventListener('click', cerrarModalQr);
+  }
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarModalQr(); });
+
   const PALETA_POPOVER = ['#12E8A0', '#579AFF', '#F0B43C', '#FF7B72', '#B98AFF', '#FF8AC4'];
 
   function abrirPopoverVisita(inv, targetEl) {
@@ -1497,12 +1543,29 @@
       <h4>${escapeHTML(inv.nombre_evento || 'Visitante')}</h4>
       <div class="vp-row"><i class="bi bi-clock"></i> ${esRecurrente(inv) ? 'Visita recurrente' : formatTime(inv.fecha_valida_desde)}</div>
       <div class="vp-row"><i class="bi bi-chat-left-text"></i> ${escapeHTML(inv.notas || 'Sin motivo indicado')}</div>
-      <div class="vp-row"><i class="bi bi-qr-code"></i> ${escapeHTML(inv.codigo_qr || '—')}</div>
       <div class="vp-row"><span class="badge ${estadoBadge}">${estadoLabel}</span></div>
       <div class="vp-row vp-color-row color-swatch-row">${swatchesHTML}</div>
-      ${estado === 'pendiente' ? '<div class="vp-actions"><button type="button" class="btn btn-ghost" id="vpCancelar"><i class="bi bi-x-lg"></i> Cancelar</button></div>' : ''}
+      <div class="vp-actions">
+        ${inv.codigo_qr ? '<button type="button" class="btn btn-ghost" id="vpVerQr"><i class="bi bi-qr-code"></i> Ver código QR</button>' : ''}
+        ${estado === 'pendiente' ? '<button type="button" class="btn btn-ghost" id="vpCancelar"><i class="bi bi-x-lg"></i> Cancelar</button>' : ''}
+      </div>
     `;
     document.body.appendChild(pop);
+
+    const vpVerQr = document.getElementById('vpVerQr');
+    if (vpVerQr) {
+      vpVerQr.addEventListener('click', async () => {
+        vpVerQr.disabled = true;
+        try {
+          const r = await VigiaAPI.request(`/invitaciones/${inv.id}/qr`);
+          mostrarQR(r.qr, inv.nombre_evento || 'Código de acceso');
+        } catch (err) {
+          showToast(err.message, 'bi-exclamation-triangle-fill');
+        } finally {
+          vpVerQr.disabled = false;
+        }
+      });
+    }
 
     const rect = targetEl.getBoundingClientRect();
     const popW = pop.offsetWidth || 270;

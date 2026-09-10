@@ -66,13 +66,45 @@ module.exports = function invitacionesOverride({ router, model, handlers, pkPath
   // Requisito 5: validar antes de dejar pasar. No exige el permiso
   // "visitas.crear" (el guardia no crea invitaciones) sino que hereda el
   // acceso de lectura ya montado en routes/index.js para este recurso.
+  //
+  // Antes esto buscaba el codigo_qr en TODA la tabla, sin importar la
+  // residencial de quien pregunta -- en la practica es casi imposible
+  // de explotar (codigo_qr es un UUID al azar, nadie va a adivinar el
+  // de otra residencial), pero igual no hay razon para que un guardia
+  // de la residencial A pueda confirmar detalles de una visita de la
+  // residencial B si por algun motivo llegara a escribir/escanear ese
+  // codigo. superadmin si puede validar de cualquier residencial.
   router.get('/validar/:codigo_qr', async (req, res, next) => {
     try {
-      const invitacion = await model.findOne({ where: { codigo_qr: req.params.codigo_qr } });
+      const where = { codigo_qr: req.params.codigo_qr };
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const invitacion = await model.findOne({ where });
       const { valido, motivo } = invitacionesService.evaluarValidez(invitacion);
 
       if (!invitacion) return res.status(404).json({ valido, motivo });
       res.json({ valido, motivo, data: valido ? invitacion : undefined });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // La imagen del QR no se guarda en la base -- codigo_qr (el UUID) si
+  // se guarda, y qrService.generarImagenDataUrl() siempre produce la
+  // MISMA imagen para el mismo texto, asi que no hace falta guardar el
+  // PNG aparte. Esto es lo que deja al residente volver a ver/compartir
+  // el QR de una invitacion ya creada, no solo en el momento en que la
+  // creo (que es la unica vez que el POST de arriba lo devuelve).
+  router.get('/:id/qr', async (req, res, next) => {
+    try {
+      const where = { id: req.params.id };
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const invitacion = await model.findOne({ where });
+      if (!invitacion) return res.status(404).json({ error: 'Invitación no encontrada.' });
+      if (req.user.rol_codigo === 'residente' && String(invitacion.residente_id) !== String(req.user.id)) {
+        return res.status(403).json({ error: 'Esa invitación no te pertenece.' });
+      }
+      const qr = await qrService.generarImagenDataUrl(invitacion.codigo_qr);
+      res.json({ qr });
     } catch (err) {
       next(err);
     }

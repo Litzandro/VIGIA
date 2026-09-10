@@ -20,6 +20,35 @@
   document.getElementById('auFrom').innerHTML=buildAmPmTimeOptions();
   document.getElementById('auTo').innerHTML=buildAmPmTimeOptions();
   const typeLabel={bus_escolar:'Bus escolar',familiar:'Familiar',servicio_domestico:'Servicio doméstico',proveedor:'Proveedor',transporte:'Transporte',otro:'Otro'};
+
+  // Antes el formulario pedia SIEMPRE los mismos 5 campos (documento,
+  // empresa, placa, foto) sin importar el tipo -- a un familiar le
+  // pedia "Empresa" (no tiene una), a un bus escolar no le mencionaba
+  // que la foto podia ser la de su licencia, etc. Esta tabla dice, por
+  // tipo, que campos tienen sentido pedir; los que no aplican se
+  // ocultan y se mandan como null aunque quedara algo escrito ahi antes
+  // de cambiar de tipo.
+  const CAMPOS_POR_TIPO={
+    bus_escolar:{empresa:false,placa:true,fotoLabel:'Foto de la licencia del conductor (opcional)'},
+    familiar:{empresa:false,placa:true,fotoLabel:'Fotografía opcional'},
+    servicio_domestico:{empresa:true,placa:false,fotoLabel:'Fotografía opcional'},
+    proveedor:{empresa:true,placa:true,fotoLabel:'Fotografía opcional'},
+    transporte:{empresa:true,placa:true,fotoLabel:'Fotografía opcional'},
+    otro:{empresa:true,placa:true,fotoLabel:'Fotografía opcional'},
+  };
+  const auCompanyWrap=document.getElementById('auCompanyWrap'),auPlateWrap=document.getElementById('auPlateWrap');
+  const auCompanyInput=document.getElementById('auCompany'),auPlateInput=document.getElementById('auPlate');
+  const auPhotoLabel=document.getElementById('auPhotoLabel');
+  function actualizarCamposPorTipo(){
+    const cfg=CAMPOS_POR_TIPO[document.getElementById('auType').value]||CAMPOS_POR_TIPO.otro;
+    auCompanyWrap.style.display=cfg.empresa?'':'none';
+    auPlateWrap.style.display=cfg.placa?'':'none';
+    if(!cfg.empresa)auCompanyInput.value='';
+    if(!cfg.placa)auPlateInput.value='';
+    if(auPhotoLabel)auPhotoLabel.textContent=cfg.fotoLabel;
+  }
+  document.getElementById('auType').addEventListener('change',actualizarCamposPorTipo);
+  actualizarCamposPorTipo();
   const statusLabel={pendiente:'Pendiente de aprobación',activa:'Activa',suspendida:'Suspendida',vencida:'Vencida',cancelada:'Cancelada'};
   const statusBadge={pendiente:'pending',activa:'ok',suspendida:'warn',vencida:'neutral',cancelada:'neutral'};
   async function load(){
@@ -54,14 +83,18 @@
           tipo:document.getElementById('auType').value,
           nombre_completo:document.getElementById('auName').value.trim(),
           numero_documento:document.getElementById('auDocument').value.trim()||null,
-          empresa:document.getElementById('auCompany').value.trim()||null,
-          placa_vehiculo:document.getElementById('auPlate').value.trim()||null,
+          // Se manda null si el campo esta oculto para este tipo, sin
+          // importar que haya quedado algo escrito ahi de un tipo
+          // anterior -- actualizarCamposPorTipo() ya limpia el input al
+          // cambiar, esto es una segunda linea de defensa.
+          empresa:(auCompanyWrap.style.display!=='none'?document.getElementById('auCompany').value.trim():'')||null,
+          placa_vehiculo:(auPlateWrap.style.display!=='none'?document.getElementById('auPlate').value.trim():'')||null,
           dias_semana_json:days,
           hora_desde:document.getElementById('auFrom').value||null,
           hora_hasta:document.getElementById('auTo').value||null,
           foto_url:photo||null,
         })});
-        form.reset();photo='';
+        form.reset();photo='';actualizarCamposPorTipo();
         showToast('Autorización enviada. Administración debe aprobarla antes de que quede activa.');
         load();
       }catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}

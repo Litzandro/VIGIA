@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Verificaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"><link rel="stylesheet" href="css/style.css"><link rel="manifest" href="manifest.webmanifest">
+<style>
+.qr-scan-box{border:1px dashed var(--line-strong);border-radius:16px;padding:1rem;text-align:center;background:rgba(255,255,255,.02);}
+.qr-scan-video-wrap{position:relative;max-width:360px;margin:0 auto;border-radius:12px;overflow:hidden;background:#000;}
+.qr-scan-video-wrap video{width:100%;display:block;}
+.qr-scan-video-wrap.hidden{display:none;}
+.qr-result{margin-top:1rem;padding:1rem 1.1rem;border-radius:14px;border:1px solid rgba(255,255,255,.09);text-align:left;display:none;}
+.qr-result.show{display:block;}
+.qr-result.valido{border-color:rgba(18,232,160,.45);background:rgba(18,232,160,.08);}
+.qr-result.invalido{border-color:rgba(255,79,79,.45);background:rgba(255,79,79,.08);}
+.qr-result h4{margin:0 0 .3rem;font-family:var(--f-display);}
+.qr-result p{margin:.15rem 0;font-size:.82rem;color:var(--bone-dim);}
+.qr-manual-row{display:flex;gap:.6rem;margin-top:1rem;}
+.qr-manual-row input{flex:1;}
+</style>
+</head>
+<body data-protect-demo="true"><div class="bg-photo"></div><canvas id="bgCanvas"></canvas>
+<div class="app">
+<aside class="sidebar" id="vigiaSidebar" aria-label="Navegación de VIGIA"></aside><div class="main"><div class="content"><div class="page">
+<div class="page-head"><div><span class="mono-tag">CONTROL DE ACCESO</span><h1>Verificaciones</h1><p>Confirma que un código QR de invitación fue generado por VIGIA antes de dejar entrar a alguien.</p></div></div>
+
+<div class="panel">
+  <div class="panel-head"><div><h3>Escanear código QR</h3><p class="config-section-note">Usa la cámara del dispositivo, o escribe el código a mano si no llega a leerlo.</p></div><span class="badge info" id="qrScanBadge">CÁMARA APAGADA</span></div>
+
+  <div class="qr-scan-box">
+    <div class="qr-scan-video-wrap hidden" id="qrVideoWrap">
+      <video id="qrVideo" playsinline muted></video>
+    </div>
+    <canvas id="qrCanvas" style="display:none"></canvas>
+    <p class="config-section-note" id="qrScanHint" style="margin-top:.6rem">Apunta la cámara al código QR que te muestre el visitante.</p>
+    <button type="button" class="btn btn-solid" id="qrToggleCam"><i class="bi bi-camera-fill"></i> Iniciar cámara</button>
+  </div>
+
+  <div class="qr-manual-row">
+    <input type="text" class="form-control" id="qrManualInput" placeholder="O escribe/pega el código aquí">
+    <button type="button" class="btn btn-ghost" id="qrManualBtn"><i class="bi bi-search"></i> Verificar</button>
+  </div>
+
+  <div class="qr-result" id="qrResult"></div>
+</div>
+
+</div></div></div></div>
+<script src="js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="js/verificaciones.js"></script>
+</body></html>

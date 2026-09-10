@@ -55,8 +55,15 @@ function checarEntero(valor, min, max) {
 
 const REGLAS = {
   usuarios: {
-    nombre: { tipo: 'letras', min: 2, max: 100 },
-    apellido: { tipo: 'letras', min: 2, max: 100 },
+    // Antes el tope era 100 -- tecnicamente ya bloqueaba numeros y
+    // simbolos (RE_LETRAS), pero dejaba escribir practicamente un
+    // parrafo como "nombre": paso de verdad que alguien termino con un
+    // perfil como "Ronaldo Anael Alfaro Hernandez Alfaro Hernandez"
+    // (parte del apellido repetida dentro del campo nombre) porque
+    // nada se lo impidio. 30 sigue alcanzando para nombres compuestos
+    // reales ("María Fernanda", "José Ramón") sin dejar pasar eso.
+    nombre: { tipo: 'letras', min: 2, max: 30 },
+    apellido: { tipo: 'letras', min: 2, max: 30 },
     telefono: { tipo: 'telefono' },
   },
   residentes: {

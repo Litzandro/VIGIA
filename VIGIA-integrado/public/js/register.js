@@ -5,8 +5,8 @@
 
   const nombreInput=document.getElementById('regNombre');
   const apellidoInput=document.getElementById('regApellido');
-  attachSoloLetras(nombreInput,50);
-  attachSoloLetras(apellidoInput,50);
+  attachSoloLetras(nombreInput,30);
+  attachSoloLetras(apellidoInput,30);
   const emailInput=document.getElementById('regEmail');
   const phoneInput=document.getElementById('regPhone');
   attachTelefonoHNMask(phoneInput);

@@ -579,6 +579,13 @@ body::before{
 .visit-popover .vp-actions{display:flex;gap:.5rem;margin-top:.8rem;}
 .visit-popover .vp-actions .btn{flex:1;padding:.45rem .6rem;font-size:.76rem;justify-content:center;}
 .visit-popover-backdrop{position:fixed;inset:0;z-index:399;}
+.qr-modal-backdrop{position:fixed;inset:0;z-index:500;background:rgba(6,12,10,.72);display:flex;align-items:center;justify-content:center;padding:1rem;}
+.qr-modal{background:var(--panel-solid,#142119);border:1px solid var(--line);border-radius:18px;padding:1.4rem;max-width:320px;width:100%;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);}
+.qr-modal h4{font-family:var(--f-display);font-size:1.05rem;color:var(--bone);margin-bottom:.2rem;}
+.qr-modal p{font-size:.78rem;color:var(--mist);margin:0 0 1rem;}
+.qr-modal img{width:100%;max-width:220px;border-radius:12px;background:#fff;padding:.6rem;margin:0 auto .2rem;display:block;}
+.qr-modal .qr-modal-actions{display:flex;gap:.5rem;margin-top:1rem;}
+.qr-modal .qr-modal-actions .btn{flex:1;justify-content:center;}
 
 @media (max-width:860px){
   .month-cal-headrow span:nth-child(n){font-size:.58rem;}

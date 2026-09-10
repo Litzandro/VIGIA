@@ -116,12 +116,18 @@
     const tipo=a.tipo_alerta_nombre || 'Alerta';
     const resuelta=a.estado!=='activa';
 
-    // Llamar y Mensaje solo tienen sentido si sabemos a quien -- si por
-    // algun motivo no hay telefono guardado (campo opcional) o no hay
-    // usuario_id, el boton correspondiente simplemente no aparece, en
-    // vez de mostrar un enlace roto.
+    // Mensaje si sabemos a quien -- si no hay usuario_id, el boton
+    // simplemente no aparece, en vez de mostrar un enlace roto.
+    //
+    // "Llamar" antes era un enlace tel:, que solo hace algo en un
+    // telefono/tablet con una app de llamadas registrada -- en la
+    // computadora de garita (donde de verdad se usa VIGIA la mayoria
+    // del tiempo) el navegador no tiene con que abrirlo y el boton se
+    // ve roto. VIGIA no hace llamadas de verdad por si misma: en vez de
+    // fingir que si, este boton muestra/copia el telefono guardado para
+    // que el guardia marque desde su propio telefono.
     const botonLlamar=a.usuario_telefono
-      ? `<a class="btn btn-ghost" href="tel:${escapeHtml(a.usuario_telefono)}"><i class="bi bi-telephone-fill"></i> Llamar</a>`
+      ? `<button type="button" class="btn btn-ghost btn-ver-telefono" data-tel="${escapeHtml(a.usuario_telefono)}"><i class="bi bi-telephone-fill"></i> Ver teléfono</button>`
       : '';
     const botonMensaje=a.usuario_id
       ? `<a class="btn btn-ghost" href="mensajeria.html?abrir_residente=${a.usuario_id}"><i class="bi bi-chat-dots-fill"></i> Mensaje</a>`
@@ -141,15 +147,6 @@
           '<button type="button" class="btn btn-ghost panic-action-btn" data-status="falsa_alarma"><i class="bi bi-x-lg"></i> Falsa alarma</button>'
         )+
         botonLlamar+botonMensaje+
-        // Antes esto mostraba un enlace a "la camara mas cercana"
-        // adivinada por texto ("torre a"/"torre b" en el nombre de la
-        // vivienda, cualquier otro caso caia siempre al mismo default) --
-        // una adivinanza vestida de dato preciso es peor que no adivinar:
-        // el guardia podia confiar en una camara que en realidad no era
-        // la correcta durante una emergencia real. Hasta que exista un
-        // mapeo de verdad vivienda->camara (dado de alta por el admin),
-        // el enlace honesto es simplemente abrir todas las camaras.
-        '<a class="btn btn-ghost" href="camaras.html" target="_blank" rel="noopener"><i class="bi bi-camera-video-fill"></i> Ver cámaras</a>'+
       '</div>';
 
     card.querySelector('.panic-card-who-text b').textContent=who;
@@ -168,6 +165,20 @@
       btn.addEventListener('click',()=> atenderAlerta(a.id, btn.dataset.status, btn));
     });
 
+    const botonTelefono=card.querySelector('.btn-ver-telefono');
+    if(botonTelefono){
+      botonTelefono.addEventListener('click',()=>{
+        const tel=botonTelefono.dataset.tel;
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          navigator.clipboard.writeText(tel)
+            .then(()=>showToast('Teléfono copiado: '+tel))
+            .catch(()=>showToast('Teléfono: '+tel));
+        }else{
+          showToast('Teléfono: '+tel);
+        }
+      });
+    }
+
     return card;
   }
 
@@ -177,22 +188,44 @@
     return div.innerHTML;
   }
 
+  // "Atendidas hoy"/"Falsas alarmas" antes contaban TODO lo que trajera
+  // la consulta (las ultimas 100, sin importar el dia) aunque la
+  // etiqueta dijera "HOY" -- una alerta resuelta la semana pasada
+  // segui sumando ahi para siempre. Ahora se reinicia cada dia: solo
+  // cuenta (y solo se ve en la lista) lo resuelto ESE mismo dia. Nada
+  // se borra de la base de datos -- el registro de dias anteriores
+  // sigue completo y consultable via la API (/api/alertas-panico), asi
+  // que no se pierde nada, solo deja de mezclarse con el conteo de hoy.
+  function esDeHoy(fechaIso){
+    if(!fechaIso) return false;
+    const f=new Date(fechaIso);
+    const hoy=new Date();
+    return f.getFullYear()===hoy.getFullYear() && f.getMonth()===hoy.getMonth() && f.getDate()===hoy.getDate();
+  }
+
   let panicAlerts=[];
   let idsActivasConocidas=null; // null = primera carga; no suena en la primera carga, solo ante alertas NUEVAS
   function renderPanicAlerts(){
     if(!guardPanicList) return;
+    // Las pendientes (estado "activa") siempre se muestran, sin importar
+    // cuando se crearon -- una alerta sin atender de ayer sigue
+    // necesitando atencion, no debe desaparecer sola. Las ya resueltas
+    // (atendida/falsa_alarma) solo se muestran en la lista del dia de
+    // hoy; las de dias anteriores quedan fuera de la vista pero siguen
+    // en la base de datos.
+    const visibles=panicAlerts.filter(a=> a.estado==='activa' || esDeHoy(a.fecha_atencion||a.fecha_hora));
     guardPanicList.innerHTML='';
-    panicAlerts.forEach(a=> guardPanicList.appendChild(renderAlertCard(a)));
+    visibles.forEach(a=> guardPanicList.appendChild(renderAlertCard(a)));
 
-    if(guardPanicEmptyMsg) guardPanicEmptyMsg.style.display = panicAlerts.length ? 'none' : '';
+    if(guardPanicEmptyMsg) guardPanicEmptyMsg.style.display = visibles.length ? 'none' : '';
 
     if(statPendientes){
       const n=panicAlerts.filter(a=>a.estado==='activa').length;
       statPendientes.textContent=n;
       statPendientes.closest('.admin-stat').classList.toggle('has-alert', n>0);
     }
-    if(statFalsas) statFalsas.textContent=panicAlerts.filter(a=>a.estado==='falsa_alarma').length;
-    if(statAtendidas) statAtendidas.textContent=panicAlerts.filter(a=>a.estado==='atendida').length;
+    if(statFalsas) statFalsas.textContent=panicAlerts.filter(a=>a.estado==='falsa_alarma'&&esDeHoy(a.fecha_atencion||a.fecha_hora)).length;
+    if(statAtendidas) statAtendidas.textContent=panicAlerts.filter(a=>a.estado==='atendida'&&esDeHoy(a.fecha_atencion||a.fecha_hora)).length;
   }
 
   async function loadPanicAlerts(){

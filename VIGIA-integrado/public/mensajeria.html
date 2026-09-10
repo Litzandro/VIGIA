@@ -45,6 +45,16 @@
               </div>
               <span class="badge info" id="inboxCount">0</span>
             </div>
+            <!-- Superadmin no tiene una sola residencial (su cuenta no
+                 pertenece a ninguna en particular, ve todas) -- sin elegir
+                 una aqui, el backend no sabe de cual bandeja traer las
+                 conversaciones y responde "Selecciona una residencial."
+                 Guardia y admin normal si tienen residencial_id fija en su
+                 cuenta, asi que para ellos este selector se queda oculto. -->
+            <div class="form-group" id="mensajeriaResidencialWrap" style="display:none;margin-bottom:.85rem;">
+              <label for="mensajeriaResidencial">Residencial</label>
+              <select class="form-control" id="mensajeriaResidencial"></select>
+            </div>
             <div id="inboxList" class="queue-list">
               <div class="empty-state">Cargando...</div>
             </div>
