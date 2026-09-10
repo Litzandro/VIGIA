@@ -103,6 +103,12 @@ CREATE TABLE usuarios (
     foto_url            VARCHAR(255) NULL,
     estado              ENUM('activo','inactivo','suspendido') NOT NULL DEFAULT 'activo',
     debe_cambiar_clave  BOOLEAN NOT NULL DEFAULT TRUE,
+    -- Confirma que el correo es de verdad del usuario (enlace de
+    -- confirmacion al registrarse), no solo que tiene forma de correo
+    -- valido. admin-create marca esto en TRUE de una vez.
+    email_verificado            BOOLEAN NOT NULL DEFAULT FALSE,
+    token_verificacion          VARCHAR(64) NULL,
+    token_verificacion_expira   DATETIME NULL,
     ultimo_acceso       DATETIME NULL,
     creado_por          BIGINT UNSIGNED NULL,
     fecha_creacion      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -413,8 +419,18 @@ CREATE TABLE incidencias (
     descripcion         TEXT NOT NULL,
     visibilidad         ENUM('privada','administracion','comunidad') NOT NULL DEFAULT 'privada',
     ubicacion           VARCHAR(255) NULL,
+    -- Cuando ocurrio el hecho de verdad (lo llena quien reporta); distinto
+    -- de fecha_hora, que es cuando se REGISTRO el reporte en el sistema.
+    fecha_hora_hecho    DATETIME NULL,
     prioridad           ENUM('baja','media','alta','urgente') NOT NULL DEFAULT 'media',
-    estado              ENUM('reportada','en_revision','resuelta','cerrada') NOT NULL DEFAULT 'reportada',
+    -- "pendiente_aprobacion": estado inicial cuando reporta un residente
+    -- (guardia/admin/superadmin arrancan directo en "reportada", ya son
+    -- personal de confianza). Guardia/admin aprueban (pasa a
+    -- "reportada", sigue el flujo normal) o rechazan (pasa a
+    -- "rechazada", por ejemplo si el reporte es una broma, esta vacio de
+    -- contenido real o es irrespetuoso).
+    estado              ENUM('pendiente_aprobacion','reportada','en_revision','resuelta','cerrada','rechazada') NOT NULL DEFAULT 'reportada',
+    motivo_rechazo      VARCHAR(255) NULL,
     fecha_hora          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_resolucion    DATETIME NULL,
     cerrada_por         BIGINT UNSIGNED NULL,
@@ -427,6 +443,25 @@ CREATE TABLE incidencias (
 
 CREATE INDEX idx_incidencias_estado     ON incidencias(estado);
 CREATE INDEX idx_incidencias_residencial ON incidencias(residencial_id, fecha_hora);
+
+-- Sanciones aplicadas a un usuario -- hoy solo se generan al rechazar una
+-- incidencia marcada como irrespetuosa/falsa (ver src/routes/overrides/
+-- incidencias.js, accion "revisar"), pero se deja como tabla de proposito
+-- general (motivo libre, incidencia_id opcional) por si en el futuro se
+-- necesita sancionar por otra razon que no sea una incidencia.
+CREATE TABLE sanciones_usuarios (
+    id                  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id          BIGINT UNSIGNED NOT NULL,
+    incidencia_id       BIGINT UNSIGNED NULL,
+    motivo              VARCHAR(255) NOT NULL,
+    aplicado_por        BIGINT UNSIGNED NOT NULL,
+    fecha_creacion      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_sancion_usuario    FOREIGN KEY (usuario_id)    REFERENCES usuarios(id)    ON DELETE CASCADE,
+    CONSTRAINT fk_sancion_incidencia FOREIGN KEY (incidencia_id) REFERENCES incidencias(id) ON DELETE SET NULL,
+    CONSTRAINT fk_sancion_aplicado_por FOREIGN KEY (aplicado_por) REFERENCES usuarios(id)   ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_sanciones_usuario ON sanciones_usuarios(usuario_id);
 
 -- Evidencia adjunta (fotos, videos, documentos) a una incidencia.
 -- url_archivo queda opcional porque una evidencia puede venir de un archivo

@@ -108,6 +108,14 @@
         <label for="reportTipo">Tipo de incidencia</label>
         <select class="form-control" id="reportTipo" required></select>
       </div>
+      <div class="form-group">
+        <label for="reportUbicacion">Ubicación exacta</label>
+        <input type="text" class="form-control" id="reportUbicacion" maxlength="255" placeholder="Ej. Pasillo A, frente a casa #12" required>
+      </div>
+      <div class="form-group">
+        <label for="reportFechaHecho">Fecha y hora en que ocurrió</label>
+        <input type="datetime-local" class="form-control" id="reportFechaHecho" required>
+      </div>
       <div class="ai-assist-box" id="aiAssistBox">
         <i class="bi bi-lightbulb"></i><div><b>Sugerencia</b><span id="aiAssistText">Escribe la descripción y te sugerimos el tipo — puedes cambiarlo si no es correcto.</span></div>
       </div>
@@ -128,6 +136,39 @@
         <button type="submit" class="btn btn-solid"><i class="bi bi-send-fill"></i> Enviar reporte</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box form-modal" id="detailModalBox">
+    <div class="modal-icon"><i class="bi bi-flag-fill"></i></div>
+    <h3 id="detailTitulo">Incidencia</h3>
+    <p class="field-hint" id="detailMeta" style="margin:.2rem 0 1rem;"></p>
+    <div class="form-group">
+      <label>Descripción</label>
+      <p id="detailDescripcion" style="white-space:pre-wrap;color:var(--bone-dim);font-size:.88rem;"></p>
+    </div>
+    <div class="form-group" id="detailUbicacionWrap" style="display:none;">
+      <label>Ubicación</label>
+      <p id="detailUbicacion" style="color:var(--bone-dim);font-size:.88rem;"></p>
+    </div>
+    <div class="form-group" id="detailEvidenciasWrap" style="display:none;">
+      <label>Evidencia adjunta</label>
+      <div id="detailEvidencias" style="display:flex;flex-wrap:wrap;gap:.6rem;"></div>
+    </div>
+    <div class="form-group" id="detailRevisionWrap" style="display:none;border-top:1px solid var(--line);padding-top:1rem;">
+      <label>Este reporte está pendiente de aprobación</label>
+      <textarea class="form-control" id="detailMotivoRechazo" rows="2" maxlength="255" placeholder="Motivo (requerido solo para rechazar)"></textarea>
+      <label class="privacy-check" id="detailSancionarWrap" style="display:none;margin-top:.6rem;">
+        <input type="checkbox" id="detailSancionar">
+        <span><b>Sancionar al usuario</b><small>Márcalo solo si el reporte es irrespetuoso, falso o de mala fe.</small></span>
+      </label>
+      <div class="modal-actions" style="margin-top:.8rem;">
+        <button type="button" class="btn btn-ghost" id="detailRechazarBtn"><i class="bi bi-x-lg"></i> Rechazar</button>
+        <button type="button" class="btn btn-solid" id="detailAprobarBtn"><i class="bi bi-check-lg"></i> Aprobar</button>
+      </div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="detailClose">Cerrar</button></div>
   </div>
 </div>
 

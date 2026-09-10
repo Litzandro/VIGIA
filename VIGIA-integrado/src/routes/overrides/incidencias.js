@@ -8,11 +8,13 @@ const { validarCampos } = require('../../config/resourceValidation');
 const { validarImagenBase64 } = require('../../utils/imagenValidator');
 
 const ESTADO_LABEL = {
+  pendiente_aprobacion: 'está pendiente de aprobación',
   reportada: 'fue registrada',
   en_revision: 'está ahora en revisión',
   en_progreso: 'está ahora en progreso',
   resuelta: 'fue resuelta',
   cerrada: 'fue cerrada',
+  rechazada: 'fue rechazada',
 };
 
 function folio(incidencia) {
@@ -95,6 +97,32 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         return res.status(400).json({ error: 'El guardia debe adjuntar una fotografia o evidencia.' });
       }
 
+      // Hallazgo revisando reportes reales: sin pedir DONDE y CUANDO
+      // paso el hecho, guardia/admin recibian titulo+descripcion nomas y
+      // tenian que preguntar esos dos datos por aparte (chat, llamada) en
+      // cada incidencia -- justo los dos datos que mas se piden al
+      // levantar un reporte de verdad. Ahora son requeridos.
+      const ubicacion = String(body.ubicacion || '').trim();
+      if (!ubicacion) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'La ubicación exacta es requerida.' });
+      }
+      if (!body.fecha_hora_hecho) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'Indica cuándo ocurrió el hecho.' });
+      }
+      const fechaHoraHecho = new Date(body.fecha_hora_hecho);
+      if (Number.isNaN(fechaHoraHecho.getTime())) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'La fecha/hora del hecho no es válida.' });
+      }
+      // Margen de 5 minutos para no pelear con pequeños desfaces de
+      // reloj entre el dispositivo de quien reporta y el servidor.
+      if (fechaHoraHecho.getTime() > Date.now() + 5 * 60 * 1000) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'La fecha/hora del hecho no puede ser en el futuro.' });
+      }
+
       const residencialId = req.user.residencial_id || body.residencial_id;
 
       // El tipo elegido debe pertenecer a la misma residencial (o venir
@@ -116,7 +144,7 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       }
       if (!tipo) throw new Error('No existe un tipo de incidencia disponible.');
 
-      const errores = validarCampos(model, { ubicacion: body.ubicacion, guardia_original_nombre: req.user.rol_codigo === 'guardia' ? req.user.nombre_completo : null });
+      const errores = validarCampos(model, { ubicacion, guardia_original_nombre: req.user.rol_codigo === 'guardia' ? req.user.nombre_completo : null });
       if (errores.length) {
         await transaction.rollback();
         return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
@@ -142,6 +170,18 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       // "media" fijo sin relacion con el tipo.
       const prioridad = (esStaff && body.prioridad) ? normalizePriority(body.prioridad) : prioridadDerivada;
 
+      // Requisito nuevo: un reporte de un RESIDENTE no cuenta como
+      // "oficial" de una vez -- guardia/admin lo revisan primero
+      // (aprobar/rechazar, ver la ruta "/:id/revisar" mas abajo) antes
+      // de que siga el flujo normal. Esto frena reportes vacios,
+      // irrespetuosos o de mala fe antes de que lleguen a notificar a
+      // toda la comunidad (si son "comunidad") o a ocupar tiempo de
+      // guardia como si fueran un caso real. Guardia/admin/superadmin
+      // reportando ellos mismos (ej. guardia desde garita) no pasan por
+      // esto -- ya son personal de confianza, su reporte es oficial de
+      // una vez, igual que antes de este cambio.
+      const estadoInicial = esStaff ? 'reportada' : 'pendiente_aprobacion';
+
       const incidencia = await model.create({
         residencial_id: residencialId,
         tipo_incidencia_id: tipo.id,
@@ -151,9 +191,10 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         titulo,
         descripcion,
         visibilidad: ['privada', 'administracion', 'comunidad'].includes(body.visibilidad) ? body.visibilidad : 'privada',
-        ubicacion: body.ubicacion || null,
+        ubicacion,
+        fecha_hora_hecho: fechaHoraHecho,
         prioridad,
-        estado: 'reportada',
+        estado: estadoInicial,
       }, { transaction });
 
       let evidencia = null;
@@ -189,7 +230,9 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         await notificacionesService.crear({
           usuario_id: incidencia.reportado_por,
           tipo: 'incidencia',
-          titulo: `Tu incidencia ${folio(incidencia)} fue registrada`,
+          titulo: estadoInicial === 'pendiente_aprobacion'
+            ? `Tu incidencia ${folio(incidencia)} está pendiente de aprobación`
+            : `Tu incidencia ${folio(incidencia)} fue registrada`,
           mensaje: titulo,
           referencia_tipo: 'incidencia',
           referencia_id: incidencia.id,
@@ -199,8 +242,12 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       // Si la incidencia es publica (visibilidad "comunidad"), el resto
       // de los residentes tambien debe enterarse, no solo quien la
       // reporto (se pidio explicitamente: "si una incidencia es publica
-      // deberia aparecer en notificaciones").
-      if (incidencia.visibilidad === 'comunidad' && incidencia.residencial_id) {
+      // deberia aparecer en notificaciones"). Pero si todavia esta
+      // pendiente de aprobacion, NO se avisa a todo el residencial --
+      // eso equivaldria a publicarla antes de que guardia/admin
+      // confirmen que es un reporte real, justo lo que este flujo de
+      // aprobacion busca evitar.
+      if (incidencia.visibilidad === 'comunidad' && incidencia.residencial_id && estadoInicial !== 'pendiente_aprobacion') {
         try {
           await notificacionesService.crearParaResidencial({
             residencial_id: incidencia.residencial_id,
@@ -249,6 +296,103 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
     } catch (err) { next(err); }
   });
 
+  // Aprobar o rechazar un reporte de residente que quedo en
+  // "pendiente_aprobacion" -- separado del PATCH generico de abajo para
+  // que el efecto de sancionar SOLO pueda dispararse por esta via, con
+  // sus propias reglas (quien puede, desde que estado, motivo
+  // obligatorio al rechazar), en vez de depender de que el PATCH
+  // generico reciba por casualidad los campos correctos.
+  router.patch(`/${pkPath}/revisar`, async (req, res, next) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+      if (!['guardia', 'admin', 'superadmin'].includes(req.user.rol_codigo)) {
+        await transaction.rollback();
+        return res.status(403).json({ error: 'Solo guardia o administración pueden revisar reportes.' });
+      }
+      const where = primaryKeyWhere(model, req.params);
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const row = await model.findOne({ where, transaction });
+      if (!row) {
+        await transaction.rollback();
+        return res.status(404).json({ error: 'Incidencia no encontrada.' });
+      }
+      if (row.estado !== 'pendiente_aprobacion') {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'Esta incidencia ya fue revisada, o no necesitaba revisión.' });
+      }
+
+      const aprobar = Boolean(req.body.aprobar);
+      const motivo = String(req.body.motivo || '').trim();
+      if (!aprobar && !motivo) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'Escribe el motivo del rechazo.' });
+      }
+
+      // Sancionar es la accion mas fuerte de las dos (queda en el
+      // historial del usuario) -- se deja solo para admin/superadmin,
+      // no para guardia, aunque guardia si pueda aprobar/rechazar sin
+      // sancionar. Si un guardia de todas formas manda sancionar:true,
+      // se ignora en silencio en vez de rechazar toda la revision -- el
+      // rechazo del reporte (lo que si pidio) sigue adelante igual.
+      const puedeSancionar = ['admin', 'superadmin'].includes(req.user.rol_codigo);
+      const sancionar = !aprobar && puedeSancionar && Boolean(req.body.sancionar);
+
+      const nuevoEstado = aprobar ? 'reportada' : 'rechazada';
+      await row.update({
+        estado: nuevoEstado,
+        motivo_rechazo: aprobar ? null : motivo,
+      }, { transaction });
+
+      await db.IncidenciasSeguimiento.create({
+        incidencia_id: row.id,
+        usuario_id: req.user.id,
+        comentario: aprobar ? 'Reporte aprobado.' : `Reporte rechazado: ${motivo}`,
+        estado_anterior: 'pendiente_aprobacion',
+        estado_nuevo: nuevoEstado,
+      }, { transaction });
+
+      let sancion = null;
+      if (sancionar) {
+        sancion = await db.SancionesUsuarios.create({
+          usuario_id: row.reportado_por,
+          incidencia_id: row.id,
+          motivo: `Incidencia ${folio(row)} rechazada: ${motivo}`,
+          aplicado_por: req.user.id,
+        }, { transaction });
+      }
+
+      await transaction.commit();
+
+      try {
+        await notificacionesService.crear({
+          usuario_id: row.reportado_por,
+          tipo: 'incidencia',
+          titulo: aprobar
+            ? `Tu incidencia ${folio(row)} fue aprobada`
+            : `Tu incidencia ${folio(row)} fue rechazada`,
+          mensaje: aprobar ? row.titulo : motivo,
+          referencia_tipo: 'incidencia',
+          referencia_id: row.id,
+        });
+        if (sancion) {
+          await notificacionesService.crear({
+            usuario_id: row.reportado_por,
+            tipo: 'incidencia',
+            titulo: 'Recibiste una sanción',
+            mensaje: sancion.motivo,
+            referencia_tipo: 'incidencia',
+            referencia_id: row.id,
+          });
+        }
+      } catch (notifyErr) { /* la revision ya quedo guardada; no se bloquea por un fallo al notificar */ }
+
+      res.json({ data: row, sancion });
+    } catch (err) {
+      if (!transaction.finished) await transaction.rollback();
+      next(err);
+    }
+  });
+
   router.patch(`/${pkPath}`, async (req, res, next) => {
     try {
       if (req.user.rol_codigo === 'residente') {
@@ -258,6 +402,14 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
       const row = await model.findOne({ where });
       if (!row) return res.status(404).json({ error: 'Incidencia no encontrada.' });
+      // La aprobacion/rechazo tiene su propia ruta (arriba, "/revisar")
+      // porque ahi es donde se decide si ademas se sanciona al usuario
+      // -- si el PATCH generico pudiera sacar una incidencia de
+      // "pendiente_aprobacion" tambien, alguien podria saltarse esa
+      // revision (y la posible sancion) con una llamada mas simple.
+      if (row.estado === 'pendiente_aprobacion') {
+        return res.status(400).json({ error: 'Esta incidencia esta pendiente de aprobación. Usa la acción de aprobar/rechazar.' });
+      }
       const allowed = {};
       ['estado', 'prioridad', 'asignado_a', 'ubicacion'].forEach((k) => {
         if (req.body[k] !== undefined) allowed[k] = req.body[k];

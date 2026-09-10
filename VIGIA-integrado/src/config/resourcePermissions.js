@@ -53,6 +53,7 @@ module.exports = {
   incidencias: { create: { permission: 'incidencias.reportar' }, read: AUTH_ONLY, update: { permission: 'incidencias.gestionar' }, remove: { permission: 'incidencias.gestionar' } },
   incidencias_evidencias: { create: { permission: 'incidencias.reportar' }, read: AUTH_ONLY, update: { permission: 'incidencias.gestionar' }, remove: { permission: 'incidencias.gestionar' } },
   incidencias_seguimiento: { create: { permission: 'incidencias.gestionar' }, read: AUTH_ONLY, update: { permission: 'incidencias.gestionar' }, remove: ADMIN },
+  sanciones_usuarios: { create: ADMIN, read: { permission: 'usuarios.gestionar' }, update: ADMIN, remove: ADMIN },
 
   tipos_alerta: { create: ADMIN, read: AUTH_ONLY, update: ADMIN, remove: ADMIN },
   alertas_panico: { create: { permission: 'alertas.emitir' }, read: AUTH_ONLY, update: { permission: 'alertas.atender' }, remove: ADMIN },

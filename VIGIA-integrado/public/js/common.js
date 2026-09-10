@@ -87,7 +87,14 @@ const VigiaAPI=(function(){
           location.replace(`${destino}?sesion=expirada`);
         }
       }
-      throw new Error(data.error||data.message||`Error ${response.status}`);
+      // "necesita_verificacion" (login con cuenta sin confirmar) va
+      // pegado al Error de verdad -- no solo al texto del mensaje --
+      // para que quien llame a request() pueda reaccionar distinto (ej.
+      // ofrecer un boton de reenviar) sin tener que adivinar comparando
+      // el mensaje palabra por palabra.
+      const err=new Error(data.error||data.message||`Error ${response.status}`);
+      if(data.necesita_verificacion)err.necesitaVerificacion=true;
+      throw err;
     }
     return data;
   }

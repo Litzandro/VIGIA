@@ -15,8 +15,15 @@ module.exports = (sequelize, DataTypes) => {
     descripcion: { type: DataTypes.TEXT, allowNull: false },
     visibilidad: { type: DataTypes.ENUM('privada', 'administracion', 'comunidad'), allowNull: false, defaultValue: 'privada' },
     ubicacion: { type: DataTypes.STRING(255), allowNull: true },
+    // Cuando ocurrio el hecho de verdad -- distinto de "fecha_hora" (que
+    // es cuando se REPORTO, casi siempre un poco despues del hecho real).
+    fecha_hora_hecho: { type: DataTypes.DATE, allowNull: true },
     prioridad: { type: DataTypes.ENUM('baja', 'media', 'alta', 'urgente'), allowNull: false, defaultValue: 'media' },
-    estado: { type: DataTypes.ENUM('reportada', 'en_revision', 'resuelta', 'cerrada'), allowNull: false, defaultValue: 'reportada' },
+    // "pendiente_aprobacion": estado inicial cuando reporta un residente
+    // (ver src/routes/overrides/incidencias.js); "rechazada": guardia/admin
+    // no lo aprobaron.
+    estado: { type: DataTypes.ENUM('pendiente_aprobacion', 'reportada', 'en_revision', 'resuelta', 'cerrada', 'rechazada'), allowNull: false, defaultValue: 'reportada' },
+    motivo_rechazo: { type: DataTypes.STRING(255), allowNull: true },
     fecha_hora: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     fecha_resolucion: { type: DataTypes.DATE, allowNull: true },
     cerrada_por: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },

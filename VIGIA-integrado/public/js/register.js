@@ -69,11 +69,13 @@
     submitBtn.disabled=true;
     submitBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> Creando cuenta...';
 
-    // El backend sigue esperando "name" como un solo campo (para no
-    // duplicar la logica de "nombre_completo" en dos lugares); se arma
-    // aqui a partir de los dos campos ya separados del formulario.
+    // Antes esto se juntaba en un solo campo "name" y el backend lo
+    // volvia a partir por el primer espacio -- eso rompia cualquier
+    // nombre o apellido con mas de una palabra (ej. "Ana Maria" o
+    // "Rodriguez Lopez"). Ahora nombre y apellido viajan por separado
+    // de punta a punta, tal como la persona los escribio.
     const result=await AuthStore.register({
-      name:`${payload.nombre} ${payload.apellido}`.trim(),
+      nombre:payload.nombre, apellido:payload.apellido,
       email:payload.email, phone:payload.phone, unidad:payload.unidad,
       colonia:payload.colonia, codigo_colonia:payload.codigo_colonia,
       password:payload.password,
@@ -85,10 +87,10 @@
       return;
     }
     submitBtn.innerHTML='<i class="bi bi-check-lg"></i> ¡Cuenta creada!';
-    // Antes esto iniciaba sesion automaticamente y mandaba directo al
-    // panel -- ahora manda a login para que la persona inicie sesion
-    // ella misma con la cuenta recien creada, confirmando que de verdad
-    // quedo guardada (en vez de asumirlo).
-    window.location.href='login.html?cuenta=creada';
+    // La cuenta ya quedo guardada, pero todavia no esta verificada --
+    // no puede iniciar sesion hasta confirmar el correo (authController
+    // lo rechaza con "necesita_verificacion"). Se manda a login con un
+    // aviso especifico en vez del generico "cuenta creada" de antes.
+    window.location.href='login.html?cuenta=verificar';
   });
 })();

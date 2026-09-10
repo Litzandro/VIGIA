@@ -49,6 +49,8 @@ const overrides = {
   integraciones: require('./overrides/integraciones'),
   turnos_guardia: require('./overrides/turnosGuardia'),
   mensajes: require('./overrides/mensajes'),
+  incidencias_evidencias: require('./overrides/incidenciasEvidencias'),
+  sanciones_usuarios: require('./overrides/sancionesUsuarios'),
 };
 
 function toKebabCase(snakeCase) {

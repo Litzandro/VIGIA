@@ -84,6 +84,10 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         password_hash: await bcrypt.hash(String(password), BCRYPT_ROUNDS),
         estado: 'activo',
         debe_cambiar_clave: true,
+        // Creada por un admin/superadmin de confianza -- ya hubo alguien
+        // real confirmando los datos a mano, asi que no hace falta
+        // mandarle un correo de confirmacion como al autoregistro publico.
+        email_verificado: true,
         creado_por: req.user.id,
       }, { transaction });
 
@@ -158,12 +162,50 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       const usuario = await model.findByPk(req.user.id);
       if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-      const { password_hash, rol_id, residencial_id, estado, ...permitido } = req.body || {};
+      const { password_hash, rol_id, residencial_id, estado, email_verificado, token_verificacion, token_verificacion_expira, ...permitido } = req.body || {};
       // El "+504" que ve el residente en Perfil (attachPhoneCountryCode)
       // es solo visual -- lo que llega aca sigue siendo el numero de 8
       // digitos. Se normaliza al guardar para que quede consistente con
       // el resto de la base, igual que en register/admin-create.
       if (permitido.telefono !== undefined) permitido.telefono = normalizarTelefonoHN(permitido.telefono);
+
+      // Mismo hueco que se encontro en el registro publico: register()
+      // y admin-create SI revisan formato de nombre/apellido/telefono
+      // antes de guardar, pero editar el perfil propio (aca) no llamaba
+      // a validarCampos en absoluto -- alguien podia registrarse bien y
+      // despues, editando su perfil, cambiar su nombre a "123" o su
+      // telefono a cualquier cosa sin que el servidor lo rechazara (el
+      // formulario de Perfil si pone las mascaras, pero eso no protege
+      // nada si se llama la API directo).
+      const camposParaValidar = {};
+      if (permitido.nombre !== undefined) camposParaValidar.nombre = permitido.nombre;
+      if (permitido.apellido !== undefined) camposParaValidar.apellido = permitido.apellido;
+      if (permitido.telefono !== undefined) camposParaValidar.telefono = permitido.telefono;
+      const erroresPerfil = validarCampos(db.Usuarios, camposParaValidar);
+      if (erroresPerfil.length) {
+        return res.status(400).json({ error: erroresPerfil[0] });
+      }
+
+      // Igual que arriba, el correo nunca se revisaba con formato al
+      // editar el perfil (solo al registrarse). Si de verdad cambia a
+      // uno distinto, se le exige el mismo formato Y se marca la cuenta
+      // como no verificada otra vez -- no seria consistente confirmar
+      // "juan@correo.com" una vez y despues dejar que lo cambie en
+      // silencio a cualquier cosa sin volver a confirmar nada.
+      if (permitido.email !== undefined) {
+        const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const nuevoEmail = String(permitido.email).trim().toLowerCase();
+        if (!RE_EMAIL.test(nuevoEmail)) {
+          return res.status(400).json({ error: 'Escribe un correo electrónico válido.' });
+        }
+        permitido.email = nuevoEmail;
+        if (nuevoEmail !== usuario.email) {
+          const yaExiste = await db.Usuarios.findOne({ where: { email: nuevoEmail } });
+          if (yaExiste) return res.status(409).json({ error: 'Ya existe una cuenta con ese correo.' });
+          permitido.email_verificado = false;
+        }
+      }
+
       await usuario.update(permitido);
       const data = usuario.toJSON(); delete data.password_hash;
       res.json({ data });
@@ -199,6 +241,13 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       const allowed = {};
       ['nombre','apellido','email','telefono','foto_url','estado','debe_cambiar_clave'].forEach(k=>{ if(req.body[k]!==undefined) allowed[k]=req.body[k]; });
       if (allowed.telefono !== undefined) allowed.telefono = normalizarTelefonoHN(allowed.telefono);
+      // Mismo chequeo que /me y admin-create: formato real, no solo "no vacio".
+      const camposParaValidarAdmin = {};
+      if (allowed.nombre !== undefined) camposParaValidarAdmin.nombre = allowed.nombre;
+      if (allowed.apellido !== undefined) camposParaValidarAdmin.apellido = allowed.apellido;
+      if (allowed.telefono !== undefined) camposParaValidarAdmin.telefono = allowed.telefono;
+      const erroresAdminUpdate = validarCampos(db.Usuarios, camposParaValidarAdmin);
+      if (erroresAdminUpdate.length) return res.status(400).json({ error: erroresAdminUpdate[0] });
       if (req.user.rol_codigo === 'superadmin') {
         if (req.body.rol_id !== undefined) allowed.rol_id = req.body.rol_id;
         if (req.body.residencial_id !== undefined) allowed.residencial_id = req.body.residencial_id;

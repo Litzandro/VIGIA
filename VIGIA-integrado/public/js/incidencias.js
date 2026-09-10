@@ -1,6 +1,7 @@
 (function(){
   const modal=document.getElementById('reportModal'),form=document.getElementById('reportForm'),kanban=document.querySelector('.kanban');if(!modal||!form||!kanban)return;
   const desc=document.getElementById('reportDesc'),count=document.getElementById('reportDescCount'),tipoSelect=document.getElementById('reportTipo'),priorityInfo=document.getElementById('reportPriorityInfo');let photoData='',types=[];
+  const ubicacionInput=document.getElementById('reportUbicacion'),fechaHechoInput=document.getElementById('reportFechaHecho');
 
   // Antes esto se llamaba "Asistente de IA" y decidia sola la prioridad
   // (que el usuario podia cambiar libremente en un select aparte) --
@@ -38,7 +39,19 @@
     actualizarPrioridadInfo();
   }
   if(tipoSelect)tipoSelect.addEventListener('change',actualizarPrioridadInfo);
-  function open(){modal.classList.add('open');poblarTipos();document.getElementById('reportTitle').focus()}function close(){modal.classList.remove('open')}
+  function open(){
+    modal.classList.add('open');poblarTipos();document.getElementById('reportTitle').focus();
+    // El hecho ya paso -- no tendria sentido dejar elegir una fecha/hora
+    // futura (ej. reportar algo que "va a pasar" manana). Se limita al
+    // momento actual del dispositivo, con margen de un minuto para no
+    // pelear con el reloj mientras la persona llena el formulario.
+    if(fechaHechoInput){
+      const ahora=new Date(Date.now()+60000);
+      ahora.setSeconds(0,0);
+      fechaHechoInput.max=ahora.toISOString().slice(0,16);
+    }
+  }
+  function close(){modal.classList.remove('open')}
   document.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open);document.getElementById('reportCancel').onclick=close;modal.onclick=e=>{if(e.target===modal)close()};
   desc.addEventListener('keydown',e=>{if(e.key==='Enter'&&(desc.value.match(/\n/g)||[]).length>=3)e.preventDefault()});
   desc.addEventListener('input',()=>{
@@ -68,10 +81,111 @@
     }
   };
   const stateLabel={reportada:'Abierta',en_revision:'En progreso',resuelta:'Resuelta',cerrada:'Historial'};
-  function card(x){const tipoNombre=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin tipo';return `<article class="kcard" data-priority="${escapeHtml(x.prioridad)}"><div class="kcard-top"><span class="kcard-icon ${x.prioridad==='urgente'||x.prioridad==='alta'?'warn':'ok'}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span><span class="badge neutral" style="margin-left:.4rem;">${escapeHtml(tipoNombre)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">VG</span> ${escapeHtml(x.visibilidad)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${new Date(x.fecha_hora).toLocaleDateString('es-HN')}</span></div></article>`}
-  function render(rows){const groups={reportada:[],en_revision:[],historial:[]};rows.forEach(x=>{if(x.estado==='reportada')groups.reportada.push(x);else if(x.estado==='en_revision')groups.en_revision.push(x);else groups.historial.push(x)});kanban.innerHTML=[['reportada','warn','Abierta'],['en_revision','ok','En progreso'],['historial','neutral','Historial']].map(([key,dot,title])=>`<section><div class="kanban-col-head"><span class="dot ${dot}"></span>${title} <span class="count">${groups[key].length}</span></div>${groups[key].length?groups[key].map(card).join(''):'<div class="incident-empty-note"><i class="bi bi-inbox"></i><span>Sin incidencias en esta etapa.</span></div>'}${key==='reportada'?'<div class="kcard-add" data-open-report><i class="bi bi-plus-lg"></i> Reportar otra incidencia</div>':''}</section>`).join('');kanban.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open)}
+  function card(x){const tipoNombre=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin tipo';return `<article class="kcard" data-priority="${escapeHtml(x.prioridad)}" data-id="${x.id}" style="cursor:pointer;" title="Ver detalle"><div class="kcard-top"><span class="kcard-icon ${x.prioridad==='urgente'||x.prioridad==='alta'?'warn':'ok'}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span><span class="badge neutral" style="margin-left:.4rem;">${escapeHtml(tipoNombre)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">VG</span> ${escapeHtml(x.visibilidad)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${new Date(x.fecha_hora).toLocaleDateString('es-HN')}</span></div></article>`}
+
+  // Antes no habia NINGUNA forma de ver la evidencia (foto) que se
+  // adjuntaba al reportar -- se guardaba bien en el servidor, pero la
+  // tarjeta del kanban solo mostraba titulo/descripcion/prioridad. Este
+  // modal de detalle llama al mismo GET /incidencias/:id que ya
+  // regresaba "evidencias" (ver src/routes/overrides/incidencias.js)
+  // pero que nadie en el frontend usaba.
+  const detailModal=document.getElementById('detailModal');
+  async function verDetalle(id){
+    if(!detailModal)return;
+    try{
+      const r=await VigiaAPI.request(`/incidencias/${id}`);
+      const inc=r.data||{};
+      document.getElementById('detailTitulo').textContent=inc.titulo||'Incidencia';
+      const tipoNombre=(inc.tipoIncidencia&&inc.tipoIncidencia.nombre)||'Sin tipo';
+      const fechaHecho=inc.fecha_hora_hecho?new Date(inc.fecha_hora_hecho).toLocaleString('es-HN'):null;
+      document.getElementById('detailMeta').textContent=`#INC-${String(inc.id).padStart(4,'0')} · ${tipoNombre} · Prioridad ${inc.prioridad}${fechaHecho?' · Ocurrió: '+fechaHecho:''}`;
+      document.getElementById('detailDescripcion').textContent=inc.descripcion||'';
+      const ubicacionWrap=document.getElementById('detailUbicacionWrap');
+      if(inc.ubicacion){ubicacionWrap.style.display='block';document.getElementById('detailUbicacion').textContent=inc.ubicacion;}
+      else{ubicacionWrap.style.display='none';}
+      const evidencias=r.evidencias||[];
+      const evWrap=document.getElementById('detailEvidenciasWrap'),evBox=document.getElementById('detailEvidencias');
+      if(evidencias.length){
+        evWrap.style.display='block';
+        evBox.innerHTML=evidencias.map(ev=>ev.tipo_archivo==='imagen'&&ev.url_archivo
+          ? `<img src="${ev.url_archivo}" alt="Evidencia" style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">`
+          : `<div class="badge neutral"><i class="bi bi-paperclip"></i> ${escapeHtml(ev.tipo_archivo||'archivo')}</div>`).join('');
+      }else{
+        evWrap.style.display='none';
+      }
+
+      idEnRevision=inc.id;
+      const revisionWrap=document.getElementById('detailRevisionWrap');
+      const mostrarRevision=esStaffCliente && inc.estado==='pendiente_aprobacion';
+      revisionWrap.style.display=mostrarRevision?'block':'none';
+      document.getElementById('detailMotivoRechazo').value='';
+      document.getElementById('detailSancionar').checked=false;
+      document.getElementById('detailSancionarWrap').style.display=puedeSancionarCliente?'flex':'none';
+
+      detailModal.classList.add('open');
+    }catch(err){showToast(err.message,'bi-exclamation-triangle-fill');}
+  }
+  document.getElementById('detailClose').onclick=()=>detailModal.classList.remove('open');
+  detailModal.onclick=e=>{if(e.target===detailModal)detailModal.classList.remove('open');};
+
+  // Aprobar/rechazar (y, para admin/superadmin, sancionar) solo lo ve
+  // guardia/admin/superadmin, y solo mientras el reporte este
+  // pendiente de aprobacion -- un residente nunca deberia ver estos
+  // botones ni siquiera en su propio reporte.
+  const sesionActual=VigiaAPI.getSession()||{};
+  const esStaffCliente=['guardia','admin','superadmin'].includes(sesionActual.rol_codigo);
+  const puedeSancionarCliente=['admin','superadmin'].includes(sesionActual.rol_codigo);
+  let idEnRevision=null;
+  async function enviarRevision(aprobar){
+    const motivo=document.getElementById('detailMotivoRechazo').value.trim();
+    if(!aprobar && !motivo){showToast('Escribe el motivo del rechazo.','bi-exclamation-triangle-fill');return;}
+    const sancionar=puedeSancionarCliente && document.getElementById('detailSancionar').checked;
+    try{
+      await VigiaAPI.request(`/incidencias/${idEnRevision}/revisar`,{method:'PATCH',body:JSON.stringify({aprobar,motivo,sancionar})});
+      detailModal.classList.remove('open');
+      showToast(aprobar?'Reporte aprobado':'Reporte rechazado'+(sancionar?' y usuario sancionado':''));
+      load();
+    }catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}
+  }
+  document.getElementById('detailAprobarBtn').onclick=()=>enviarRevision(true);
+  document.getElementById('detailRechazarBtn').onclick=()=>enviarRevision(false);
+  function render(rows){
+    const groups={pendiente_aprobacion:[],reportada:[],en_revision:[],historial:[]};
+    rows.forEach(x=>{
+      if(x.estado==='pendiente_aprobacion')groups.pendiente_aprobacion.push(x);
+      else if(x.estado==='reportada')groups.reportada.push(x);
+      else if(x.estado==='en_revision')groups.en_revision.push(x);
+      else groups.historial.push(x);
+    });
+    const columnas=[['pendiente_aprobacion','warn','Pendiente de aprobación'],['reportada','warn','Abierta'],['en_revision','ok','En progreso'],['historial','neutral','Historial']];
+    kanban.innerHTML=columnas.map(([key,dot,title])=>`<section><div class="kanban-col-head"><span class="dot ${dot}"></span>${title} <span class="count">${groups[key].length}</span></div>${groups[key].length?groups[key].map(card).join(''):'<div class="incident-empty-note"><i class="bi bi-inbox"></i><span>Sin incidencias en esta etapa.</span></div>'}${key==='reportada'?'<div class="kcard-add" data-open-report><i class="bi bi-plus-lg"></i> Reportar otra incidencia</div>':''}</section>`).join('');
+    kanban.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open);
+    kanban.querySelectorAll('.kcard[data-id]').forEach(x=>x.onclick=()=>verDetalle(x.getAttribute('data-id')));
+  }
   async function load(){try{const [i,t]=await Promise.all([VigiaAPI.request('/incidencias'),VigiaAPI.request('/tipos-incidencia?limit=100')]);types=t.data||[];poblarTipos();render(i.data||[])}catch(e){kanban.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}
-  form.onsubmit=async e=>{e.preventDefault();const tipoId=tipoSelect&&tipoSelect.value?Number(tipoSelect.value):null;const submitBtn=form.querySelector('button[type="submit"]');await withSubmitLock(submitBtn,async()=>{try{await VigiaAPI.request('/incidencias',{method:'POST',body:JSON.stringify({tipo_incidencia_id:tipoId,titulo:document.getElementById('reportTitle').value.trim(),descripcion:desc.value.trim(),visibilidad:document.getElementById('reportPrivate').checked?'privada':'comunidad',evidencia_url:photoData||null,evidencia_tipo:'imagen'})});form.reset();photoData='';count.textContent='0/350';document.getElementById('reportPhotoPreviewWrap').style.display='none';close();showToast('Incidencia enviada y guardada');load()}catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}},'<i class="bi bi-arrow-repeat"></i> Enviando...')};
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    const ubicacion=ubicacionInput?ubicacionInput.value.trim():'';
+    const fechaHecho=fechaHechoInput?fechaHechoInput.value:'';
+    if(!ubicacion){showToast('Escribe la ubicación exacta donde ocurrió.','bi-exclamation-triangle-fill');return;}
+    if(!fechaHecho){showToast('Indica cuándo ocurrió el hecho.','bi-exclamation-triangle-fill');return;}
+    const tipoId=tipoSelect&&tipoSelect.value?Number(tipoSelect.value):null;
+    const submitBtn=form.querySelector('button[type="submit"]');
+    await withSubmitLock(submitBtn,async()=>{
+      try{
+        await VigiaAPI.request('/incidencias',{method:'POST',body:JSON.stringify({
+          tipo_incidencia_id:tipoId,
+          titulo:document.getElementById('reportTitle').value.trim(),
+          descripcion:desc.value.trim(),
+          ubicacion,
+          fecha_hora_hecho:new Date(fechaHecho).toISOString(),
+          visibilidad:document.getElementById('reportPrivate').checked?'privada':'comunidad',
+          evidencia_url:photoData||null,evidencia_tipo:'imagen',
+        })});
+        form.reset();photoData='';count.textContent='0/350';document.getElementById('reportPhotoPreviewWrap').style.display='none';close();showToast('Incidencia enviada y guardada');load();
+      }catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}
+    },'<i class="bi bi-arrow-repeat"></i> Enviando...');
+  };
   document.getElementById('emergencyContactsBtn').onclick=()=>location.href='emergencias.html';
   async function panic(target){try{const r=await VigiaAPI.request('/tipos-alerta?limit=20');const type=(r.data||[]).find(x=>x.codigo==='otro')||(r.data||[])[0];if(!type)throw new Error('No hay tipo de alerta configurado.');await VigiaAPI.request('/alertas-panico',{method:'POST',body:JSON.stringify({tipo_alerta_id:type.id})});showToast(target==='guardia'?'Alerta privada enviada a garita':'Alerta enviada al sistema','bi-broadcast')}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}
   function modalPanic(button,mid,cancel,confirm,target){const m=document.getElementById(mid);document.getElementById(button).onclick=()=>m.classList.add('open');document.getElementById(cancel).onclick=()=>m.classList.remove('open');document.getElementById(confirm).onclick=async()=>{m.classList.remove('open');await panic(target)}}
