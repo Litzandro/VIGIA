@@ -242,10 +242,29 @@ body::before{
        clicable por encima del fondo oscuro -- si quedara al mismo
        nivel o mas arriba, el propio boton para cerrar el menu podria
        quedar tapado por el fondo oscuro que se supone que el mismo
-       boton controla. */
+       boton controla.
+       IMPORTANTE: esta comparacion de z-index (299 vs 300) solo funciona
+       de verdad si este backdrop vive DENTRO de .app -- .app tiene su
+       propio "position:relative;z-index:1" (ver mas arriba, es para el
+       fondo animado), lo cual lo convierte en su propio contexto de
+       apilamiento. Si el backdrop cuelga de document.body (un HERMANO de
+       .app, no un hijo), se compara contra .app COMPLETO (z-index:1) y no
+       contra .sidebar directamente -- y como 299 > 1, el backdrop ganaba
+       SIEMPRE y tapaba tambien el cajon, dejandolo visible pero sin poder
+       tocarlo. common.js ahora cuelga este div del mismo padre que
+       .sidebar (.app) para que esta comparacion 299 vs 300 aplique de
+       verdad. */
     z-index:299;animation:fadeIn .2s ease;
   }
   .sidebar-backdrop.show{display:block;}
+
+  /* Complemento del fix de arriba: mientras el cajon esta abierto, sin
+     esto un arrastre que empiece sobre la zona oscura (fuera de los
+     300px del cajon) hacia scroll normal de la pagina de fondo por
+     debajo del overlay fijo -- se sentia como si "el fondo se moviera"
+     en vez de abrir/cerrar o desplazarse dentro del cajon. */
+  html.vigia-sidebar-lock,
+  body.vigia-sidebar-lock{overflow:hidden;height:100%;}
 
   .sidebar-nav .nav-item{padding:.68rem .85rem;font-size:.85rem;}
   .sidebar-footer{flex-direction:column;align-items:stretch;border-top:1px solid var(--line);margin-top:1rem;padding-top:1.1rem;}

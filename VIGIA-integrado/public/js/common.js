@@ -564,12 +564,39 @@ function prepararSidebarUnico(sidebar,current){
   if(!backdrop){
     backdrop=document.createElement('div');
     backdrop.className='sidebar-backdrop';
-    document.body.appendChild(backdrop);
+    // CORRECCION BUG REAL (menu movil se ve pero no se puede tocar): este
+    // backdrop se colgaba de document.body -- un HERMANO de .app, no un hijo.
+    // .app tiene "position:relative;z-index:1" (para el fondo animado del
+    // login), lo cual convierte a TODO .app en su propio contexto de
+    // apilamiento. Eso significa que el z-index:300/301 de .sidebar y
+    // .sidebar-drawer (definidos mas abajo) solo se comparan ENTRE ELLOS y
+    // contra otros hijos de .app (como .main) -- nunca se comparan de forma
+    // directa contra el backdrop, que vive fuera de .app. Al comparar
+    // .app completo (z-index:1) contra el backdrop (z-index:299) al nivel
+    // raiz, el backdrop ganaba SIEMPRE y quedaba pintado por encima de TODO
+    // .app, cajon incluido -- por eso se veia "medio oscurecido" tambien
+    // encima del menu, y los toques/arrastres en esa zona le llegaban al
+    // backdrop (que solo sabe cerrar el menu, no tiene scroll propio) en vez
+    // de llegarle a los enlaces o a la lista con scroll del cajon. Colgar el
+    // backdrop del mismo padre que .sidebar (.app) lo mete en el MISMO
+    // contexto de apilamiento, donde el z-index:300 de .sidebar si le gana
+    // de verdad al z-index:299 del backdrop.
+    (sidebar.parentElement||document.body).appendChild(backdrop);
+  }
+
+  function bloquearScrollFondo(bloquear){
+    // Complemento del fix de arriba: mientras el cajon esta abierto en
+    // movil, sin esto un arrastre que empiece sobre el area oscura (fuera
+    // de los 300px del cajon) hace scroll normal de la pagina de fondo
+    // por debajo del overlay fijo -- se ve como si "el fondo se moviera".
+    document.documentElement.classList.toggle('vigia-sidebar-lock',bloquear);
+    document.body.classList.toggle('vigia-sidebar-lock',bloquear);
   }
 
   function cerrarCajonMovil(){
     sidebar.classList.remove('mobile-open');
     backdrop.classList.remove('show');
+    bloquearScrollFondo(false);
     if(collapseBtn){
       collapseBtn.querySelector('i').className='bi bi-list';
       collapseBtn.setAttribute('aria-label','Abrir menú');
@@ -580,6 +607,7 @@ function prepararSidebarUnico(sidebar,current){
   function abrirCajonMovil(){
     sidebar.classList.add('mobile-open');
     backdrop.classList.add('show');
+    bloquearScrollFondo(true);
     if(collapseBtn){
       collapseBtn.querySelector('i').className='bi bi-x-lg';
       collapseBtn.setAttribute('aria-label','Cerrar menú');
