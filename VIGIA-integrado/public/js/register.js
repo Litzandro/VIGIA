@@ -17,6 +17,8 @@
   const codigoInput=document.getElementById('regCodigo');
   const passwordInput=document.getElementById('regPassword');
   const passwordConfirmInput=document.getElementById('regPasswordConfirm');
+  const preguntaInput=document.getElementById('regPregunta');
+  const respuestaInput=document.getElementById('regRespuesta');
   const termsInput=document.getElementById('acceptTerms');
   const errorBox=document.getElementById('registerError');
   const toggleBtn=document.getElementById('toggleRegPassword');
@@ -54,6 +56,7 @@
       email:emailInput.value.trim(), phone:phoneInput.value.trim(),
       unidad:unidadInput.value.trim(), colonia:coloniaInput.value,
       codigo_colonia:codigoInput.value.trim(), password:passwordInput.value,
+      pregunta_seguridad:preguntaInput.value.trim(), respuesta_seguridad:respuestaInput.value.trim(),
     };
     const passwordConfirm=passwordConfirmInput.value;
 
@@ -64,6 +67,7 @@
     if(!/[a-z]/.test(payload.password)||!/[A-Z]/.test(payload.password)||!/[0-9]/.test(payload.password)){showError('La contraseña debe incluir mayúscula, minúscula y número.');return;}
     if(payload.password!==passwordConfirm){showError('Las contraseñas no coinciden.');return;}
     if(!termsInput.checked){showError('Debes aceptar los Términos y Condiciones para continuar.');return;}
+    if(payload.respuesta_seguridad.length<2){showError('Escribe una respuesta de seguridad válida.');return;}
 
     const originalHTML=submitBtn.innerHTML;
     submitBtn.disabled=true;
@@ -79,6 +83,7 @@
       email:payload.email, phone:payload.phone, unidad:payload.unidad,
       colonia:payload.colonia, codigo_colonia:payload.codigo_colonia,
       password:payload.password,
+      pregunta_seguridad:payload.pregunta_seguridad, respuesta_seguridad:payload.respuesta_seguridad,
     });
     if(!result.ok){
       showError(result.error);
@@ -87,10 +92,10 @@
       return;
     }
     submitBtn.innerHTML='<i class="bi bi-check-lg"></i> ¡Cuenta creada!';
-    // La cuenta ya quedo guardada, pero todavia no esta verificada --
-    // no puede iniciar sesion hasta confirmar el correo (authController
-    // lo rechaza con "necesita_verificacion"). Se manda a login con un
-    // aviso especifico en vez del generico "cuenta creada" de antes.
-    window.location.href='login.html?cuenta=verificar';
+    // Antes esto iniciaba sesion automaticamente y mandaba directo al
+    // panel -- ahora manda a login para que la persona inicie sesion
+    // ella misma con la cuenta recien creada, confirmando que de verdad
+    // quedo guardada (en vez de asumirlo).
+    window.location.href='login.html?cuenta=creada';
   });
 })();

@@ -100,15 +100,16 @@ CREATE TABLE usuarios (
     email               VARCHAR(150) NOT NULL UNIQUE,
     telefono            VARCHAR(30)  NULL,
     password_hash       VARCHAR(255) NOT NULL,
+    -- Reemplazan al "olvide mi contraseña" por correo (que dependia de
+    -- que el SMTP de Railway entregara el enlace de verdad, cosa que no
+    -- fue confiable -- ver la nota en autenticacion mas abajo). Se
+    -- llenan al registrarse y se usan en /auth/recuperar-pregunta y
+    -- /auth/verificar-respuesta.
+    pregunta_seguridad          VARCHAR(255) NULL,
+    respuesta_seguridad_hash    VARCHAR(255) NULL,
     foto_url            VARCHAR(255) NULL,
     estado              ENUM('activo','inactivo','suspendido') NOT NULL DEFAULT 'activo',
     debe_cambiar_clave  BOOLEAN NOT NULL DEFAULT TRUE,
-    -- Confirma que el correo es de verdad del usuario (enlace de
-    -- confirmacion al registrarse), no solo que tiene forma de correo
-    -- valido. admin-create marca esto en TRUE de una vez.
-    email_verificado            BOOLEAN NOT NULL DEFAULT FALSE,
-    token_verificacion          VARCHAR(64) NULL,
-    token_verificacion_expira   DATETIME NULL,
     ultimo_acceso       DATETIME NULL,
     creado_por          BIGINT UNSIGNED NULL,
     fecha_creacion      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

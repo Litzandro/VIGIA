@@ -28,13 +28,19 @@
   function render() {
     const roleMap = new Map(roles.map((x) => [String(x.id), x.codigo]));
     const residentialMap = new Map(residentials.map((x) => [String(x.id), x.nombre]));
-    document.getElementById('statUsers').textContent = users.length;
-    document.getElementById('statGuards').textContent = users.filter((x) => roleMap.get(String(x.rol_id)) === 'guardia').length;
-    document.getElementById('statResidents').textContent = users.filter((x) => roleMap.get(String(x.rol_id)) === 'residente').length;
+    // Los usuarios eliminados (estado "inactivo") se conservan en la base
+    // por las llaves foraneas (ver el DELETE de src/routes/overrides/
+    // usuarios.js), pero para el admin deben verse como si ya no
+    // existieran: no cuentan en las tarjetas de arriba ni aparecen en la
+    // tabla de cuentas registradas.
+    const activos = users.filter((x) => x.estado !== 'inactivo');
+    document.getElementById('statUsers').textContent = activos.length;
+    document.getElementById('statGuards').textContent = activos.filter((x) => roleMap.get(String(x.rol_id)) === 'guardia').length;
+    document.getElementById('statResidents').textContent = activos.filter((x) => roleMap.get(String(x.rol_id)) === 'residente').length;
     document.getElementById('statResidentials').textContent = residentials.length;
 
     const q = document.getElementById('userSearch').value.trim().toLowerCase();
-    const rows = users.filter((x) => !q || `${x.nombre} ${x.apellido} ${x.email}`.toLowerCase().includes(q));
+    const rows = activos.filter((x) => !q || `${x.nombre} ${x.apellido} ${x.email}`.toLowerCase().includes(q));
     document.getElementById('userRows').innerHTML = rows.length
       ? rows.map((x) => {
         const role = roleMap.get(String(x.rol_id)) || `#${x.rol_id}`;
@@ -46,12 +52,15 @@
           <td>${escapeHtml(role)}</td>
           <td>${escapeHtml(residential)}</td>
           <td><span class="badge ${x.estado === 'activo' ? 'ok' : 'blocked'}">${escapeHtml(x.estado)}</span></td>
-          <td><button class="btn btn-ghost" data-id="${x.id}" data-state="${nextState}">${x.estado === 'activo' ? 'Suspender' : 'Activar'}</button></td>
+          <td class="table-actions">
+            <button class="btn btn-ghost" data-action="toggle" data-id="${x.id}" data-state="${nextState}">${x.estado === 'activo' ? 'Suspender' : 'Activar'}</button>
+            <button class="btn btn-danger" data-action="delete" data-id="${x.id}">Eliminar</button>
+          </td>
         </tr>`;
       }).join('')
       : '<tr><td colspan="6">No hay resultados.</td></tr>';
 
-    document.querySelectorAll('#userRows button').forEach((button) => {
+    document.querySelectorAll('#userRows button[data-action="toggle"]').forEach((button) => {
       button.addEventListener('click', async () => {
         if (!confirm(`¿Cambiar la cuenta a ${button.dataset.state}?`)) return;
         try {
@@ -60,6 +69,19 @@
             body: JSON.stringify({ estado: button.dataset.state }),
           });
           showToast('Cuenta actualizada');
+          await load();
+        } catch (error) {
+          showToast(error.message, 'bi-exclamation-triangle-fill');
+        }
+      });
+    });
+
+    document.querySelectorAll('#userRows button[data-action="delete"]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        if (!confirm('¿Eliminar esta cuenta? El usuario ya no podrá iniciar sesión ni aparecerá en esta lista.')) return;
+        try {
+          await VigiaAPI.request(`/usuarios/${button.dataset.id}`, { method: 'DELETE' });
+          showToast('Usuario eliminado');
           await load();
         } catch (error) {
           showToast(error.message, 'bi-exclamation-triangle-fill');

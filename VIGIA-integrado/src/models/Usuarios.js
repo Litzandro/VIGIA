@@ -13,17 +13,11 @@ module.exports = (sequelize, DataTypes) => {
     email: { type: DataTypes.STRING(150), allowNull: false, unique: true },
     telefono: { type: DataTypes.STRING(30), allowNull: true },
     password_hash: { type: DataTypes.STRING(255), allowNull: false },
+    pregunta_seguridad: { type: DataTypes.STRING(255), allowNull: true },
+    respuesta_seguridad_hash: { type: DataTypes.STRING(255), allowNull: true },
     foto_url: { type: DataTypes.STRING(255), allowNull: true },
     estado: { type: DataTypes.ENUM('activo', 'inactivo', 'suspendido'), allowNull: false, defaultValue: 'activo' },
     debe_cambiar_clave: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    // Confirma que el correo es de verdad del usuario (enlace enviado al
-    // registrarse), no solo que tiene forma de correo valido. Cuentas
-    // creadas por un administrador (admin-create) se marcan verificadas
-    // de una vez, porque ahi ya hubo alguien de confianza confirmando los
-    // datos a mano.
-    email_verificado: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    token_verificacion: { type: DataTypes.STRING(64), allowNull: true },
-    token_verificacion_expira: { type: DataTypes.DATE, allowNull: true },
     ultimo_acceso: { type: DataTypes.DATE, allowNull: true },
     creado_por: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
     fecha_creacion: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },

@@ -6,7 +6,6 @@ const crypto = require('crypto');
 const { Op } = require('sequelize');
 const db = require('../models');
 const { validatePassword } = require('../utils/passwordPolicy');
-const { enviarCorreo } = require('../services/envioService');
 const { normalizarTelefonoHN } = require('../utils/telefonoHN');
 const { sembrarTiposIncidenciaDefecto } = require('../utils/catalogoTiposIncidencia');
 const { validarCampos } = require('../config/resourceValidation');
@@ -156,20 +155,6 @@ async function login(req, res, next) {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
     }
 
-    // Requisito nuevo: confirmar que el correo es de verdad del usuario,
-    // no solo que tiene forma de correo (eso ya lo revisa RE_EMAIL en
-    // register()). Sin esto, cualquiera podia registrarse con un correo
-    // ajeno o inventado y usar la cuenta igual, sin que su dueño real se
-    // enterara ni pudiera reaccionar. Se revisa DESPUES de confirmar la
-    // contraseña para no darle a un atacante una forma de saber si un
-    // correo esta registrado sin conocer la clave.
-    if (!usuario.email_verificado) {
-      return res.status(403).json({
-        error: 'Todavia no confirmaste tu correo. Revisa tu bandeja de entrada (y spam) o pide que te reenviemos el enlace.',
-        necesita_verificacion: true,
-      });
-    }
-
     const rol = await db.Roles.findByPk(usuario.rol_id);
     const sessionData = await createSession(req, usuario, rol, { remember: Boolean(remember) });
     await usuario.update({ ultimo_acceso: new Date() });
@@ -184,10 +169,19 @@ async function login(req, res, next) {
 async function register(req, res, next) {
   const transaction = await db.sequelize.transaction();
   try {
-    const { nombre: nombreRaw, apellido: apellidoRaw, email, phone, unidad, colonia, codigo_colonia, password } = req.body || {};
-    if (!nombreRaw || !apellidoRaw || !email || !phone || !unidad || !colonia || !password) {
+    const { nombre: nombreRaw, apellido: apellidoRaw, email, phone, unidad, colonia, codigo_colonia, password, pregunta_seguridad, respuesta_seguridad } = req.body || {};
+    if (!nombreRaw || !apellidoRaw || !email || !phone || !unidad || !colonia || !password || !pregunta_seguridad || !respuesta_seguridad) {
       await transaction.rollback();
-      return res.status(400).json({ error: 'Completa todos los campos requeridos.' });
+      return res.status(400).json({ error: 'Completa todos los campos requeridos, incluida la pregunta de seguridad.' });
+    }
+    // La respuesta de seguridad reemplaza al enlace de correo para
+    // recuperar la contraseña (ver recuperarPregunta/verificarRespuesta
+    // mas abajo): se exige un minimo de 2 caracteres para que no quede
+    // guardada una respuesta vacia o de un solo caracter que cualquiera
+    // adivinaria a la primera.
+    if (String(respuesta_seguridad).trim().length < 2) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'La respuesta de seguridad es demasiado corta.' });
     }
     // Antes el formulario mandaba un solo campo "name" con nombre y
     // apellido ya unidos por el propio frontend, y aca se volvia a
@@ -303,13 +297,12 @@ async function register(req, res, next) {
     }
 
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-
-    // Token de confirmacion de correo: se genera y guarda YA (dentro de
-    // la misma transaccion que crea la cuenta) para no dejar una cuenta
-    // creada sin ninguna forma de confirmarla si el envio del correo
-    // falla despues -- en ese caso el usuario puede pedir que se le
-    // reenvie con /api/auth/reenviar-verificacion, que genera uno nuevo.
-    const tokenVerificacion = crypto.randomBytes(32).toString('hex');
+    // Misma logica de normalizacion que verificarRespuesta() usa al
+    // comparar: sin esto, "Firulais" y "firulais " (con espacio) se
+    // guardarian como respuestas distintas y la persona quedaria
+    // bloqueada por una diferencia de mayuscula o un espacio de mas.
+    const respuestaNormalizada = String(respuesta_seguridad).trim().toLowerCase();
+    const respuesta_seguridad_hash = await bcrypt.hash(respuestaNormalizada, BCRYPT_ROUNDS);
 
     const usuario = await db.Usuarios.create({
       residencial_id: residencial.id,
@@ -319,11 +312,10 @@ async function register(req, res, next) {
       email: normalizedEmail,
       telefono: normalizarTelefonoHN(phone),
       password_hash,
+      pregunta_seguridad: String(pregunta_seguridad).trim(),
+      respuesta_seguridad_hash,
       estado: 'activo',
       debe_cambiar_clave: false,
-      email_verificado: false,
-      token_verificacion: tokenHash(tokenVerificacion),
-      token_verificacion_expira: new Date(Date.now() + VERIFICACION_TOKEN_TTL_MIN * 60 * 1000),
     }, { transaction });
 
     await db.Residentes.create({
@@ -335,88 +327,17 @@ async function register(req, res, next) {
 
     await transaction.commit();
 
-    // El correo se manda DESPUES de confirmar la transaccion (si el
-    // envio falla, la cuenta ya quedo creada de todas formas -- el
-    // usuario puede pedir un reenvio en vez de perder el registro
-    // completo por un problema del proveedor de correo).
-    const enlaceVerificacion = `${frontendBaseUrl(req)}/api/auth/verificar-correo?token=${tokenVerificacion}`;
-    try {
-      await enviarCorreo({
-        para: usuario.email,
-        asunto: 'Confirma tu correo en VIGIA',
-        texto: `Hola ${usuario.nombre},\n\nGracias por registrarte en VIGIA. Confirma que este correo es tuyo entrando a este enlace (valido por ${VERIFICACION_TOKEN_TTL_MIN / 60} horas):\n\n${enlaceVerificacion}\n\nSi tu no creaste esta cuenta, puedes ignorar este correo.`,
-      });
-    } catch (errCorreo) {
-      // No se revierte el registro por esto -- se deja que el usuario
-      // pida un reenvio desde login.html si el correo nunca le llego.
-      console.error('[register] fallo el envio del correo de verificacion:', errCorreo.message);
-    }
-
     // Antes esto iniciaba sesion automaticamente y mandaba directo al
-    // panel. Ahora nunca inicia sesion sola aqui -- ni aunque el correo
-    // se mande bien -- porque la cuenta todavia no esta verificada
-    // (login() la rechaza hasta que email_verificado sea true), asi que
-    // no tendria caso devolver una sesion que no se puede usar todavia.
-    res.status(201).json({
-      mensaje: 'Cuenta creada. Revisa tu correo para confirmarla antes de iniciar sesion.',
-      necesita_verificacion: true,
-    });
+    // panel -- ahora manda a login para que la persona inicie sesion
+    // ella misma con la cuenta recien creada, confirmando que de verdad
+    // quedo guardada (en vez de asumirlo). Se probo agregar tambien una
+    // verificacion de correo por enlace (Brevo/SMTP) pero se quito: en
+    // la practica el correo no llegaba de forma confiable (bloqueos de
+    // Gmail, SMTP mal configurado en Railway, etc.) y esta app no va a
+    // produccion real, asi que el costo de mantenerlo no se justificaba.
+    res.status(201).json({ mensaje: 'Cuenta creada correctamente.' });
   } catch (err) {
     if (!transaction.finished) await transaction.rollback();
-    next(err);
-  }
-}
-
-const VERIFICACION_TOKEN_TTL_MIN = 24 * 60;
-
-// GET /api/auth/verificar-correo?token=...
-async function verificarCorreo(req, res, next) {
-  try {
-    const { token } = req.query || {};
-    if (!token) return res.redirect('/login.html?verificacion=invalida');
-
-    const hash = tokenHash(String(token));
-    const usuario = await db.Usuarios.findOne({ where: { token_verificacion: hash } });
-    if (!usuario || !usuario.token_verificacion_expira || new Date(usuario.token_verificacion_expira) <= new Date()) {
-      return res.redirect('/login.html?verificacion=invalida');
-    }
-
-    await usuario.update({ email_verificado: true, token_verificacion: null, token_verificacion_expira: null });
-    return res.redirect('/login.html?verificacion=ok');
-  } catch (err) {
-    next(err);
-  }
-}
-
-// POST /api/auth/reenviar-verificacion
-// Mismo criterio anti-enumeracion que forgot-password: siempre responde
-// el mismo mensaje generico, exista o no la cuenta, o ya este verificada.
-async function reenviarVerificacion(req, res, next) {
-  try {
-    const { email } = req.body || {};
-    const mensajeGenerico = { mensaje: 'Si la cuenta existe y todavia no esta confirmada, te reenviamos el correo.' };
-    if (!email) return res.status(400).json({ error: 'Escribe tu correo electronico.' });
-
-    const usuario = await db.Usuarios.findOne({ where: { email: String(email).trim().toLowerCase() } });
-    if (!usuario || usuario.email_verificado) {
-      return res.json(mensajeGenerico);
-    }
-
-    const tokenVerificacion = crypto.randomBytes(32).toString('hex');
-    await usuario.update({
-      token_verificacion: tokenHash(tokenVerificacion),
-      token_verificacion_expira: new Date(Date.now() + VERIFICACION_TOKEN_TTL_MIN * 60 * 1000),
-    });
-
-    const enlaceVerificacion = `${frontendBaseUrl(req)}/api/auth/verificar-correo?token=${tokenVerificacion}`;
-    await enviarCorreo({
-      para: usuario.email,
-      asunto: 'Confirma tu correo en VIGIA',
-      texto: `Hola ${usuario.nombre},\n\nConfirma que este correo es tuyo entrando a este enlace (valido por ${VERIFICACION_TOKEN_TTL_MIN / 60} horas):\n\n${enlaceVerificacion}\n\nSi tu no pediste esto, puedes ignorar este correo.`,
-    });
-
-    res.json(mensajeGenerico);
-  } catch (err) {
     next(err);
   }
 }
@@ -466,29 +387,59 @@ async function revokeSession(req, res, next) {
   } catch (err) { next(err); }
 }
 
-// Cuanto dura el enlace de recuperacion antes de vencer.
+// Cuanto dura el token de recuperacion antes de vencer (se sigue usando
+// el mismo PasswordResets/reset-password de siempre, solo que ahora el
+// token no se manda por correo -- se devuelve directo en la respuesta
+// de verificarRespuesta, una vez que la persona demuestra que sabe su
+// propia respuesta de seguridad).
 const RESET_TOKEN_TTL_MIN = 30;
 
-// De donde arma el enlace del correo. Si no hay APP_URL en el .env, lo
-// arma con el host que llamo a la API (funciona igual para localhost que
-// para un dominio real detras de Railway/Render/Nginx).
-function frontendBaseUrl(req) {
-  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/+$/, '');
-  return `${req.protocol}://${req.get('host')}`;
-}
-
-// POST /api/auth/forgot-password
-// Siempre responde el mismo mensaje generico, exista o no el correo, para
-// no dejar adivinar desde afuera que direcciones estan registradas.
-async function forgotPassword(req, res, next) {
+// POST /api/auth/recuperar-pregunta
+// Primer paso del nuevo flujo de "olvide mi contraseña": recibe el
+// correo y devuelve la pregunta de seguridad que la persona eligio al
+// registrarse, para que la conteste en el siguiente paso
+// (verificarRespuesta). Reemplaza al viejo forgot-password por correo:
+// ese dependia de que el SMTP configurado en Railway entregara el
+// enlace de verdad, y en la practica no fue confiable (ver el commit
+// que quito la verificacion de correo por el mismo motivo).
+async function recuperarPregunta(req, res, next) {
   try {
     const { email } = req.body || {};
-    const mensajeGenerico = { mensaje: 'Si el correo esta registrado, te enviamos un enlace para recuperar tu contraseña.' };
     if (!email) return res.status(400).json({ error: 'Escribe tu correo electronico.' });
 
     const usuario = await db.Usuarios.findOne({ where: { email: String(email).trim().toLowerCase() } });
-    if (!usuario || usuario.estado !== 'activo') {
-      return res.json(mensajeGenerico);
+    if (!usuario || usuario.estado !== 'activo' || !usuario.pregunta_seguridad) {
+      return res.status(404).json({ error: 'No encontramos una cuenta activa con ese correo y una pregunta de seguridad configurada.' });
+    }
+
+    res.json({ pregunta: usuario.pregunta_seguridad });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/verificar-respuesta
+// Segundo paso: recibe el correo y la respuesta que la persona escribio
+// ahora, la compara (normalizada igual que en register()) contra el
+// hash guardado, y si coincide crea un PasswordResets normal y devuelve
+// su token sin pasar por correo -- restablecer-password.html reusa ese
+// token exactamente igual que cuando llegaba por enlace.
+async function verificarRespuesta(req, res, next) {
+  try {
+    const { email, respuesta } = req.body || {};
+    if (!email || !respuesta) {
+      return res.status(400).json({ error: 'Escribe tu correo y la respuesta.' });
+    }
+
+    const usuario = await db.Usuarios.findOne({ where: { email: String(email).trim().toLowerCase() } });
+    if (!usuario || usuario.estado !== 'activo' || !usuario.respuesta_seguridad_hash) {
+      return res.status(400).json({ error: 'No pudimos verificar esa cuenta.' });
+    }
+
+    const respuestaNormalizada = String(respuesta).trim().toLowerCase();
+    const coincide = await bcrypt.compare(respuestaNormalizada, usuario.respuesta_seguridad_hash);
+    if (!coincide) {
+      return res.status(400).json({ error: 'La respuesta no es correcta.' });
     }
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -500,14 +451,7 @@ async function forgotPassword(req, res, next) {
       usado: false,
     });
 
-    const enlace = `${frontendBaseUrl(req)}/restablecer-password.html?token=${token}`;
-    await enviarCorreo({
-      para: usuario.email,
-      asunto: 'Recupera tu contraseña de VIGIA',
-      texto: `Hola ${usuario.nombre},\n\nRecibimos una solicitud para restablecer tu contraseña de VIGIA. Este enlace es valido por ${RESET_TOKEN_TTL_MIN} minutos:\n\n${enlace}\n\nSi tu no pediste esto, puedes ignorar este correo: tu contraseña actual sigue funcionando.`,
-    });
-
-    res.json(mensajeGenerico);
+    res.json({ token });
   } catch (err) {
     next(err);
   }
@@ -551,4 +495,4 @@ async function resetPassword(req, res, next) {
   }
 }
 
-module.exports = { login, register, me, logout, sessions, revokeSession, forgotPassword, resetPassword, verificarCorreo, reenviarVerificacion, tokenHash };
+module.exports = { login, register, me, logout, sessions, revokeSession, recuperarPregunta, verificarRespuesta, resetPassword, tokenHash };

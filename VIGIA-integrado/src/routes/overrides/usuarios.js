@@ -84,10 +84,6 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         password_hash: await bcrypt.hash(String(password), BCRYPT_ROUNDS),
         estado: 'activo',
         debe_cambiar_clave: true,
-        // Creada por un admin/superadmin de confianza -- ya hubo alguien
-        // real confirmando los datos a mano, asi que no hace falta
-        // mandarle un correo de confirmacion como al autoregistro publico.
-        email_verificado: true,
         creado_por: req.user.id,
       }, { transaction });
 
@@ -162,7 +158,7 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       const usuario = await model.findByPk(req.user.id);
       if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-      const { password_hash, rol_id, residencial_id, estado, email_verificado, token_verificacion, token_verificacion_expira, ...permitido } = req.body || {};
+      const { password_hash, rol_id, residencial_id, estado, ...permitido } = req.body || {};
       // El "+504" que ve el residente en Perfil (attachPhoneCountryCode)
       // es solo visual -- lo que llega aca sigue siendo el numero de 8
       // digitos. Se normaliza al guardar para que quede consistente con
@@ -186,12 +182,8 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         return res.status(400).json({ error: erroresPerfil[0] });
       }
 
-      // Igual que arriba, el correo nunca se revisaba con formato al
-      // editar el perfil (solo al registrarse). Si de verdad cambia a
-      // uno distinto, se le exige el mismo formato Y se marca la cuenta
-      // como no verificada otra vez -- no seria consistente confirmar
-      // "juan@correo.com" una vez y despues dejar que lo cambie en
-      // silencio a cualquier cosa sin volver a confirmar nada.
+      // Mismo hueco que nombre/apellido/telefono: el correo tampoco se
+      // revisaba con formato al editar el perfil (solo al registrarse).
       if (permitido.email !== undefined) {
         const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const nuevoEmail = String(permitido.email).trim().toLowerCase();
@@ -202,7 +194,6 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         if (nuevoEmail !== usuario.email) {
           const yaExiste = await db.Usuarios.findOne({ where: { email: nuevoEmail } });
           if (yaExiste) return res.status(409).json({ error: 'Ya existe una cuenta con ese correo.' });
-          permitido.email_verificado = false;
         }
       }
 
@@ -259,5 +250,41 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
   };
   router.put(`/${pkPath}`, adminUpdate);
   router.patch(`/${pkPath}`, adminUpdate);
-  router.delete(`/${pkPath}`, handlers.remove);
+
+  // Eliminar usuarios (admin/superadmin, ya filtrado por
+  // resourcePermissions.js con "usuarios.gestionar"). No se usa el
+  // handlers.remove generico de crudFactory.js porque Usuarios no tiene
+  // columna "activo" -> hasSoftDelete() da false -> haria un DELETE
+  // fisico de la fila. Eso reventaria con error de foreign key en
+  // cuanto el usuario tuviera CUALQUIER historial real: accesos,
+  // incidencias.reportado_por, sanciones_usuarios.aplicado_por,
+  // seguimientos_incidencias, paquetes.recibido_por,
+  // veto_residentes.solicitado_por, turnos_guardia, evacuaciones... casi
+  // todas esas tablas referencian usuarios(id) con ON DELETE RESTRICT.
+  // En vez de borrar la fila, se reutiliza el mismo ENUM "estado" que ya
+  // usa login() para bloquear el acceso (igual que "suspendido"), y se
+  // cierran todas sus sesiones activas para que no pueda seguir usando
+  // un token que ya tenia antes de que caduque solo.
+  router.delete(`/${pkPath}`, async (req, res, next) => {
+    try {
+      const where = { id: req.params.id };
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const usuario = await model.findOne({ where });
+      if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+      if (String(usuario.id) === String(req.user.id)) {
+        return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta.' });
+      }
+
+      // fecha_eliminacion ya existia en la tabla (pensada para el
+      // borrado logico generico de crudFactory.js, que en Usuarios
+      // nunca se activaba porque hasSoftDelete() exige una columna
+      // "activo" que esta tabla no tiene) -- se reutiliza aca para
+      // dejar registrado cuando se elimino la cuenta.
+      await usuario.update({ estado: 'inactivo', fecha_eliminacion: new Date() });
+      await db.Sesiones.update({ activa: false }, { where: { usuario_id: usuario.id } });
+
+      res.json({ mensaje: 'Usuario eliminado.' });
+    } catch (err) { next(err); }
+  });
 };

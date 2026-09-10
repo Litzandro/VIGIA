@@ -19,48 +19,9 @@
   if(new URLSearchParams(location.search).get('sesion')==='expirada'){
     showError('Tu sesión expiró por inactividad. Inicia sesión de nuevo.');
   }
-  const successBox=document.getElementById('loginSuccess');
-  function showSuccess(msg){ if(successBox){ successBox.querySelector('span').textContent=msg; successBox.classList.add('show'); } }
-
-  const cuentaParam=new URLSearchParams(location.search).get('cuenta');
-  if(cuentaParam==='creada'){
-    // Se deja por compatibilidad con enlaces viejos (ej. un marcador
-    // guardado antes de este cambio) -- el flujo nuevo ya no manda
-    // "cuenta=creada" (ver register.js), manda "cuenta=verificar".
-    showSuccess('Tu cuenta se creó correctamente. Inicia sesión para continuar.');
-  }
-  if(cuentaParam==='verificar'){
-    showSuccess('Revisa tu correo (y la carpeta de spam) y confirma tu cuenta antes de iniciar sesión.');
-  }
-
-  const verificacionParam=new URLSearchParams(location.search).get('verificacion');
-  if(verificacionParam==='ok'){
-    showSuccess('Tu correo quedó confirmado. Ya puedes iniciar sesión.');
-  }
-  if(verificacionParam==='invalida'){
-    showError('El enlace de confirmación no es válido o ya venció. Pide que te reenviemos uno nuevo abajo.');
-  }
-
-  // Boton de reenvio: solo aparece cuando hace falta (cuenta sin
-  // confirmar, o enlace de confirmacion vencido/invalido) -- no tiene
-  // sentido mostrarlo siempre en la pantalla de login.
-  const resendBox=document.getElementById('resendVerification');
-  const resendBtn=document.getElementById('resendVerificationBtn');
-  function mostrarReenvio(){ if(resendBox)resendBox.classList.add('show'); }
-  if(verificacionParam==='invalida')mostrarReenvio();
-  if(resendBtn){
-    resendBtn.addEventListener('click',async()=>{
-      const email=emailInput.value.trim();
-      if(!email){ showError('Escribe tu correo arriba primero, y vuelve a tocar "Reenviar correo".'); return; }
-      resendBtn.disabled=true;
-      const original=resendBtn.textContent;
-      resendBtn.textContent='Enviando...';
-      const result=await AuthStore.reenviarVerificacion(email);
-      resendBtn.disabled=false;
-      resendBtn.textContent=original;
-      if(result.ok)showSuccess(result.mensaje||'Si la cuenta existe y no esta confirmada, te reenviamos el correo.');
-      else showError(result.error);
-    });
+  if(new URLSearchParams(location.search).get('cuenta')==='creada'){
+    const successBox=document.getElementById('loginSuccess');
+    if(successBox){ successBox.querySelector('span').textContent='Tu cuenta se creó correctamente. Inicia sesión para continuar.'; successBox.classList.add('show'); }
   }
 
   toggleBtn.addEventListener('click',()=>{
@@ -83,7 +44,6 @@
     const result=await AuthStore.login(email,password,rememberInput&&rememberInput.checked);
     if(!result.ok){
       showError(result.error);
-      if(result.necesitaVerificacion)mostrarReenvio();
       submitBtn.disabled=false;
       submitBtn.innerHTML=originalHTML;
       return;

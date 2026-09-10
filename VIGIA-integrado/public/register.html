@@ -79,6 +79,22 @@
             </div>
           </div>
           <p class="field-hint">Mínimo 8 caracteres, con al menos una mayúscula, una minúscula y un número.</p>
+          <div class="form-group">
+            <label for="regPregunta">Pregunta de seguridad</label>
+            <select class="form-control" id="regPregunta" required>
+              <option value="">Selecciona una pregunta</option>
+              <option value="¿Cuál es el nombre de tu primera mascota?">¿Cuál es el nombre de tu primera mascota?</option>
+              <option value="¿En qué ciudad naciste?">¿En qué ciudad naciste?</option>
+              <option value="¿Cuál es el nombre de tu mejor amigo de la infancia?">¿Cuál es el nombre de tu mejor amigo de la infancia?</option>
+              <option value="¿Cuál es tu comida favorita?">¿Cuál es tu comida favorita?</option>
+              <option value="¿Cuál es el segundo nombre de tu mamá?">¿Cuál es el segundo nombre de tu mamá?</option>
+            </select>
+            <p class="field-hint" style="margin-top:.35rem;">La usaremos para recuperar tu cuenta si olvidas la contraseña — no se envía ningún correo.</p>
+          </div>
+          <div class="form-group">
+            <label for="regRespuesta">Respuesta de seguridad</label>
+            <input type="text" class="form-control" id="regRespuesta" maxlength="255" required autocomplete="off">
+          </div>
           <label class="auth-check auth-check-oneline">
             <input type="checkbox" id="acceptTerms" required>
             <span>Acepto los <a href="terminos.html" target="_blank" rel="noopener">Términos y Condiciones</a>.</span>

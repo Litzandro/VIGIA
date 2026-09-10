@@ -320,6 +320,9 @@ body::before{
 .btn-solid:hover{background:#6BFFC0;transform:translateY(-1px);box-shadow:0 12px 28px -8px rgba(18,232,160,.75);}
 .btn-ghost{background:transparent;border-color:var(--line-strong);color:var(--bone);}
 .btn-ghost:hover{background:rgba(237,231,214,.06);border-color:var(--accent-dim);}
+.btn-danger{background:var(--alert-soft);border-color:transparent;color:var(--alert);}
+.btn-danger:hover{background:var(--alert);color:#1a1a1a;}
+.table-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
 
 /* ============ DASHBOARD HERO ============ */
 .dash-hero{position:relative;border-radius:22px;overflow:hidden;padding:3.6rem 2.5rem;margin-bottom:1.8rem;border:1px solid var(--line);min-height:280px;display:flex;align-items:flex-end;}
@@ -946,15 +949,6 @@ select.form-control{cursor:pointer;}
   font-size:.82rem;padding:.7rem .9rem;border-radius:10px;margin-bottom:1.2rem;align-items:center;gap:.5rem;display:none;
 }
 .auth-success.show{display:flex;}
-.auth-resend{
-  display:none;font-size:.82rem;color:var(--bone-dim);margin:-.4rem 0 1.2rem;
-}
-.auth-resend.show{display:block;}
-.auth-resend button{
-  background:none;border:0;padding:0;color:var(--accent);font-weight:600;
-  font-size:inherit;cursor:pointer;text-decoration:underline;
-}
-.auth-resend button:disabled{opacity:.6;cursor:default;}
 .auth-hint{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.8rem .9rem;font-size:.76rem;color:var(--bone-dim);margin-bottom:1.4rem;line-height:1.5;}
 .auth-hint b{color:var(--bone);}
 .password-field{position:relative;}
