@@ -94,7 +94,11 @@ const VigiaAPI=(function(){
       // habia que ir a los logs de Railway a mano. Ahora, si el
       // servidor manda un detalle, se pega al mensaje entre parentesis
       // para poder verlo directo en el toast/pantalla.
-      const mensajeBase=data.error||data.message||`Error ${response.status}`;
+      // Algunos endpoints (ej. /invitaciones/validar/:codigo_qr cuando
+      // el codigo de plano no existe) no devuelven "error" ni "message"
+      // sino "motivo" -- sin este fallback, ese mensaje real se perdia
+      // y se mostraba el generico "Error 404" en su lugar.
+      const mensajeBase=data.error||data.message||data.motivo||`Error ${response.status}`;
       throw new Error(data.detalle?`${mensajeBase} (${data.detalle})`:mensajeBase);
     }
     return data;

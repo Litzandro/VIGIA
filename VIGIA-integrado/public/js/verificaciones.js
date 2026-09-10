@@ -15,6 +15,8 @@
   const hint=document.getElementById('qrScanHint');
   const manualInput=document.getElementById('qrManualInput');
   const manualBtn=document.getElementById('qrManualBtn');
+  const uploadBtn=document.getElementById('qrUploadBtn');
+  const fileInput=document.getElementById('qrFileInput');
   const resultBox=document.getElementById('qrResult');
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
 
@@ -59,19 +61,75 @@
     const limpio=String(codigo||'').trim();
     if(!limpio){showToast('Escribe o escanea un código primero.','bi-exclamation-triangle-fill');return}
     try{
+      // /invitaciones/validar/:codigo_qr responde 200 tanto si el
+      // codigo es valido como si existe pero ya no aplica (vencido,
+      // cancelado, sin usos, todavia no empieza) -- SIEMPRE hay que
+      // mirar el "valido"/"motivo" que manda el backend, nunca asumir
+      // que un 200 significa que el codigo es valido. Antes esta linea
+      // llamaba mostrarResultado(true,null,r.data) sin condicion
+      // alguna, por eso un codigo real pero vencido/cancelado/etc
+      // siempre terminaba mostrando el mensaje generico de "no se pudo
+      // verificar" en vez de la razon real (esto era el bug).
       const r=await VigiaAPI.request(`/invitaciones/validar/${encodeURIComponent(limpio)}`);
-      mostrarResultado(true,null,r.data);
+      mostrarResultado(r.valido,r.motivo,r.data);
     }catch(err){
-      // VigiaAPI.request lanza un Error incluso para el 404 "no valido"
-      // que /validar/:codigo_qr responde a proposito (no es un error de
-      // red de verdad, es la respuesta esperada para un codigo falso) --
-      // el mensaje ya viene en espanol y listo para mostrar tal cual.
+      // VigiaAPI.request lanza un Error para el 404 "no valido de
+      // verdad" (codigo inventado que no existe en la base) -- el
+      // mensaje ya viene en espanol y listo para mostrar tal cual.
       mostrarResultado(false,err.message);
     }
   }
 
   manualBtn.addEventListener('click',()=>verificarCodigo(manualInput.value));
   manualInput.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();verificarCodigo(manualInput.value)}});
+
+  // Subir una imagen (captura de pantalla o foto del QR) en vez de usar
+  // la camara en vivo -- util cuando el visitante manda el QR por
+  // WhatsApp en lugar de mostrarlo en persona, o cuando la camara del
+  // dispositivo del guardia da problemas.
+  if(uploadBtn&&fileInput){
+    uploadBtn.addEventListener('click',()=>fileInput.click());
+    fileInput.addEventListener('change',async()=>{
+      const file=fileInput.files&&fileInput.files[0];
+      fileInput.value='';
+      if(!file)return;
+      const decodeQr=obtenerJsQR();
+      if(!decodeQr){
+        showToast('No se pudo cargar el lector de QR.','bi-exclamation-triangle-fill');
+        return;
+      }
+      try{
+        const bitmap=await cargarImagenComoBitmap(file);
+        canvas.width=bitmap.width;
+        canvas.height=bitmap.height;
+        ctx.drawImage(bitmap,0,0);
+        const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const code=decodeQr(frame.data,frame.width,frame.height,{inversionAttempts:'attemptBoth'});
+        if(code&&code.data){
+          manualInput.value=code.data;
+          verificarCodigo(code.data);
+        }else{
+          showToast('No se encontró ningún código QR en esa imagen.','bi-exclamation-triangle-fill');
+        }
+      }catch(err){
+        showToast('No se pudo leer esa imagen. Intenta con otra.','bi-exclamation-triangle-fill');
+      }
+    });
+  }
+
+  function cargarImagenComoBitmap(file){
+    if(window.createImageBitmap){
+      return createImageBitmap(file);
+    }
+    // Respaldo para navegadores sin createImageBitmap (ej. Safari viejo).
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      const url=URL.createObjectURL(file);
+      img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
+      img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('No se pudo cargar la imagen'))};
+      img.src=url;
+    });
+  }
 
   function detenerCamara(){
     escaneando=false;
