@@ -87,7 +87,15 @@ const VigiaAPI=(function(){
           location.replace(`${destino}?sesion=expirada`);
         }
       }
-      throw new Error(data.error||data.message||`Error ${response.status}`);
+      // Antes se perdia "detalle" (el mensaje real del error de SQL que
+      // manda errorHandler.js en SequelizeDatabaseError, ej. tabla o
+      // columna que no existe) -- solo se mostraba el mensaje generico
+      // "Error de base de datos", asi que para diagnosticar algo asi
+      // habia que ir a los logs de Railway a mano. Ahora, si el
+      // servidor manda un detalle, se pega al mensaje entre parentesis
+      // para poder verlo directo en el toast/pantalla.
+      const mensajeBase=data.error||data.message||`Error ${response.status}`;
+      throw new Error(data.detalle?`${mensajeBase} (${data.detalle})`:mensajeBase);
     }
     return data;
   }
@@ -781,6 +789,11 @@ setInterval(tickClock,1000);tickClock();
   function alternarLectura(){
     const activo=!VigiaAccessibility.get().readAloud;
     VigiaAccessibility.set({readAloud:activo});
+    // Si esto se activo por primera vez con Alt+L (sin haber pasado por
+    // Configuracion, ej. alguien que no puede ver la pantalla), el boton
+    // flotante todavia no existia en esta pagina -- se crea aca mismo en
+    // vez de esperar a la siguiente carga de pagina.
+    if(activo&&!botonLectura)crearBotonLectura();
     actualizarBotonLectura();
     if(activo){
       anunciar('Lectura de pantalla activada.');
@@ -823,10 +836,22 @@ setInterval(tickClock,1000);tickClock();
     }
   });
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',crearBotonLectura);
-  }else{
-    crearBotonLectura();
+  // De fabrica (cuenta nueva, sin ninguna preferencia guardada todavia)
+  // este boton flotante NO debe aparecer -- antes se creaba siempre,
+  // aunque la persona nunca hubiera activado "Lectura asistida" en
+  // Configuracion, asi que a todo el mundo le aparecia un boton de
+  // dictado que nunca pidio. Ahora solo se crea si la preferencia ya
+  // esta activada (se activa desde Configuracion, con el boton
+  // "readToggleBtn" de config.js). El atajo de teclado Alt+L sigue
+  // funcionando siempre, sin depender de que este boton exista, para no
+  // quitarle a alguien que no puede ver la pantalla una forma de
+  // activarlo si de verdad lo necesita.
+  if(prefs.readAloud){
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',crearBotonLectura);
+    }else{
+      crearBotonLectura();
+    }
   }
 
   // Si la preferencia ya estaba activada en una pagina anterior, lee la
