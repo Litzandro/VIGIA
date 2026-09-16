@@ -21,7 +21,7 @@
 
   function initials(nombre,apellido){
     const text=[nombre,apellido].filter(Boolean).join(' ')||'VG';
-    return text.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
+    return text.split(/\s+/).filter(Boolean).slice(0,1).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
   }
 
   function pintar(u){

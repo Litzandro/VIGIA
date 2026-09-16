@@ -542,7 +542,14 @@ function prepararSidebarUnico(sidebar,current){
 
   if(session){
     const displayName=session.name||session.nombre_completo||[session.nombre,session.apellido].filter(Boolean).join(' ')||'Usuario';
-    const initials=displayName.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
+    // El circulo del avatar solo debe llevar UNA letra (el diseño es
+    // un circulo, no una pastilla/franja alargada) -- antes se tomaban
+    // las iniciales de las primeras 2 palabras del nombre ("Ronaldo
+    // Antonio" -> "RA"), y esas 2 letras dentro del circulo fijo de
+    // 34x34px terminaban envolviendose en 2 renglones, deformando el
+    // circulo en una franja ovalada. Con 1 sola letra nunca hay
+    // wrap posible.
+    const initials=displayName.split(/\s+/).filter(Boolean).slice(0,1).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
     sidebar.querySelectorAll('.av').forEach(el=>el.textContent=initials);
     sidebar.querySelectorAll('.uname').forEach(el=>el.textContent=displayName);
     const home=sidebar.querySelector('#staffHomeLink');

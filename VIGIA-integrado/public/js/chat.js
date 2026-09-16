@@ -10,7 +10,7 @@
   let sending=false;
   let lastSignature='';
 
-  function initials(name){return String(name||'VG').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'VG'}
+  function initials(name){return String(name||'VG').split(/\s+/).filter(Boolean).slice(0,1).map(x=>x[0]).join('').toUpperCase()||'VG'}
   function isNearBottom(){return messages.scrollHeight-messages.scrollTop-messages.clientHeight<80}
   function scrollToBottom(){messages.scrollTop=messages.scrollHeight}
   function formatTime(value){try{return new Date(value).toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}

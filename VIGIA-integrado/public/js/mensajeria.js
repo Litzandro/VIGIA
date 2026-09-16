@@ -32,7 +32,7 @@
       });
     }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
   }
-  function initials(name){return String(name||'VG').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'VG'}
+  function initials(name){return String(name||'VG').split(/\s+/).filter(Boolean).slice(0,1).map(x=>x[0]).join('').toUpperCase()||'VG'}
   function counterpart(t){
     // Prioriza al residente como "la otra parte" del hilo: con turnos
     // rotativos puede haber varios guardias en la misma conversación, y
