@@ -2,7 +2,15 @@
   const form=document.getElementById('vetoForm');if(!form)return;
   const reason=document.getElementById('veReason');
   const counter=document.getElementById('veCounter');
-  const photoInput=document.getElementById('veEvidence');
+  // Bug real: el input de archivo se llama "vePhoto" en vetos.html,
+  // pero aqui se buscaba "veEvidence" (que no existe) -- photoInput
+  // quedaba null, y la linea de mas abajo que le asigna ".onchange"
+  // lanzaba un error sin capturar apenas cargaba la pagina. Eso
+  // interrumpia el resto de este script (incluyendo la llamada a
+  // load() al final), y por eso "Mis solicitudes" se quedaba pegado
+  // en "Cargando..." para siempre: la funcion que reemplaza ese texto
+  // nunca llegaba a ejecutarse.
+  const photoInput=document.getElementById('vePhoto');
   let evidence='';
 
   reason.addEventListener('input',()=>{counter.textContent=`${reason.value.length}/255`});
