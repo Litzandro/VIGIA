@@ -270,13 +270,32 @@ body::before{
   .sidebar-footer{flex-direction:column;align-items:stretch;border-top:1px solid var(--line);margin-top:1rem;padding-top:1.1rem;}
   .sidebar-actions{flex-wrap:wrap;}
 
+  /* Mismo espiritu que la version de escritorio (que ya fija el ancho
+     de .sidebar para que el tamano de letra accesible no la desalinee):
+     el cajon movil tambien necesita un poco mas de aire cuando el texto
+     es mas grande, para que .nav-item .label de arriba tenga que
+     recortar lo menos posible. */
+  .a11y-large .sidebar-drawer,
+  .a11y-xl .sidebar-drawer{width:min(340px,92vw);}
+
   .main{padding-top:4.4rem;}
 }
 
 .nav-item{
   display:flex;align-items:center;padding:.6rem .8rem;border-radius:12px;
   color:var(--bone-dim);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s ease;white-space:nowrap;position:relative;
+  min-width:0;
 }
+/* Bug real reportado: con el tamano de letra en "grande"/"extra grande"
+   (que ademas sube el font-size de .nav-item aparte del zoom general,
+   ver la regla .a11y-large .nav-item mas abajo), la etiqueta mas larga
+   del pie de la barra ("Terminos y Condiciones") no cabia dentro del
+   cajon movil (ancho fijo, ver .sidebar-drawer) y se salia de su
+   contorno en vez de acomodarse -- se veia como texto/iconos
+   encimados. Mismo arreglo que ya se le habia hecho a .sidebar-logo
+   .label por el mismo motivo: recortar con puntos suspensivos en vez
+   de desbordar.*/
+.nav-item .label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
 /* El atributo hidden que common.js pone segun el rol (data-role) no
    alcanzaba a ocultar nada: .nav-item{display:flex} de arriba tiene la
    misma especificidad que la regla [hidden]{display:none} del propio
