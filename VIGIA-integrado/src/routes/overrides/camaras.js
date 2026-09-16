@@ -63,7 +63,7 @@ module.exports = function camarasOverride({ router, model, pkPath }) {
       const data = applyOwnershipOnCreate(model, req.user, prepararDatos(req.body));
       const errores = validarCampos(model, data);
       if (errores.length) {
-        return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+        return res.status(400).json({ error: 'Datos invalidos', detalle: errores.join('; '), detalles: errores });
       }
       const row = await model.create(data);
       const limpio = row.toJSON();
@@ -87,7 +87,7 @@ module.exports = function camarasOverride({ router, model, pkPath }) {
 
       const errores = validarCampos(model, data);
       if (errores.length) {
-        return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
+        return res.status(400).json({ error: 'Datos invalidos', detalle: errores.join('; '), detalles: errores });
       }
       await row.update(data);
       const limpio = row.toJSON();
