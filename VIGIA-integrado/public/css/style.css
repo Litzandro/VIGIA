@@ -1046,6 +1046,15 @@ select.form-control{cursor:pointer;}
 .cam-disclaimer p{color:var(--mist);font-size:.8rem;line-height:1.55;margin:0;}
 
 .cam-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.3rem;}
+/* Sin esto, camaras.js podia poner hidden en #camGrid/#camGridReal y no
+   pasaba nada visualmente: la regla de arriba (display:grid, CSS de la
+   pagina) le gana por especificidad al display:none que el navegador
+   pone por defecto para el atributo hidden (viene de su hoja de estilos
+   interna, que siempre pierde contra CSS de la pagina). Resultado real
+   visto: la camara real agregada y las 6 camaras de referencia
+   aparecian juntas al mismo tiempo, en vez de que las de referencia se
+   ocultaran solas en cuanto hay una camara real conectada. */
+.cam-grid[hidden]{display:none;}
 @media (max-width:900px){.cam-grid{grid-template-columns:1fr;}}
 
 .cam-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;}

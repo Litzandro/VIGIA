@@ -34,7 +34,18 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net', 'data:'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-      connectSrc: ["'self'"],
+      // 'self' a secas bloqueaba, del lado del NAVEGADOR (antes de que la
+      // peticion siquiera saliera a la red), que hls.js pudiera pedir el
+      // manifest .m3u8 y los segmentos de una camara real -- por diseno,
+      // esas URLs SIEMPRE son de un servidor del cliente (su propia
+      // camara/NVR/MediaMTX), nunca del dominio de VIGIA. Sin este
+      // permiso, TODA camara HLS fallaria con un error de red generico,
+      // sin importar que tan bien configurada estuviera la URL.
+      connectSrc: ["'self'", 'https:'],
+      // Necesario para que Safari/iOS reproduzca HLS de forma nativa
+      // (video.src=url directo, sin hls.js) -- ese camino lo controla
+      // media-src, no connect-src.
+      mediaSrc: ["'self'", 'https:', 'blob:'],
       workerSrc: ["'self'", 'blob:'],
     },
   },
