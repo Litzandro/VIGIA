@@ -19,6 +19,9 @@
   if(new URLSearchParams(location.search).get('sesion')==='expirada'){
     showError('Tu sesión expiró por inactividad. Inicia sesión de nuevo.');
   }
+  if(new URLSearchParams(location.search).get('sesion')==='suspendida'){
+    showError('El acceso de tu residencial está suspendido por falta de pago. Contacta a administración de VIGIA para reactivarlo.');
+  }
   if(new URLSearchParams(location.search).get('cuenta')==='creada'){
     const successBox=document.getElementById('loginSuccess');
     if(successBox){ successBox.querySelector('span').textContent='Tu cuenta se creó correctamente. Inicia sesión para continuar.'; successBox.classList.add('show'); }

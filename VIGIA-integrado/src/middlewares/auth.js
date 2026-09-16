@@ -52,6 +52,17 @@ async function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'La sesion fue cerrada, revocada o expiro.' });
       }
     }
+
+    // Residencial suspendida por falta de pago (ver residencialAcceso.js):
+    // el token/sesion sigue siendo valido, pero se bloquea el acceso a la
+    // API igual que si la sesion hubiera expirado -- sin cerrarla ni
+    // tocar ningun dato, para que vuelva a funcionar solo con reactivar
+    // la suscripcion.
+    const { residencialTieneAccesoVigente } = require('../utils/residencialAcceso');
+    if (!(await residencialTieneAccesoVigente(payload.residencial_id))) {
+      return res.status(403).json({ error: 'El acceso de tu residencial esta suspendido por falta de pago. Contacta a administracion de VIGIA.' });
+    }
+
     return next();
   } catch (err) {
     return res.status(401).json({ error: 'Token invalido o expirado' });
@@ -151,6 +162,11 @@ function requirePageAuth(...allowedRoles) {
           res.clearCookie('vigia_token');
           return res.redirect(302, `${loginDestino}?sesion=expirada`);
         }
+      }
+
+      const { residencialTieneAccesoVigente } = require('../utils/residencialAcceso');
+      if (!(await residencialTieneAccesoVigente(payload.residencial_id))) {
+        return res.redirect(302, `${loginDestino}?sesion=suspendida`);
       }
 
       if (allowedRoles.length && payload.rol_codigo !== 'superadmin' && !allowedRoles.includes(payload.rol_codigo)) {

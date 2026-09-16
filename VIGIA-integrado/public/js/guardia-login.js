@@ -15,6 +15,9 @@
   if(new URLSearchParams(location.search).get('sesion')==='expirada'){
     showError('Tu sesión expiró por inactividad. Inicia sesión de nuevo.');
   }
+  if(new URLSearchParams(location.search).get('sesion')==='suspendida'){
+    showError('El acceso de tu residencial está suspendido por falta de pago. Contacta a administración de VIGIA para reactivarlo.');
+  }
 
   toggleBtn.addEventListener('click',()=>{
     const isPw=passwordInput.type==='password';

@@ -155,6 +155,16 @@ async function login(req, res, next) {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
     }
 
+    // Residencial suspendida por falta de pago -- se revisa DESPUES de
+    // confirmar la contraseña (no antes) para no darle a nadie sin la
+    // contraseña correcta una señal de que el correo si existe, la
+    // misma precaucion que ya se sigue en recuperarPregunta/
+    // verificarRespuesta de aqui abajo.
+    const { residencialTieneAccesoVigente } = require('../utils/residencialAcceso');
+    if (!(await residencialTieneAccesoVigente(usuario.residencial_id))) {
+      return res.status(403).json({ error: 'El acceso de tu residencial esta suspendido por falta de pago. Contacta a administracion de VIGIA para reactivarlo.' });
+    }
+
     const rol = await db.Roles.findByPk(usuario.rol_id);
     const sessionData = await createSession(req, usuario, rol, { remember: Boolean(remember) });
     await usuario.update({ ultimo_acceso: new Date() });
