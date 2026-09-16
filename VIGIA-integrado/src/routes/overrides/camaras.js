@@ -17,6 +17,9 @@
 const { applyOwnershipOnCreate, applyOwnershipScope, primaryKeyWhere, hasSoftDelete } = require('../../utils/crudFactory');
 const { validarCampos } = require('../../config/resourceValidation');
 const { cifrar } = require('../../utils/camaraCrypto');
+const { residencialIncluyeFuncion } = require('../../utils/planAcceso');
+
+const MENSAJE_PLAN_NO_INCLUYE = 'Tu plan actual no incluye camaras. Contacta a administracion de VIGIA para actualizar tu plan.';
 
 const ATRIBUTOS_OCULTOS = ['clave_stream_cifrada'];
 
@@ -60,6 +63,9 @@ module.exports = function camarasOverride({ router, model, pkPath }) {
 
   router.post('/', async (req, res, next) => {
     try {
+      if (!(await residencialIncluyeFuncion(req.user && req.user.residencial_id, 'incluye_camaras'))) {
+        return res.status(403).json({ error: MENSAJE_PLAN_NO_INCLUYE });
+      }
       const data = applyOwnershipOnCreate(model, req.user, prepararDatos(req.body));
       // applyOwnershipOnCreate solo rellena residencial_id automaticamente
       // para roles con una residencial fija (admin) -- el superadmin no
@@ -88,6 +94,9 @@ module.exports = function camarasOverride({ router, model, pkPath }) {
 
   async function actualizar(req, res, next) {
     try {
+      if (!(await residencialIncluyeFuncion(req.user && req.user.residencial_id, 'incluye_camaras'))) {
+        return res.status(403).json({ error: MENSAJE_PLAN_NO_INCLUYE });
+      }
       let where = primaryKeyWhere(model, req.params);
       where = applyOwnershipScope(model, req.user, where);
       const row = await model.findOne({ where });

@@ -2,6 +2,7 @@
 
 const db = require('../../models');
 const { primaryKeyWhere } = require('../../utils/crudFactory');
+const { residencialIncluyeFuncion } = require('../../utils/planAcceso');
 
 module.exports = function integracionesOverride({ router, model, handlers, pkPath }) {
   router.post(`/${pkPath}/probar`, async (req, res, next) => {
@@ -30,7 +31,14 @@ module.exports = function integracionesOverride({ router, model, handlers, pkPat
     } catch (err) { next(err); }
   });
   router.get('/', handlers.list);
-  router.post('/', handlers.create);
+  router.post('/', async (req, res, next) => {
+    try {
+      if (req.body && req.body.tipo === 'tranca' && !(await residencialIncluyeFuncion(req.user && req.user.residencial_id, 'incluye_trancas'))) {
+        return res.status(403).json({ error: 'Tu plan actual no incluye trancas. Contacta a administracion de VIGIA para actualizar tu plan.' });
+      }
+      return handlers.create(req, res, next);
+    } catch (err) { next(err); }
+  });
   router.get(`/${pkPath}`, handlers.getOne);
   router.put(`/${pkPath}`, handlers.update);
   router.patch(`/${pkPath}`, handlers.update);

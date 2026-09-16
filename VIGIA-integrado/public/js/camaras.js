@@ -30,6 +30,25 @@
   const adminActions=document.getElementById('camAdminActions');
   if(esAdmin && adminActions) adminActions.hidden=false;
 
+  const planBloqueado=document.getElementById('camPlanBloqueado');
+  // Superadmin nunca se ve limitado por planes (los administra el, no le
+  // aplican a el) -- solo se revisa para admin/guardia/residente reales.
+  async function revisarPlan(){
+    if(isSuper || !planBloqueado) return true;
+    try{
+      const r=await VigiaAPI.request('/mi-plan');
+      const info=r.data;
+      if(info && info.incluye_camaras===false){
+        planBloqueado.hidden=false;
+        if(disclaimer) disclaimer.hidden=true;
+        if(adminActions) adminActions.hidden=true;
+        grid.hidden=true; gridReal.hidden=true;
+        return false;
+      }
+    }catch(e){ /* si falla la consulta, no se bloquea nada por precaucion */ }
+    return true;
+  }
+
   const residencialGroup=document.getElementById('camResidencialGroup');
   const residencialSelect=document.getElementById('camResidencial');
   if(isSuper && residencialGroup) residencialGroup.hidden=false;
@@ -341,5 +360,5 @@
 
   if(esAdmin) cargarPuntosAcceso();
   if(isSuper) cargarResidenciales();
-  cargarCamaras();
+  revisarPlan().then(permitido=>{ if(permitido) cargarCamaras(); });
 })();

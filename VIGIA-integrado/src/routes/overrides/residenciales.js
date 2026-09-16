@@ -26,6 +26,19 @@ module.exports = function residencialesOverride({ router, model, handlers, pkPat
         await transaction.rollback();
         return res.status(400).json({ error: 'El nombre de la residencial es requerido.' });
       }
+      // Antes se podian crear 2 residenciales con el mismo nombre sin
+      // ningun aviso (paso de verdad: dos "CEUTEC" separadas, sin forma
+      // clara de saber cual suscripcion pertenecia a cual). No aplica a
+      // las que ya existen -- solo evita que se repita de aqui en
+      // adelante. Comparacion sin distinguir mayusculas/minusculas para
+      // que "Ceutec" y "CEUTEC" tambien cuenten como duplicado.
+      const duplicada = await model.findOne({
+        where: db.sequelize.where(db.sequelize.fn('LOWER', db.sequelize.col('nombre')), nombre.toLowerCase()),
+      });
+      if (duplicada) {
+        await transaction.rollback();
+        return res.status(400).json({ error: `Ya existe una residencial llamada "${duplicada.nombre}". Usa un nombre distinto (ej. agregando la ciudad o sede).` });
+      }
       const row = await model.create({
         nombre,
         direccion: req.body.direccion || null,
@@ -76,7 +89,21 @@ module.exports = function residencialesOverride({ router, model, handlers, pkPat
       return handlers.getOne(req, res, next);
     } catch (err) { next(err); }
   });
-  router.put(`/${pkPath}`, handlers.update);
-  router.patch(`/${pkPath}`, handlers.update);
+  async function actualizar(req, res, next) {
+    try {
+      if (req.body && req.body.nombre) {
+        const nombre = String(req.body.nombre).trim();
+        const duplicada = await model.findOne({
+          where: db.sequelize.where(db.sequelize.fn('LOWER', db.sequelize.col('nombre')), nombre.toLowerCase()),
+        });
+        if (duplicada && String(duplicada.id) !== String(req.params.id)) {
+          return res.status(400).json({ error: `Ya existe una residencial llamada "${duplicada.nombre}". Usa un nombre distinto (ej. agregando la ciudad o sede).` });
+        }
+      }
+      return handlers.update(req, res, next);
+    } catch (err) { next(err); }
+  }
+  router.put(`/${pkPath}`, actualizar);
+  router.patch(`/${pkPath}`, actualizar);
   router.delete(`/${pkPath}`, handlers.remove);
 };

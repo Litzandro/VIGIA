@@ -52,6 +52,7 @@ const overrides = {
   incidencias_evidencias: require('./overrides/incidenciasEvidencias'),
   sanciones_usuarios: require('./overrides/sancionesUsuarios'),
   camaras: require('./overrides/camaras'),
+  suscripciones: require('./overrides/suscripciones'),
 };
 
 function toKebabCase(snakeCase) {
@@ -161,10 +162,11 @@ router.get('/health', async (req, res) => {
 });
 
 router.get('/', (req, res) => {
-  res.json({ recursos: registeredResources, extra: ['/api/auth/login', '/api/auth/me', '/api/reportes/*'] });
+  res.json({ recursos: registeredResources, extra: ['/api/auth/login', '/api/auth/me', '/api/reportes/*', '/api/mi-plan'] });
 });
 
 router.use('/reportes', require('./reportes'));
 router.use('/centro-seguridad', require('./centroSeguridad'));
+router.use('/mi-plan', require('./miPlan'));
 
 module.exports = router;
