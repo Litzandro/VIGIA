@@ -29,9 +29,9 @@
     const email=emailInput.value.trim();
     if(!email){ showError('Escribe tu correo electrónico.'); return; }
 
-    const originalHTML=forgotSubmitBtn.innerHTML;
+    const originalContent=[...forgotSubmitBtn.childNodes].map(node=>node.cloneNode(true));
     forgotSubmitBtn.disabled=true;
-    forgotSubmitBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> Buscando...';
+    setButtonContent(forgotSubmitBtn,'bi-arrow-repeat','Buscando...');
 
     try{
       // Endpoint publico (no requiere sesion): se llama directo con
@@ -55,7 +55,7 @@
       showError(err.message||'No se pudo conectar con el servidor.');
     }finally{
       forgotSubmitBtn.disabled=false;
-      forgotSubmitBtn.innerHTML=originalHTML;
+      forgotSubmitBtn.replaceChildren(...originalContent.map(node=>node.cloneNode(true)));
     }
   });
 
@@ -65,9 +65,9 @@
     const respuesta=respuestaInput.value.trim();
     if(!respuesta){ showError('Escribe tu respuesta.'); return; }
 
-    const originalHTML=answerSubmitBtn.innerHTML;
+    const originalContent=[...answerSubmitBtn.childNodes].map(node=>node.cloneNode(true));
     answerSubmitBtn.disabled=true;
-    answerSubmitBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> Verificando...';
+    setButtonContent(answerSubmitBtn,'bi-arrow-repeat','Verificando...');
 
     try{
       const response=await fetch(VigiaAPI.BASE_URL+'/auth/verificar-respuesta',{
@@ -84,7 +84,7 @@
     }catch(err){
       showError(err.message||'No se pudo conectar con el servidor.');
       answerSubmitBtn.disabled=false;
-      answerSubmitBtn.innerHTML=originalHTML;
+      answerSubmitBtn.replaceChildren(...originalContent.map(node=>node.cloneNode(true)));
     }
   });
 })();

@@ -44,7 +44,7 @@
   toggleBtn.addEventListener('click',()=>{
     const isPw=passwordInput.type==='password';
     passwordInput.type=isPw ? 'text' : 'password';
-    toggleBtn.innerHTML=isPw ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+    setIconContent(toggleBtn,isPw?'bi-eye-slash':'bi-eye');
     toggleBtn.setAttribute('aria-label',isPw?'Ocultar contraseña':'Mostrar contraseña');
   });
 
@@ -69,9 +69,9 @@
     if(!termsInput.checked){showError('Debes aceptar los Términos y Condiciones para continuar.');return;}
     if(payload.respuesta_seguridad.length<2){showError('Escribe una respuesta de seguridad válida.');return;}
 
-    const originalHTML=submitBtn.innerHTML;
+    const originalContent=[...submitBtn.childNodes].map(node=>node.cloneNode(true));
     submitBtn.disabled=true;
-    submitBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> Creando cuenta...';
+    setButtonContent(submitBtn,'bi-arrow-repeat','Creando cuenta...');
 
     // Antes esto se juntaba en un solo campo "name" y el backend lo
     // volvia a partir por el primer espacio -- eso rompia cualquier
@@ -88,10 +88,10 @@
     if(!result.ok){
       showError(result.error);
       submitBtn.disabled=false;
-      submitBtn.innerHTML=originalHTML;
+      submitBtn.replaceChildren(...originalContent.map(node=>node.cloneNode(true)));
       return;
     }
-    submitBtn.innerHTML='<i class="bi bi-check-lg"></i> ¡Cuenta creada!';
+    setButtonContent(submitBtn,'bi-check-lg','¡Cuenta creada!');
     // Antes esto iniciaba sesion automaticamente y mandaba directo al
     // panel -- ahora manda a login para que la persona inicie sesion
     // ella misma con la cuenta recien creada, confirmando que de verdad

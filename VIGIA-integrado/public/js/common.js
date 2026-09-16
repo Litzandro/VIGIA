@@ -80,7 +80,7 @@ const VigiaAPI=(function(){
         // asi que dejar la pestana abierta toda la noche y volver a
         // usarla al dia siguiente basta para reproducirlo.
         const paginaActual=(location.pathname.split('/').pop()||'').toLowerCase();
-        const paginasPublicas=['','index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','terminos.html'];
+        const paginasPublicas=['','index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','terminos.html','politica-privacidad.html'];
         if(!paginasPublicas.includes(paginaActual)){
           const loginPorRol={guardia:'guardia-login.html',admin:'admin-login.html',superadmin:'admin-login.html'};
           const destino=loginPorRol[rolAntesDeLimpiar]||'login.html';
@@ -217,7 +217,7 @@ window.VigiaConfirm=function(options={}){
   // quedaba atrapado en un ciclo -- este mismo guard lo rebotaba de
   // vuelta a login.html apenas cargaba la pagina de terminos, sin llegar
   // nunca a leerlos.
-  const publicPages=new Set(['index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','terminos.html','']);
+  const publicPages=new Set(['index.html','login.html','register.html','guardia-login.html','admin-login.html','vigialanding.html','recuperar-password.html','restablecer-password.html','terminos.html','politica-privacidad.html','']);
   if(publicPages.has(page))return;
   const session=VigiaAPI.getSession();
   if(!session){console.warn('[VIGIA] Guard de pagina: no hay sesion en localStorage al cargar',page);location.replace('login.html');return}
@@ -259,6 +259,27 @@ function escapeHtml(value){
     .replaceAll("'",'&#039;');
 }
 window.escapeHtml=escapeHtml;
+
+
+// Cambia el contenido de botones sin usar innerHTML. Se usa en los
+// flujos de autenticacion para evitar que incluso textos de estado
+// terminen pasando por un parser HTML innecesariamente.
+function setButtonContent(button, iconClass, text){
+  if(!button)return;
+  const icon=document.createElement('i');
+  icon.className='bi '+String(iconClass||'');
+  const label=document.createTextNode(' '+String(text||''));
+  button.replaceChildren(icon,label);
+}
+window.setButtonContent=setButtonContent;
+
+function setIconContent(button, iconClass){
+  if(!button)return;
+  const icon=document.createElement('i');
+  icon.className='bi '+String(iconClass||'');
+  button.replaceChildren(icon);
+}
+window.setIconContent=setIconContent;
 
 // Formatea un numero de identidad hondureno mientras se escribe:
 // 0000-0000-00000 (13 digitos: departamento+municipio, ano+correlativo,
@@ -306,6 +327,20 @@ function buildAmPmTimeOptions(selected){
   return out.join('');
 }
 window.buildAmPmTimeOptions=buildAmPmTimeOptions;
+function populateAmPmTimeSelect(select,selected){
+  if(!select)return;
+  select.replaceChildren();
+  const unrestricted=document.createElement('option');unrestricted.value='';unrestricted.textContent='Sin restricción';select.appendChild(unrestricted);
+  for(let m=0;m<24*60;m+=15){
+    const hh=String(Math.floor(m/60)).padStart(2,'0');
+    const mm=String(m%60).padStart(2,'0');
+    const value=`${hh}:${mm}`;
+    const h12=((Math.floor(m/60)+11)%12)+1;
+    const suffix=Math.floor(m/60)<12?'AM':'PM';
+    const option=document.createElement('option');option.value=value;option.textContent=`${h12}:${mm} ${suffix}`;option.selected=value===selected;select.appendChild(option);
+  }
+}
+window.populateAmPmTimeSelect=populateAmPmTimeSelect;
 
 // Convierte "HH:MM" (24h, lo que guarda el backend) a texto 12h con
 // AM/PM para mostrarlo en listas y avisos. Si no hay valor, devuelve ''.

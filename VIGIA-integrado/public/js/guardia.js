@@ -1,252 +1,117 @@
-// ============ GUARDIA.JS ============
-// Exclusivo de guardia.html: valida la sesion contra GuardAuthStore,
-// muestra las alertas de panico REALES (via /api/alertas-panico) con
-// acciones reales para el guardia (marcar atendida, falsa alarma,
-// llamar al residente o escribirle por Mensajería).
-//
-// Nota: el nombre/avatar en la barra lateral y el boton de cerrar
-// sesion (id="vgLogoutBtn") ya los maneja common.js de forma generica
-// para todas las paginas de staff; este archivo no los toca.
-
 (function(){
-  if(typeof GuardAuthStore==='undefined') return;
-  const session=GuardAuthStore.getSession();
-  if(!session){ window.location.href='guardia-login.html'; return; }
-
-  const guardShiftLine=document.getElementById('guardShiftLine');
-  if(guardShiftLine){
-    // session.turno viene de la BD como codigo ('diurno'/'nocturno'). Antes
-    // se concatenaba con el texto calculado por la hora actual y, cuando
-    // session.turno faltaba, el mismo texto ("Jornada diurna") quedaba
-    // repetido dos veces seguidas. Ahora solo mostramos una etiqueta: la
-    // del turno asignado si existe, o si no, la que corresponde a la hora.
-    const h=new Date().getHours();
-    const jornadaPorHora=h>=6&&h<18?'Jornada diurna':'Jornada nocturna';
-    const turnoLabels={diurno:'Jornada diurna',nocturno:'Jornada nocturna'};
-    const jornada=turnoLabels[session.turno]||jornadaPorHora;
-    guardShiftLine.textContent=jornada+' · Altavista Residencial';
+  'use strict';
+  const session=VigiaAPI.getSession();
+  if(!session||!['guardia','admin','superadmin'].includes(session.rol_codigo)){
+    location.replace(session?VigiaAPI.destinationForRole(session.rol_codigo):'guardia-login.html');return;
   }
 
-  // ============ SONIDO + NOTIFICACION DEL NAVEGADOR PARA ALERTAS NUEVAS ============
-  // Antes, una alerta de panico nueva no sonaba ni avisaba de ninguna
-  // forma: el guardia solo se enteraba si en ese momento tenia la vista
-  // puesta en esta pantalla, viendo la lista actualizarse cada 20
-  // segundos. Para algo que puede ser una emergencia real, eso no
-  // alcanza. Ahora: un tono audible (generado con Web Audio, no
-  // depende de ningun archivo de sonido) mas una notificacion del
-  // navegador si el guardia dio permiso, cada vez que aparece una
-  // alerta "activa" que no estaba en la lista la vez anterior.
-  if('Notification' in window && Notification.permission==='default'){
-    Notification.requestPermission();
+  const $=(id)=>document.getElementById(id);
+  const state={summary:null,alerts:[],insideFilter:'all',insideQuery:'',knownActiveIds:null,loading:false};
+  const STATUS_LABEL={activa:'Pendiente',atendida:'Atendida',falsa_alarma:'Falsa alarma'};
+  const STATUS_CLASS={activa:'alert',atendida:'ok',falsa_alarma:'neutral'};
+
+  function clear(el){while(el&&el.firstChild)el.removeChild(el.firstChild)}
+  function text(tag,value,cls){const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=value??'';return e}
+  function empty(el,msg){clear(el);el.appendChild(text('div',msg,'empty-state'))}
+  function fmtDate(v){const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+  function elapsed(v){const ms=Math.max(0,Date.now()-new Date(v).getTime()),min=Math.floor(ms/60000);if(min<60)return `${min} min`;const h=Math.floor(min/60),m=min%60;return `${h} h ${m} min`}
+  function icon(name){const i=document.createElement('i');i.className=`bi ${name}`;return i}
+
+  async function checkConnection(){
+    const el=$('guardConnection');
+    try{await VigiaAPI.request('/health',{offline:false});el.classList.remove('offline');el.classList.add('online');el.lastElementChild.textContent='En línea';}
+    catch(e){el.classList.remove('online');el.classList.add('offline');el.lastElementChild.textContent='Sin conexión';}
   }
 
-  function reproducirTonoAlerta(){
-    try{
-      const ctx=new (window.AudioContext||window.webkitAudioContext)();
-      const ahora=ctx.currentTime;
-      // Dos tonos cortos y agudos en sucesion (patron tipo "beep-beep"),
-      // mas facil de notar que un solo tono largo.
-      [0,0.32].forEach(offset=>{
-        const osc=ctx.createOscillator();
-        const gain=ctx.createGain();
-        osc.type='sine';
-        osc.frequency.setValueAtTime(880,ahora+offset);
-        gain.gain.setValueAtTime(0,ahora+offset);
-        gain.gain.linearRampToValueAtTime(0.35,ahora+offset+0.03);
-        gain.gain.linearRampToValueAtTime(0,ahora+offset+0.26);
-        osc.connect(gain);gain.connect(ctx.destination);
-        osc.start(ahora+offset);osc.stop(ahora+offset+0.3);
-      });
-    }catch(e){/* Web Audio no disponible en este navegador; sin sonido, sin romper nada */}
+  function renderShift(turno){
+    const line=$('guardShiftLine'),btn=$('guardShiftAction');
+    if(!turno){line.textContent='Sin turno programado activo';btn.hidden=true;return;}
+    const start=fmtDate(turno.inicio_real||turno.inicio_programado),end=fmtDate(turno.fin_programado);
+    line.textContent=`${turno.estado==='activo'?'Turno activo':turno.estado==='relevado'?'Turno relevado':'Turno programado'} · ${start}${end?' — '+end:''}`;
+    if(session.rol_codigo!=='guardia'){btn.hidden=true;return;}
+    btn.hidden=false;
+    if(turno.estado==='programado'){btn.dataset.action='iniciar';btn.replaceChildren(icon('bi-play-fill'),document.createTextNode(' Iniciar turno'));}
+    else if(['activo','relevado'].includes(turno.estado)){btn.dataset.action='finalizar';btn.replaceChildren(icon('bi-stop-fill'),document.createTextNode(' Finalizar turno'));}
+    else btn.hidden=true;
   }
 
-  function notificarAlertaNueva(alerta){
-    reproducirTonoAlerta();
-    if('Notification' in window && Notification.permission==='granted'){
-      const quien=alerta.vivienda?`${alerta.usuario_nombre} · ${alerta.vivienda}`:alerta.usuario_nombre;
-      const n=new Notification('🚨 Alerta de pánico activa',{
-        body:quien,
-        tag:'vigia-panico-'+alerta.id,
-        requireInteraction:true,
-      });
-      n.onclick=()=>{window.focus();n.close();};
+  async function shiftAction(){
+    const turno=state.summary&&state.summary.turno_actual,btn=$('guardShiftAction');if(!turno||!btn.dataset.action)return;
+    const action=btn.dataset.action;
+    const ok=await VigiaConfirm({title:action==='iniciar'?'¿Iniciar tu turno?':'¿Finalizar tu turno?',message:action==='iniciar'?'Se registrará la hora real de inicio.':'Se registrará la hora real de cierre del turno.',confirmText:action==='iniciar'?'Iniciar turno':'Finalizar turno',icon:action==='iniciar'?'bi-play-circle-fill':'bi-stop-circle-fill'});
+    if(!ok)return;
+    btn.disabled=true;
+    try{await VigiaAPI.request(`/turnos-guardia/${turno.id}/accion`,{method:'PATCH',body:JSON.stringify({accion:action})});showToast(action==='iniciar'?'Turno iniciado':'Turno finalizado');await loadSummary();}
+    catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}finally{btn.disabled=false}
+  }
+
+  function renderKPIs(d){const m=d.metricas||{};$('gInside').textContent=(d.en_sitio||[]).length;$('gQueue').textContent=m.cola_activa||0;$('gSOS').textContent=m.alertas_sos||0;$('gIncidents').textContent=m.incidencias_abiertas||0;$('gEntries').textContent=m.entradas_hoy||0;$('gExits').textContent=m.salidas_hoy||0;const active=m.alertas_sos||0;$('guardSosBanner').hidden=!active;$('guardSosTitle').textContent=active===1?'1 alerta SOS activa':`${active} alertas SOS activas`;$('guardSosText').textContent='Atención inmediata requerida en la residencial.';}
+
+  function insideMatches(x){
+    const q=state.insideQuery.toLowerCase();
+    if(q&&!`${x.nombre||''} ${x.telefono||''} ${x.placa||''} ${x.vivienda||''} ${x.punto||''}`.toLowerCase().includes(q))return false;
+    const hours=(Date.now()-new Date(x.fecha_entrada).getTime())/3600000;
+    if(state.insideFilter==='recent'&&hours>=1)return false;
+    if(state.insideFilter==='long'&&hours<2)return false;
+    return true;
+  }
+
+  function insideRow(x){
+    const row=document.createElement('article');row.className='guard-inside-row';
+    const avatar=document.createElement('div');avatar.className='guard-person-avatar';avatar.appendChild(icon('bi-person-fill'));
+    const copy=document.createElement('div');copy.className='guard-inside-copy';copy.appendChild(text('b',x.nombre||'Visitante'));
+    const details=[];if(x.vivienda)details.push(x.vivienda);if(x.placa)details.push(x.placa);if(x.punto)details.push(x.punto);copy.appendChild(text('span',details.join(' · ')||'Sin detalles adicionales'));
+    const time=document.createElement('div');time.className='guard-inside-time';const hours=(Date.now()-new Date(x.fecha_entrada).getTime())/3600000;time.append(text('b',elapsed(x.fecha_entrada)),text('span',hours>=4?'Permanencia prolongada · revisar':`Entrada ${fmtDate(x.fecha_entrada)}`));if(hours>=4)row.classList.add('long-stay');
+    const actions=document.createElement('div');actions.className='guard-inside-actions';
+    if(x.residente_id){const msg=document.createElement('a');msg.className='btn btn-ghost';msg.href=`mensajeria.html?abrir_residente=${encodeURIComponent(x.residente_id)}`;msg.title='Contactar residente';msg.appendChild(icon('bi-chat-dots'));actions.appendChild(msg)}
+    if(x.telefono){const phone=document.createElement('button');phone.type='button';phone.className='btn btn-ghost';phone.title='Copiar teléfono';phone.appendChild(icon('bi-telephone'));phone.onclick=async()=>{try{await navigator.clipboard.writeText(x.telefono);showToast(`Teléfono copiado: ${x.telefono}`)}catch(e){showToast(`Teléfono: ${x.telefono}`)}};actions.appendChild(phone)}
+    const action=document.createElement('button');action.type='button';action.className='btn btn-solid guard-exit-btn';action.append(icon('bi-box-arrow-right'),document.createTextNode(' Registrar salida'));action.addEventListener('click',()=>registerExit(x,action));actions.appendChild(action);
+    row.append(avatar,copy,time,actions);return row;
+  }
+
+  function renderInside(){
+    const list=$('insideList'),all=(state.summary&&state.summary.en_sitio)||[],rows=all.filter(insideMatches);clear(list);rows.forEach(x=>list.appendChild(insideRow(x)));if(!rows.length)empty(list,state.insideQuery||state.insideFilter!=='all'?'No hay coincidencias con este filtro.':'No hay visitantes registrados dentro.');$('insideCount').textContent=`${all.length} DENTRO`;
+  }
+
+  async function registerExit(x,btn){
+    const ok=await VigiaConfirm({title:'¿Registrar salida?',message:`Se marcará la salida de ${x.nombre||'esta persona'}.`,confirmText:'Registrar salida',icon:'bi-box-arrow-right'});if(!ok)return;
+    btn.disabled=true;
+    try{await VigiaAPI.request(`/centro-seguridad/salida/${x.entrada_id}`,{method:'POST',body:JSON.stringify({})});showToast('Salida registrada correctamente');await loadSummary();}
+    catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}finally{btn.disabled=false}
+  }
+
+  function compactRow(title,sub,badge,cls){const row=document.createElement('div');row.className='guard-compact-row';const c=document.createElement('div');c.append(text('b',title),text('span',sub));const b=text('span',badge,`badge ${cls||'neutral'}`);row.append(c,b);return row}
+  function renderQueue(d){const list=$('guardQueueList'),rows=d.cola||[];clear(list);rows.slice(0,6).forEach(x=>{const cls=['rechazada','bloqueada'].includes(x.estado)?'alert':x.estado==='esperando'?'warn':'info';list.appendChild(compactRow(x.nombre_persona||'Persona en garita',`${x.vivienda_destino||'Destino no indicado'} · ${fmtDate(x.fecha_llegada)}`,String(x.estado||'').replace('_',' '),cls))});if(!rows.length)empty(list,'No hay personas esperando validación.');}
+  function renderIncidents(d){const list=$('guardIncidentList'),rows=d.incidencias||[];clear(list);rows.slice(0,6).forEach(x=>{const p=x.prioridad||x.estado||'pendiente',cls=p==='urgente'?'alert':p==='alta'?'warn':'info';list.appendChild(compactRow(x.titulo||`Incidencia #${x.id}`,`${x.ubicacion||'Sin ubicación'} · ${fmtDate(x.fecha_hora)}`,p,cls))});if(!rows.length)empty(list,'No hay incidencias abiertas.');}
+
+  function beep(){try{const C=window.AudioContext||window.webkitAudioContext,c=new C(),now=c.currentTime;[0,.28].forEach(o=>{const osc=c.createOscillator(),g=c.createGain();osc.frequency.value=880;g.gain.setValueAtTime(0,now+o);g.gain.linearRampToValueAtTime(.25,now+o+.02);g.gain.linearRampToValueAtTime(0,now+o+.22);osc.connect(g);g.connect(c.destination);osc.start(now+o);osc.stop(now+o+.25)})}catch(e){}}
+  function notifyNew(a){beep();if('Notification'in window&&Notification.permission==='granted'){const n=new Notification('VIGIA · SOS activo',{body:`${a.usuario_nombre||'Residente'}${a.vivienda?' · '+a.vivienda:''}`,tag:`vigia-sos-${a.id}`,requireInteraction:true});n.onclick=()=>{window.focus();$('sosSection').scrollIntoView({behavior:'smooth'});n.close()}}}
+
+  async function alertAction(a,status,btn){btn.disabled=true;try{await VigiaAPI.request(`/alertas-panico/${a.id}`,{method:'PATCH',body:JSON.stringify({estado:status,atendida_por:session.id,fecha_atencion:new Date().toISOString()})});showToast(status==='atendida'?'Alerta atendida':'Marcada como falsa alarma');await Promise.all([loadAlerts(),loadSummary()]);}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}finally{btn.disabled=false}}
+  function panicCard(a){
+    const card=document.createElement('article');card.className=`guard-sos-card ${a.estado==='activa'?'active':''}`;
+    const top=document.createElement('div');top.className='guard-sos-card-top';const who=document.createElement('div');who.className='guard-sos-who';const ico=document.createElement('span');ico.appendChild(icon('bi-exclamation-octagon-fill'));const cp=document.createElement('div');cp.append(text('b',a.usuario_nombre||'Residente'),text('span',`${a.vivienda||'Ubicación sin especificar'} · ${a.tipo_alerta_nombre||'SOS'} · ${fmtDate(a.fecha_hora)}`));who.append(ico,cp);top.append(who,text('span',STATUS_LABEL[a.estado]||a.estado,`badge ${STATUS_CLASS[a.estado]||'neutral'}`));card.appendChild(top);
+    if(a.estado==='activa'){
+      const actions=document.createElement('div');actions.className='guard-sos-actions';
+      const attend=document.createElement('button');attend.type='button';attend.className='btn btn-solid';attend.append(icon('bi-check2-circle'),document.createTextNode(' Atender'));attend.onclick=()=>alertAction(a,'atendida',attend);actions.appendChild(attend);
+      const falseBtn=document.createElement('button');falseBtn.type='button';falseBtn.className='btn btn-ghost';falseBtn.append(icon('bi-x-circle'),document.createTextNode(' Falsa alarma'));falseBtn.onclick=()=>alertAction(a,'falsa_alarma',falseBtn);actions.appendChild(falseBtn);
+      if(a.usuario_telefono){const phone=document.createElement('button');phone.type='button';phone.className='btn btn-ghost';phone.append(icon('bi-telephone-fill'),document.createTextNode(' Teléfono'));phone.onclick=async()=>{try{await navigator.clipboard.writeText(a.usuario_telefono);showToast(`Teléfono copiado: ${a.usuario_telefono}`)}catch(e){showToast(`Teléfono: ${a.usuario_telefono}`)}};actions.appendChild(phone)}
+      if(a.usuario_id){const msg=document.createElement('a');msg.className='btn btn-ghost';msg.href=`mensajeria.html?abrir_residente=${encodeURIComponent(a.usuario_id)}`;msg.append(icon('bi-chat-dots-fill'),document.createTextNode(' Mensaje'));actions.appendChild(msg)}
+      card.appendChild(actions);
     }
-  }
-
-  // ============ ALERTAS DE PANICO (API real: /api/alertas-panico) ============
-  const guardPanicList=document.getElementById('guardPanicList');
-  const guardPanicEmptyMsg=document.getElementById('guardPanicEmptyMsg');
-  const statPendientes=document.getElementById('statPendientes');
-  const statFalsas=document.getElementById('statFalsas');
-  const statAtendidas=document.getElementById('statAtendidas');
-
-  // El esquema real solo tiene 3 estados: activa, atendida, falsa_alarma
-  // (no existe "en_camino" ni reasignar guardia; eso era del store falso).
-  const STATUS_LABEL={activa:'Pendiente', atendida:'Atendida', falsa_alarma:'Falsa alarma'};
-  const STATUS_BADGE_CLASS={activa:'alert', atendida:'ok', falsa_alarma:'neutral'};
-
-  function formatFecha(iso){
-    if(!iso) return '';
-    return new Date(iso).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-  }
-
-  async function atenderAlerta(id, estado, btn){
-    const original=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML='<i class="bi bi-arrow-repeat"></i> Guardando...';
-    try{
-      await VigiaAPI.request(`/alertas-panico/${id}`,{method:'PATCH',body:JSON.stringify({
-        estado,
-        atendida_por:session.id,
-        fecha_atencion:new Date().toISOString(),
-      })});
-      showToast(estado==='atendida' ? 'Alerta marcada como atendida' : 'Alerta marcada como falsa alarma');
-      await loadPanicAlerts();
-    }catch(e){
-      showToast(e.message,'bi-exclamation-triangle-fill');
-      btn.disabled=false; btn.innerHTML=original;
-    }
-  }
-
-  function renderAlertCard(a){
-    const card=document.createElement('div');
-    card.className='panic-card'+(a.estado==='activa' ? ' is-pendiente' : '');
-    card.dataset.id=a.id;
-
-    const who=a.vivienda ? `${a.usuario_nombre} · ${a.vivienda}` : a.usuario_nombre;
-    const tipo=a.tipo_alerta_nombre || 'Alerta';
-    const resuelta=a.estado!=='activa';
-
-    // Mensaje si sabemos a quien -- si no hay usuario_id, el boton
-    // simplemente no aparece, en vez de mostrar un enlace roto.
-    //
-    // "Llamar" antes era un enlace tel:, que solo hace algo en un
-    // telefono/tablet con una app de llamadas registrada -- en la
-    // computadora de garita (donde de verdad se usa VIGIA la mayoria
-    // del tiempo) el navegador no tiene con que abrirlo y el boton se
-    // ve roto. VIGIA no hace llamadas de verdad por si misma: en vez de
-    // fingir que si, este boton muestra/copia el telefono guardado para
-    // que el guardia marque desde su propio telefono.
-    const botonLlamar=a.usuario_telefono
-      ? `<button type="button" class="btn btn-ghost btn-ver-telefono" data-tel="${escapeHtml(a.usuario_telefono)}"><i class="bi bi-telephone-fill"></i> Ver teléfono</button>`
-      : '';
-    const botonMensaje=a.usuario_id
-      ? `<a class="btn btn-ghost" href="mensajeria.html?abrir_residente=${a.usuario_id}"><i class="bi bi-chat-dots-fill"></i> Mensaje</a>`
-      : '';
-
-    card.innerHTML=
-      '<div class="panic-card-head">'+
-        '<div class="panic-card-who">'+
-          '<span class="ic"><i class="bi bi-exclamation-octagon-fill"></i></span>'+
-          '<div class="panic-card-who-text"><b></b><span></span></div>'+
-        '</div>'+
-        '<span class="badge '+STATUS_BADGE_CLASS[a.estado]+'"></span>'+
-      '</div>'+
-      '<div class="panic-card-actions">'+
-        (resuelta ? '' :
-          '<button type="button" class="btn btn-solid panic-action-btn" data-status="atendida"><i class="bi bi-check-lg"></i> Atendida</button>'+
-          '<button type="button" class="btn btn-ghost panic-action-btn" data-status="falsa_alarma"><i class="bi bi-x-lg"></i> Falsa alarma</button>'
-        )+
-        botonLlamar+botonMensaje+
-      '</div>';
-
-    card.querySelector('.panic-card-who-text b').textContent=who;
-    card.querySelector('.panic-card-who-text span').textContent=tipo+' · '+formatFecha(a.fecha_hora);
-    const statusBadge=card.querySelector('.panic-card-head .badge');
-    statusBadge.textContent=STATUS_LABEL[a.estado].toUpperCase();
-
-    if(resuelta){
-      const info=document.createElement('p');
-      info.className='panic-card-note-saved';
-      info.innerHTML='<i class="bi bi-check2-circle"></i> Atendida por '+escapeHtml(a.atendida_por_nombre||'personal')+' <span class="mono">— '+formatFecha(a.fecha_atencion)+'</span>';
-      card.appendChild(info);
-    }
-
-    card.querySelectorAll('.panic-action-btn').forEach(btn=>{
-      btn.addEventListener('click',()=> atenderAlerta(a.id, btn.dataset.status, btn));
-    });
-
-    const botonTelefono=card.querySelector('.btn-ver-telefono');
-    if(botonTelefono){
-      botonTelefono.addEventListener('click',()=>{
-        const tel=botonTelefono.dataset.tel;
-        if(navigator.clipboard&&navigator.clipboard.writeText){
-          navigator.clipboard.writeText(tel)
-            .then(()=>showToast('Teléfono copiado: '+tel))
-            .catch(()=>showToast('Teléfono: '+tel));
-        }else{
-          showToast('Teléfono: '+tel);
-        }
-      });
-    }
-
     return card;
   }
+  function renderAlerts(){const list=$('guardPanicList'),active=state.alerts.filter(a=>a.estado==='activa'),today=state.alerts.filter(a=>a.estado!=='activa'&&new Date(a.fecha_atencion||a.fecha_hora).toDateString()===new Date().toDateString()),rows=[...active,...today.slice(0,4)];clear(list);rows.forEach(a=>list.appendChild(panicCard(a)));$('guardPanicEmptyMsg').style.display=rows.length?'none':'';$('sosUpdated').textContent=`Actualizado ${new Date().toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'})}`;}
+  async function loadAlerts(){try{const r=await VigiaAPI.request('/alertas-panico?limit=100&sort=fecha_hora:desc',{offline:false});state.alerts=r.data||[];const active=state.alerts.filter(a=>a.estado==='activa');if(state.knownActiveIds!==null)active.filter(a=>!state.knownActiveIds.has(a.id)).forEach(notifyNew);state.knownActiveIds=new Set(active.map(a=>a.id));renderAlerts();}catch(e){empty($('guardPanicList'),e.message)}}
 
-  function escapeHtml(str){
-    const div=document.createElement('div');
-    div.textContent=str;
-    return div.innerHTML;
-  }
+  async function loadSummary(){try{const r=await VigiaAPI.request('/centro-seguridad/resumen',{offline:false});state.summary=r.data||{};renderKPIs(state.summary);renderShift(state.summary.turno_actual);renderInside();renderQueue(state.summary);renderIncidents(state.summary);}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}
+  async function refreshAll(){if(state.loading)return;state.loading=true;$('guardRefresh').disabled=true;try{await Promise.all([loadSummary(),loadAlerts(),checkConnection()]);}finally{state.loading=false;$('guardRefresh').disabled=false}}
 
-  // "Atendidas hoy"/"Falsas alarmas" antes contaban TODO lo que trajera
-  // la consulta (las ultimas 100, sin importar el dia) aunque la
-  // etiqueta dijera "HOY" -- una alerta resuelta la semana pasada
-  // segui sumando ahi para siempre. Ahora se reinicia cada dia: solo
-  // cuenta (y solo se ve en la lista) lo resuelto ESE mismo dia. Nada
-  // se borra de la base de datos -- el registro de dias anteriores
-  // sigue completo y consultable via la API (/api/alertas-panico), asi
-  // que no se pierde nada, solo deja de mezclarse con el conteo de hoy.
-  function esDeHoy(fechaIso){
-    if(!fechaIso) return false;
-    const f=new Date(fechaIso);
-    const hoy=new Date();
-    return f.getFullYear()===hoy.getFullYear() && f.getMonth()===hoy.getMonth() && f.getDate()===hoy.getDate();
-  }
-
-  let panicAlerts=[];
-  let idsActivasConocidas=null; // null = primera carga; no suena en la primera carga, solo ante alertas NUEVAS
-  function renderPanicAlerts(){
-    if(!guardPanicList) return;
-    // Las pendientes (estado "activa") siempre se muestran, sin importar
-    // cuando se crearon -- una alerta sin atender de ayer sigue
-    // necesitando atencion, no debe desaparecer sola. Las ya resueltas
-    // (atendida/falsa_alarma) solo se muestran en la lista del dia de
-    // hoy; las de dias anteriores quedan fuera de la vista pero siguen
-    // en la base de datos.
-    const visibles=panicAlerts.filter(a=> a.estado==='activa' || esDeHoy(a.fecha_atencion||a.fecha_hora));
-    guardPanicList.innerHTML='';
-    visibles.forEach(a=> guardPanicList.appendChild(renderAlertCard(a)));
-
-    if(guardPanicEmptyMsg) guardPanicEmptyMsg.style.display = visibles.length ? 'none' : '';
-
-    if(statPendientes){
-      const n=panicAlerts.filter(a=>a.estado==='activa').length;
-      statPendientes.textContent=n;
-      statPendientes.closest('.admin-stat').classList.toggle('has-alert', n>0);
-    }
-    if(statFalsas) statFalsas.textContent=panicAlerts.filter(a=>a.estado==='falsa_alarma'&&esDeHoy(a.fecha_atencion||a.fecha_hora)).length;
-    if(statAtendidas) statAtendidas.textContent=panicAlerts.filter(a=>a.estado==='atendida'&&esDeHoy(a.fecha_atencion||a.fecha_hora)).length;
-  }
-
-  async function loadPanicAlerts(){
-    if(!guardPanicList) return;
-    try{
-      const r=await VigiaAPI.request('/alertas-panico?limit=100&sort=fecha_hora:desc');
-      panicAlerts=r.data||[];
-
-      const activasAhora=panicAlerts.filter(a=>a.estado==='activa');
-      if(idsActivasConocidas!==null){
-        const nuevas=activasAhora.filter(a=>!idsActivasConocidas.has(a.id));
-        nuevas.forEach(notificarAlertaNueva);
-      }
-      idsActivasConocidas=new Set(activasAhora.map(a=>a.id));
-
-      renderPanicAlerts();
-    }catch(e){
-      guardPanicList.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;
-    }
-  }
-
-  loadPanicAlerts();
-  setInterval(loadPanicAlerts, 20000);
+  $('insideSearch').addEventListener('input',e=>{state.insideQuery=e.target.value.trim();renderInside()});
+  $('insideFilters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;state.insideFilter=b.dataset.filter;document.querySelectorAll('#insideFilters .guard-filter').forEach(x=>x.classList.toggle('active',x===b));renderInside()});
+  document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.jump).scrollIntoView({behavior:'smooth',block:'start'})));
+  $('guardFocusSOS').addEventListener('click',()=>$('sosSection').scrollIntoView({behavior:'smooth'}));
+  $('guardRefresh').addEventListener('click',refreshAll);$('guardShiftAction').addEventListener('click',shiftAction);
+  if('Notification'in window&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});
+  refreshAll();setInterval(()=>{loadSummary();loadAlerts();checkConnection()},20000);
 })();

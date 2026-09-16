@@ -26,14 +26,20 @@
   roleSelect.addEventListener('change', toggleFields);
   toggleFields();
 
+  function makeCell(text){
+    const td=document.createElement('td');td.textContent=text==null?'':String(text);return td;
+  }
+  function makeButton(label,className,action,id,state){
+    const button=document.createElement('button');button.type='button';button.className=className;button.textContent=label;
+    button.dataset.action=action;button.dataset.id=id;if(state)button.dataset.state=state;return button;
+  }
+  async function confirmAction(options){
+    return window.VigiaConfirm?VigiaConfirm(options):confirm(options.message||options.title||'¿Confirmar?');
+  }
+
   function render() {
     const roleMap = new Map(roles.map((x) => [String(x.id), x.codigo]));
     const residentialMap = new Map(residentials.map((x) => [String(x.id), x.nombre]));
-    // Los usuarios eliminados (estado "inactivo") se conservan en la base
-    // por las llaves foraneas (ver el DELETE de src/routes/overrides/
-    // usuarios.js), pero para el admin deben verse como si ya no
-    // existieran: no cuentan en las tarjetas de arriba ni aparecen en la
-    // tabla de cuentas registradas.
     const activos = users.filter((x) => x.estado !== 'inactivo');
     document.getElementById('statUsers').textContent = activos.length;
     document.getElementById('statGuards').textContent = activos.filter((x) => roleMap.get(String(x.rol_id)) === 'guardia').length;
@@ -42,52 +48,28 @@
 
     const q = document.getElementById('userSearch').value.trim().toLowerCase();
     const rows = activos.filter((x) => !q || `${x.nombre} ${x.apellido} ${x.email}`.toLowerCase().includes(q));
-    document.getElementById('userRows').innerHTML = rows.length
-      ? rows.map((x) => {
-        const role = roleMap.get(String(x.rol_id)) || `#${x.rol_id}`;
-        const residential = residentialMap.get(String(x.residencial_id)) || 'Global';
-        const nextState = x.estado === 'activo' ? 'suspendido' : 'activo';
-        return `<tr>
-          <td>${escapeHtml(`${x.nombre} ${x.apellido}`)}</td>
-          <td>${escapeHtml(x.email)}</td>
-          <td>${escapeHtml(role)}</td>
-          <td>${escapeHtml(residential)}</td>
-          <td><span class="badge ${x.estado === 'activo' ? 'ok' : 'blocked'}">${escapeHtml(x.estado)}</span></td>
-          <td class="table-actions">
-            <button class="btn btn-ghost" data-action="toggle" data-id="${x.id}" data-state="${nextState}">${x.estado === 'activo' ? 'Suspender' : 'Activar'}</button>
-            <button class="btn btn-danger" data-action="delete" data-id="${x.id}">Eliminar</button>
-          </td>
-        </tr>`;
-      }).join('')
-      : '<tr><td colspan="6">No hay resultados.</td></tr>';
+    const tbody=document.getElementById('userRows');tbody.replaceChildren();
+    if(!rows.length){const tr=document.createElement('tr');const td=makeCell('No hay resultados.');td.colSpan=6;tr.appendChild(td);tbody.appendChild(tr);return;}
 
-    document.querySelectorAll('#userRows button[data-action="toggle"]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        if (!confirm(`¿Cambiar la cuenta a ${button.dataset.state}?`)) return;
-        try {
-          await VigiaAPI.request(`/usuarios/${button.dataset.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ estado: button.dataset.state }),
-          });
-          showToast('Cuenta actualizada');
-          await load();
-        } catch (error) {
-          showToast(error.message, 'bi-exclamation-triangle-fill');
-        }
+    rows.forEach((x)=>{
+      const role=roleMap.get(String(x.rol_id))||`#${x.rol_id}`;
+      const residential=residentialMap.get(String(x.residencial_id))||'Global';
+      const nextState=x.estado==='activo'?'suspendido':'activo';
+      const tr=document.createElement('tr');
+      tr.append(makeCell(`${x.nombre} ${x.apellido}`),makeCell(x.email),makeCell(role),makeCell(residential));
+      const stateTd=document.createElement('td');const state=document.createElement('span');state.className=`badge ${x.estado==='activo'?'ok':'blocked'}`;state.textContent=x.estado;stateTd.appendChild(state);tr.appendChild(stateTd);
+      const actions=document.createElement('td');actions.className='table-actions';
+      const toggle=makeButton(x.estado==='activo'?'Suspender':'Activar','btn btn-ghost','toggle',x.id,nextState);
+      const del=makeButton('Eliminar','btn btn-danger','delete',x.id);
+      toggle.addEventListener('click',async()=>{
+        const ok=await confirmAction({title:'¿Cambiar estado de la cuenta?',message:`La cuenta pasará a estado ${nextState}.`,confirmText:x.estado==='activo'?'Suspender':'Activar',icon:'bi-person-lock'});if(!ok)return;
+        try{await VigiaAPI.request(`/usuarios/${x.id}`,{method:'PATCH',body:JSON.stringify({estado:nextState})});showToast('Cuenta actualizada');await load()}catch(error){showToast(error.message,'bi-exclamation-triangle-fill')}
       });
-    });
-
-    document.querySelectorAll('#userRows button[data-action="delete"]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        if (!confirm('¿Eliminar esta cuenta? El usuario ya no podrá iniciar sesión ni aparecerá en esta lista.')) return;
-        try {
-          await VigiaAPI.request(`/usuarios/${button.dataset.id}`, { method: 'DELETE' });
-          showToast('Usuario eliminado');
-          await load();
-        } catch (error) {
-          showToast(error.message, 'bi-exclamation-triangle-fill');
-        }
+      del.addEventListener('click',async()=>{
+        const ok=await confirmAction({title:'¿Eliminar esta cuenta?',message:'El usuario ya no podrá iniciar sesión ni aparecerá en esta lista.',confirmText:'Eliminar',icon:'bi-trash3'});if(!ok)return;
+        try{await VigiaAPI.request(`/usuarios/${x.id}`,{method:'DELETE'});showToast('Usuario eliminado');await load()}catch(error){showToast(error.message,'bi-exclamation-triangle-fill')}
       });
+      actions.append(toggle,del);tr.appendChild(actions);tbody.appendChild(tr);
     });
   }
 
@@ -101,9 +83,9 @@
       users = usersResult.data || [];
       roles = rolesResult.data || [];
       residentials = residentialsResult.data || [];
-      document.getElementById('adResidential').innerHTML = residentials
-        .map((x) => `<option value="${x.id}">${escapeHtml(x.nombre)}</option>`)
-        .join('');
+      const residentialSelect=document.getElementById('adResidential');
+      residentialSelect.replaceChildren();
+      residentials.forEach((x)=>{const option=document.createElement('option');option.value=x.id;option.textContent=x.nombre;residentialSelect.appendChild(option)});
       render();
     } catch (error) {
       showToast(error.message, 'bi-exclamation-triangle-fill');

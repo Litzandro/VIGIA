@@ -19,19 +19,19 @@
   toggleBtn.addEventListener('click',()=>{
     const isPw=passwordInput.type==='password';
     passwordInput.type=isPw?'text':'password';
-    toggleBtn.innerHTML=isPw?'<i class="bi bi-eye-slash"></i>':'<i class="bi bi-eye"></i>';
+    setIconContent(toggleBtn,isPw?'bi-eye-slash':'bi-eye');
   });
 
   form.addEventListener('submit',async(e)=>{
     e.preventDefault();hideError();
     const email=emailInput.value.trim(),password=passwordInput.value;
     if(!email||!password){showError('Escribe tu correo y contraseña.');return;}
-    const originalHTML=submitBtn.innerHTML;
+    const originalContent=[...submitBtn.childNodes].map(node=>node.cloneNode(true));
     submitBtn.disabled=true;
-    submitBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> Verificando...';
+    setButtonContent(submitBtn,'bi-arrow-repeat','Verificando...');
     const result=await GuardAuthStore.login(email,password);
-    if(!result.ok){showError(result.error);submitBtn.disabled=false;submitBtn.innerHTML=originalHTML;return;}
-    submitBtn.innerHTML='<i class="bi bi-check-lg"></i> ¡Bienvenido!';
+    if(!result.ok){showError(result.error);submitBtn.disabled=false;submitBtn.replaceChildren(...originalContent.map(node=>node.cloneNode(true)));return;}
+    setButtonContent(submitBtn,'bi-check-lg','¡Bienvenido!');
     window.location.href='guardia.html';
   });
 })();

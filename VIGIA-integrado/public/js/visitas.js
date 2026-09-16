@@ -908,16 +908,14 @@
         try {
 
           let payload;
+          const eraRecurrente = Boolean(recurringCheckbox && recurringCheckbox.checked);
 
 
           // ==========================
           // VISITA RECURRENTE
           // ==========================
 
-          if (
-            recurringCheckbox &&
-            recurringCheckbox.checked
-          ) {
+          if (eraRecurrente) {
 
             const inicio = new Date();
 
@@ -1008,6 +1006,13 @@
             const inicio =
               new Date(inicioISO);
 
+            // Evita crear invitaciones que ya nacen vencidas por elegir una
+            // fecha/hora pasada. Damos dos minutos de tolerancia para el caso
+            // "Ingreso inmediato" mientras se termina de llenar el formulario.
+            if (inicio.getTime() < Date.now() - 2 * 60 * 1000) {
+              mostrarError('La fecha y hora de la visita no pueden estar en el pasado.');
+              return;
+            }
 
             // La invitación será válida durante 6 horas.
             const fin =
@@ -1096,8 +1101,7 @@
           ) {
 
             showToast(
-              recurringCheckbox &&
-              recurringCheckbox.checked
+              eraRecurrente
 
                 ? `${nombre} fue autorizado como visitante recurrente`
 
@@ -1119,10 +1123,7 @@
           await cargarVisitas();
 
 
-          if (
-            recurringCheckbox &&
-            recurringCheckbox.checked
-          ) {
+          if (eraRecurrente) {
 
             activateTab(
               'Recurrentes'

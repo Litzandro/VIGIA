@@ -17,8 +17,8 @@
   attachMayusculas(document.getElementById('auPlate'));
   // Selects de 15 en 15 minutos con AM/PM (el value real sigue siendo
   // HH:MM en 24h, que es lo que ya entiende el backend).
-  document.getElementById('auFrom').innerHTML=buildAmPmTimeOptions();
-  document.getElementById('auTo').innerHTML=buildAmPmTimeOptions();
+  populateAmPmTimeSelect(document.getElementById('auFrom'));
+  populateAmPmTimeSelect(document.getElementById('auTo'));
   const typeLabel={bus_escolar:'Bus escolar',familiar:'Familiar',servicio_domestico:'Servicio doméstico',proveedor:'Proveedor',transporte:'Transporte',otro:'Otro'};
 
   // Antes el formulario pedia SIEMPRE los mismos 5 campos (documento,
@@ -51,28 +51,36 @@
   actualizarCamposPorTipo();
   const statusLabel={pendiente:'Pendiente de aprobación',activa:'Activa',suspendida:'Suspendida',vencida:'Vencida',cancelada:'Cancelada'};
   const statusBadge={pendiente:'pending',activa:'ok',suspendida:'warn',vencida:'neutral',cancelada:'neutral'};
+  function addIcon(parent,className){const i=document.createElement('i');i.className=`bi ${className}`;i.setAttribute('aria-hidden','true');parent.appendChild(i)}
+  function makeEmpty(text){const el=document.createElement('div');el.className='empty-state';el.textContent=text;return el}
   async function load(){
-    const box=document.getElementById('authorizedList');
+    const box=document.getElementById('authorizedList');box.replaceChildren();
     try{
       const r=await VigiaAPI.request('/personas-autorizadas?limit=200&sort=fecha_creacion:desc');
       const rows=r.data||[];
-      box.innerHTML=rows.length?'':'<div class="empty-state">Aún no hay personas autorizadas.</div>';
+      if(!rows.length){box.appendChild(makeEmpty('Aún no hay personas autorizadas.'));return}
       rows.forEach(x=>{
         const days=Array.isArray(x.dias_semana_json)&&x.dias_semana_json.length?x.dias_semana_json.join(', '):'Todos';
         const cancelable=['pendiente','activa','suspendida'].includes(x.estado);
-        const el=document.createElement('div');
-        el.className='queue-item';
-        el.innerHTML=`<div class="queue-number"><i class="bi bi-person-check-fill"></i></div><div class="queue-copy"><b>${escapeHtml(x.nombre_completo)}</b><span>${typeLabel[x.tipo]||x.tipo} · ${escapeHtml(x.empresa||x.placa_vehiculo||'Sin empresa/placa')}</span><span>${escapeHtml(formatHora12(x.hora_desde)||'12:00 AM')}–${escapeHtml(formatHora12(x.hora_hasta)||'11:59 PM')} · Días: ${escapeHtml(days)}</span></div><div class="queue-actions"><span class="badge ${statusBadge[x.estado]||'neutral'}">${escapeHtml(statusLabel[x.estado]||x.estado)}</span>${cancelable?`<button class="btn btn-ghost" data-id="${x.id}" title="Cancelar autorización"><i class="bi bi-x-lg"></i></button>`:''}</div>`;
-        const btn=el.querySelector('button');
-        if(btn)btn.onclick=async()=>{
-          if(!confirm('¿Cancelar esta autorización? Se guarda el historial, no se borra.'))return;
-          try{await VigiaAPI.request(`/personas-autorizadas/${x.id}`,{method:'DELETE'});showToast('Autorización cancelada');load()}
-          catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
-        };
-        box.appendChild(el);
+        const el=document.createElement('div');el.className='queue-item';
+        const num=document.createElement('div');num.className='queue-number';addIcon(num,'bi-person-check-fill');
+        const copy=document.createElement('div');copy.className='queue-copy';
+        const name=document.createElement('b');name.textContent=x.nombre_completo||'';
+        const line1=document.createElement('span');line1.textContent=`${typeLabel[x.tipo]||x.tipo} · ${x.empresa||x.placa_vehiculo||'Sin empresa/placa'}`;
+        const line2=document.createElement('span');line2.textContent=`${formatHora12(x.hora_desde)||'12:00 AM'}–${formatHora12(x.hora_hasta)||'11:59 PM'} · Días: ${days}`;
+        copy.append(name,line1,line2);
+        const actions=document.createElement('div');actions.className='queue-actions';
+        const state=document.createElement('span');state.className=`badge ${statusBadge[x.estado]||'neutral'}`;state.textContent=statusLabel[x.estado]||x.estado;actions.appendChild(state);
+        if(cancelable){
+          const btn=document.createElement('button');btn.type='button';btn.className='btn btn-ghost';btn.title='Cancelar autorización';addIcon(btn,'bi-x-lg');
+          btn.onclick=async()=>{const ok=window.VigiaConfirm?await VigiaConfirm({title:'¿Cancelar autorización?',message:'Se conservará el historial de esta autorización.',confirmText:'Cancelar autorización',icon:'bi-x-circle'}):confirm('¿Cancelar esta autorización? Se guarda el historial, no se borra.');if(!ok)return;try{await VigiaAPI.request(`/personas-autorizadas/${x.id}`,{method:'DELETE'});showToast('Autorización cancelada');await load()}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}};
+          actions.appendChild(btn);
+        }
+        el.append(num,copy,actions);box.appendChild(el);
       });
-    }catch(e){box.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}
+    }catch(e){box.replaceChildren(makeEmpty(e.message))}
   }
+
   form.onsubmit=async e=>{
     e.preventDefault();
     const days=[...document.querySelectorAll('#auDays input:checked')].map(x=>Number(x.value));

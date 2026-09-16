@@ -408,11 +408,16 @@ async function recuperarPregunta(req, res, next) {
     if (!email) return res.status(400).json({ error: 'Escribe tu correo electronico.' });
 
     const usuario = await db.Usuarios.findOne({ where: { email: String(email).trim().toLowerCase() } });
-    if (!usuario || usuario.estado !== 'activo' || !usuario.pregunta_seguridad) {
-      return res.status(404).json({ error: 'No encontramos una cuenta activa con ese correo y una pregunta de seguridad configurada.' });
-    }
 
-    res.json({ pregunta: usuario.pregunta_seguridad });
+    // No revelar si el correo existe. Para cuentas inexistentes,
+    // suspendidas o sin pregunta configurada devolvemos el mismo status
+    // y una pregunta señuelo. Así un atacante no puede enumerar usuarios
+    // comparando 200/404 ni el texto del error.
+    const pregunta = usuario && usuario.estado === 'activo' && usuario.pregunta_seguridad
+      ? usuario.pregunta_seguridad
+      : '¿Cuál es la respuesta de seguridad que configuraste al crear tu cuenta?';
+
+    return res.json({ pregunta });
   } catch (err) {
     next(err);
   }
@@ -432,14 +437,18 @@ async function verificarRespuesta(req, res, next) {
     }
 
     const usuario = await db.Usuarios.findOne({ where: { email: String(email).trim().toLowerCase() } });
-    if (!usuario || usuario.estado !== 'activo' || !usuario.respuesta_seguridad_hash) {
-      return res.status(400).json({ error: 'No pudimos verificar esa cuenta.' });
-    }
-
     const respuestaNormalizada = String(respuesta).trim().toLowerCase();
-    const coincide = await bcrypt.compare(respuestaNormalizada, usuario.respuesta_seguridad_hash);
-    if (!coincide) {
-      return res.status(400).json({ error: 'La respuesta no es correcta.' });
+
+    // Hacemos una comparación bcrypt incluso si la cuenta no existe
+    // para acercar los tiempos de respuesta y evitar otra señal de
+    // enumeración. El mensaje es idéntico para cuenta inexistente y
+    // respuesta incorrecta.
+    const hashComparacion = usuario && usuario.estado === 'activo' && usuario.respuesta_seguridad_hash
+      ? usuario.respuesta_seguridad_hash
+      : '$2a$12$wH5K6gqS2tY8Gq8ak4PmEOVvQ2Y2SuEFUa.e8E7mZrS6JrF68XL8K';
+    const coincide = await bcrypt.compare(respuestaNormalizada, hashComparacion).catch(() => false);
+    if (!usuario || usuario.estado !== 'activo' || !usuario.respuesta_seguridad_hash || !coincide) {
+      return res.status(400).json({ error: 'No pudimos verificar los datos proporcionados.' });
     }
 
     const token = crypto.randomBytes(32).toString('hex');

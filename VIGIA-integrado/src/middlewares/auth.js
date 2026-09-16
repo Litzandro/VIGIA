@@ -119,4 +119,57 @@ function blocked(req, res) {
   return res.status(405).json({ error: 'Esta operacion no esta permitida via la API' });
 }
 
-module.exports = { requireAuth, requireRole, requirePermission, blocked, _invalidateCache: () => { cache.map = null; } };
+
+// Protege tambien las paginas HTML servidas desde /public. La API ya
+// estaba protegida, pero antes alguien sin sesion podia escribir por
+// ejemplo /dashboard.html y recibir toda la interfaz estatica antes de
+// que las llamadas a la API fallaran. Este middleware valida la misma
+// cookie HttpOnly y, si la sesion no existe/vence/se revoca, redirige al
+// login apropiado sin entregar la pagina privada.
+function requirePageAuth(...allowedRoles) {
+  return async function (req, res, next) {
+    const token = req.cookies && req.cookies.vigia_token;
+    const page = String(req.path || '').split('/').pop().toLowerCase();
+    const loginDestino = page === 'guardia.html'
+      ? '/guardia-login.html'
+      : (page === 'superadmin.html' || page === 'admin-login.html')
+        ? '/admin-login.html'
+        : '/login.html';
+
+    if (!token) return res.redirect(302, loginDestino);
+
+    try {
+      const payload = getJwt().verify(token, process.env.JWT_SECRET);
+      if (payload.jti) {
+        const crypto = require('crypto');
+        const hash = crypto.createHash('sha256').update(token).digest('hex');
+        const db = getDb();
+        const session = await db.Sesiones.findOne({
+          where: { usuario_id: payload.id, token_hash: hash, activa: true },
+        });
+        if (!session || new Date(session.fecha_expiracion) <= new Date()) {
+          res.clearCookie('vigia_token');
+          return res.redirect(302, `${loginDestino}?sesion=expirada`);
+        }
+      }
+
+      if (allowedRoles.length && payload.rol_codigo !== 'superadmin' && !allowedRoles.includes(payload.rol_codigo)) {
+        const destino = payload.rol_codigo === 'guardia'
+          ? '/guardia.html'
+          : (payload.rol_codigo === 'admin' || payload.rol_codigo === 'superadmin')
+            ? '/superadmin.html'
+            : '/dashboard.html';
+        return res.redirect(302, destino);
+      }
+
+      req.user = payload;
+      req.authToken = token;
+      return next();
+    } catch (err) {
+      res.clearCookie('vigia_token');
+      return res.redirect(302, `${loginDestino}?sesion=expirada`);
+    }
+  };
+}
+
+module.exports = { requireAuth, requirePageAuth, requireRole, requirePermission, blocked, _invalidateCache: () => { cache.map = null; } };

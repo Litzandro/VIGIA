@@ -14,8 +14,7 @@
     const displayName=(session.nombre_completo||session.name||'').trim()||nombreDesdeCorreo(session.email);
     const firstName=displayName.split(' ')[0]||'Usuario';
     const hero=document.querySelector('.dash-hero h1');
-    if(hero) hero.innerHTML='Hola, <em></em>';
-    if(hero){const em=hero.querySelector('em');em.textContent=firstName+'.';}
+    if(hero){const em=document.createElement('em');em.textContent=firstName+'.';hero.replaceChildren(document.createTextNode('Hola, '),em);}
     document.querySelectorAll('.topnav-user .uname').forEach(el=>el.textContent=displayName);
     document.querySelectorAll('.topnav-user .av').forEach(el=>{
       el.textContent=displayName.split(' ').filter(Boolean).slice(0,2).map(v=>v[0].toUpperCase()).join('');

@@ -3,52 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIGIA — Portal del guardia</title>
-
+<title>VIGIA — Operación de guardia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
 </head>
-<body>
-<div class="bg-photo"></div>
-<canvas id="bgCanvas"></canvas>
-
+<body data-protect-demo="true">
+<div class="bg-photo"></div><canvas id="bgCanvas"></canvas>
 <div class="app">
-  <!-- ============ TOP NAV (portal separado de residentes y superadmin) ============ -->
-  <aside class="sidebar" id="vigiaSidebar" aria-label="Navegación de VIGIA"></aside><!-- ============ MAIN ============ -->
-  <div class="main">
-    <div class="content">
-      <div class="page">
-        <div class="page-banner">
-          <div class="page-banner-bg" style="background-image:url('https://images.unsplash.com/photo-1517457373958-b7bdd4587205?q=80&w=1400&auto=format&fit=crop');"></div>
-          <div class="page-banner-glow"></div>
-          <div class="page-banner-content">
-            <div><span class="mono-tag">PORTAL DEL GUARDIA</span><h1>Alertas y comunicación con residentes</h1><p id="guardShiftLine">Turno · Altavista Residencial</p></div>
-          </div>
-        </div>
-
-        <div class="admin-stats">
-          <div class="admin-stat" id="statPendientesWrap"><span class="val" id="statPendientes">0</span><span class="lbl">Pendientes</span></div>
-          <div class="admin-stat"><span class="val" id="statFalsas">0</span><span class="lbl">Falsas alarmas</span></div>
-          <div class="admin-stat"><span class="val" id="statAtendidas">0</span><span class="lbl">Atendidas hoy</span></div>
-        </div>
-
-        <div class="incidencias-toolbar">
-          <h3 style="margin:0;">Alertas de pánico</h3>
-          <a href="mensajeria.html" class="btn btn-ghost"><i class="bi bi-chat-dots-fill"></i> Ir a Mensajería</a>
-        </div>
-
-        <div class="panel">
-          <div id="guardPanicList"></div>
-          <p class="mono" id="guardPanicEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:1.5rem 0;text-align:center;">Aún no se ha activado ninguna alerta de pánico.</p>
-        </div>
+  <aside class="sidebar" id="vigiaSidebar" aria-label="Navegación de VIGIA"></aside>
+  <div class="main"><div class="content"><div class="page guard-ops-page">
+    <div class="guard-ops-head">
+      <div>
+        <span class="mono-tag">OPERACIÓN DE GARITA</span>
+        <h1>Panel del guardia</h1>
+        <p id="guardShiftLine">Cargando turno...</p>
+      </div>
+      <div class="guard-head-actions">
+        <span class="guard-connection" id="guardConnection"><span class="guard-connection-dot"></span><span>Comprobando conexión</span></span>
+        <button class="btn btn-ghost" id="guardRefresh" type="button"><i class="bi bi-arrow-clockwise"></i> Actualizar</button>
+        <button class="btn btn-solid" id="guardShiftAction" type="button" hidden></button>
       </div>
     </div>
-  </div>
-</div>
 
+    <div class="guard-sos-banner" id="guardSosBanner" hidden>
+      <div class="guard-sos-pulse"><i class="bi bi-exclamation-octagon-fill"></i></div>
+      <div><b id="guardSosTitle">SOS activo</b><span id="guardSosText">Se requiere atención inmediata.</span></div>
+      <button type="button" class="btn btn-solid" id="guardFocusSOS">Atender alerta</button>
+    </div>
+
+    <div class="guard-kpi-grid">
+      <button class="guard-kpi" type="button" data-jump="insideSection"><span class="guard-kpi-icon"><i class="bi bi-people-fill"></i></span><span class="guard-kpi-value" id="gInside">0</span><span class="guard-kpi-label">Dentro ahora</span></button>
+      <button class="guard-kpi" type="button" data-jump="queueSection"><span class="guard-kpi-icon"><i class="bi bi-hourglass-split"></i></span><span class="guard-kpi-value" id="gQueue">0</span><span class="guard-kpi-label">Esperando</span></button>
+      <button class="guard-kpi" type="button" data-jump="sosSection"><span class="guard-kpi-icon"><i class="bi bi-broadcast-pin"></i></span><span class="guard-kpi-value" id="gSOS">0</span><span class="guard-kpi-label">SOS activos</span></button>
+      <button class="guard-kpi" type="button" data-jump="incidentSection"><span class="guard-kpi-icon"><i class="bi bi-shield-exclamation"></i></span><span class="guard-kpi-value" id="gIncidents">0</span><span class="guard-kpi-label">Incidencias abiertas</span></button>
+      <div class="guard-kpi"><span class="guard-kpi-icon"><i class="bi bi-door-open-fill"></i></span><span class="guard-kpi-value" id="gEntries">0</span><span class="guard-kpi-label">Entradas hoy</span></div>
+      <div class="guard-kpi"><span class="guard-kpi-icon"><i class="bi bi-door-closed-fill"></i></span><span class="guard-kpi-value" id="gExits">0</span><span class="guard-kpi-label">Salidas hoy</span></div>
+    </div>
+
+    <div class="guard-quick-actions">
+      <a class="guard-quick-action primary" href="control-acceso.html"><i class="bi bi-person-plus-fill"></i><span><b>Nuevo acceso</b><small>Registrar persona en garita</small></span></a>
+      <a class="guard-quick-action" href="verificaciones.html"><i class="bi bi-qr-code-scan"></i><span><b>Escanear QR</b><small>Validar invitación</small></span></a>
+      <a class="guard-quick-action" href="conflictos.html"><i class="bi bi-shield-x"></i><span><b>Vetos</b><small>Consultar restricciones</small></span></a>
+      <a class="guard-quick-action" href="mensajeria.html"><i class="bi bi-chat-dots-fill"></i><span><b>Contactar residente</b><small>Abrir mensajería</small></span></a>
+      <a class="guard-quick-action" href="operaciones.html"><i class="bi bi-journal-check"></i><span><b>Bitácora de turno</b><small>Novedades y relevo</small></span></a>
+    </div>
+
+    <section class="panel guard-panel" id="insideSection">
+      <div class="panel-head guard-panel-head">
+        <div><h3>Quién está dentro ahora</h3><p class="config-section-note">Última entrada sin una salida posterior registrada.</p></div>
+        <div class="guard-panel-tools"><div class="guard-search"><i class="bi bi-search"></i><input id="insideSearch" type="search" placeholder="Buscar nombre, placa o vivienda" autocomplete="off"></div><span class="badge info" id="insideCount">0 DENTRO</span></div>
+      </div>
+      <div class="guard-filter-row" id="insideFilters">
+        <button type="button" class="guard-filter active" data-filter="all">Todos</button>
+        <button type="button" class="guard-filter" data-filter="recent">Menos de 1 h</button>
+        <button type="button" class="guard-filter" data-filter="long">Más de 2 h</button>
+      </div>
+      <div id="insideList" class="guard-inside-list"><div class="empty-state">Cargando accesos...</div></div>
+    </section>
+
+    <div class="guard-two-col">
+      <section class="panel guard-panel" id="queueSection">
+        <div class="panel-head"><div><h3>Cola de acceso</h3><p class="config-section-note">Personas pendientes de validación.</p></div><a href="control-acceso.html" class="btn btn-ghost btn-sm">Abrir garita</a></div>
+        <div id="guardQueueList" class="guard-compact-list"><div class="empty-state">Cargando cola...</div></div>
+      </section>
+      <section class="panel guard-panel" id="incidentSection">
+        <div class="panel-head"><div><h3>Incidencias prioritarias</h3><p class="config-section-note">Pendientes que requieren seguimiento.</p></div><a href="incidencias.html" class="btn btn-ghost btn-sm">Ver incidencias</a></div>
+        <div id="guardIncidentList" class="guard-compact-list"><div class="empty-state">Cargando incidencias...</div></div>
+      </section>
+    </div>
+
+    <section class="panel guard-panel" id="sosSection">
+      <div class="panel-head"><div><h3>Alertas SOS</h3><p class="config-section-note">Las activas permanecen arriba hasta que un guardia las atienda.</p></div><span class="mono" id="sosUpdated"></span></div>
+      <div id="guardPanicList" class="guard-panic-list"></div>
+      <p class="mono" id="guardPanicEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:1.5rem 0;text-align:center;">No hay alertas SOS activas.</p>
+    </section>
+  </div></div></div>
+</div>
 <script src="js/common.js"></script>
 <script src="js/guard-auth-store.js"></script>
 <script src="js/guardia.js"></script>

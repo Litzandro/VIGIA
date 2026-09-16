@@ -33,6 +33,8 @@ module.exports = {
 
   usuarios: { create: { permission: 'usuarios.gestionar' }, read: { permission: 'usuarios.gestionar' }, update: { permission: 'usuarios.gestionar' }, remove: { permission: 'usuarios.gestionar' } },
   sesiones: { create: ADMIN, read: ADMIN, update: ADMIN, remove: ADMIN },
+  // Los tokens de restablecimiento los administra exclusivamente authController; nunca se exponen por CRUD.
+  password_resets: { create: 'blocked', read: 'blocked', update: 'blocked', remove: 'blocked' },
 
   viviendas: { create: ADMIN, read: AUTH_ONLY, update: ADMIN, remove: ADMIN },
   residentes: { create: ADMIN, read: AUTH_ONLY, update: ADMIN, remove: ADMIN },

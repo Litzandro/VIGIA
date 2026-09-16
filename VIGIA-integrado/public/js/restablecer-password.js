@@ -24,7 +24,7 @@
   toggleBtn.addEventListener('click',()=>{
     const isPw=passwordInput.type==='password';
     passwordInput.type=isPw ? 'text' : 'password';
-    toggleBtn.innerHTML=isPw ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+    setIconContent(toggleBtn,isPw?'bi-eye-slash':'bi-eye');
   });
 
   form.addEventListener('submit',async(e)=>{
@@ -36,9 +36,9 @@
     if(password!==confirm){ showError('Las contraseñas no coinciden.'); return; }
     if(password.length<8){ showError('La contraseña debe tener al menos 8 caracteres.'); return; }
 
-    const originalHTML=submitBtn.innerHTML;
+    const originalContent=[...submitBtn.childNodes].map(node=>node.cloneNode(true));
     submitBtn.disabled=true;
-    submitBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> Guardando...';
+    setButtonContent(submitBtn,'bi-arrow-repeat','Guardando...');
 
     try{
       const response=await fetch(VigiaAPI.BASE_URL+'/auth/reset-password',{
@@ -56,7 +56,7 @@
     }catch(err){
       showError(err.message||'No se pudo conectar con el servidor.');
       submitBtn.disabled=false;
-      submitBtn.innerHTML=originalHTML;
+      submitBtn.replaceChildren(...originalContent.map(node=>node.cloneNode(true)));
     }
   });
 })();

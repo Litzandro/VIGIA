@@ -19,7 +19,8 @@
     try{
       const r=await VigiaAPI.request('/residenciales?limit=300');
       const residenciales=r.data||[];
-      residencialSelect.innerHTML=residenciales.map(x=>`<option value="${x.id}">${escapeHtml(x.nombre)}</option>`).join('');
+      residencialSelect.replaceChildren();
+      residenciales.forEach(x=>{const option=document.createElement('option');option.value=x.id;option.textContent=x.nombre;residencialSelect.appendChild(option)});
       if(residenciales.length){
         residencialElegida=residenciales[0].id;
         residencialWrap.style.display='block';
@@ -50,12 +51,24 @@
     charCount.classList.toggle('full',len>=500);
   }
   if(input)input.addEventListener('input',updateCharCount);
+  function emptyState(text){const el=document.createElement('div');el.className='empty-state';el.textContent=text;return el}
   function renderInbox(){
     document.getElementById('inboxCount').textContent=threads.length;
-    list.innerHTML=threads.length?'':'<div class="empty-state">No hay conversaciones.</div>';
-    threads.forEach(t=>{const name=participantName(t);const el=document.createElement('button');el.type='button';el.className='queue-item thread-item'+(String(t.id)===String(currentId)?' active':'');el.innerHTML=`<div class="post-av">${escapeHtml(initials(name))}</div><div class="queue-copy"><b>${escapeHtml(name)}</b><span>${escapeHtml(t.ultimo_mensaje||'Sin mensajes')}</span><small class="mono">${escapeHtml(time(t.ultima_fecha))}</small></div>`;el.onclick=()=>openThread(t.id);list.appendChild(el)})
+    list.replaceChildren();
+    if(!threads.length){list.appendChild(emptyState('No hay conversaciones.'));return}
+    threads.forEach(t=>{
+      const name=participantName(t);
+      const el=document.createElement('button');el.type='button';el.className='queue-item thread-item'+(String(t.id)===String(currentId)?' active':'');
+      const avatar=document.createElement('div');avatar.className='post-av';avatar.textContent=initials(name);
+      const copy=document.createElement('div');copy.className='queue-copy';
+      const title=document.createElement('b');title.textContent=name;
+      const preview=document.createElement('span');preview.textContent=t.ultimo_mensaje||'Sin mensajes';
+      const date=document.createElement('small');date.className='mono';date.textContent=time(t.ultima_fecha);
+      copy.append(title,preview,date);el.append(avatar,copy);el.onclick=()=>openThread(t.id);list.appendChild(el);
+    })
   }
-  async function loadInbox(){try{const qs=(session.rol_codigo==='superadmin'&&residencialElegida)?`?residencial_id=${residencialElegida}`:'';const r=await VigiaAPI.request('/mensajes/inbox'+qs);threads=r.data||[];renderInbox();if(!currentId&&threads.length)openThread(threads[0].id)}catch(e){list.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}
+
+  async function loadInbox(){try{const qs=(session.rol_codigo==='superadmin'&&residencialElegida)?`?residencial_id=${residencialElegida}`:'';const r=await VigiaAPI.request('/mensajes/inbox'+qs);threads=r.data||[];renderInbox();if(!currentId&&threads.length)openThread(threads[0].id)}catch(e){list.replaceChildren(emptyState(e.message))}}
   async function openThread(id,force){
     const switching=String(id)!==String(currentId);
     if(switching)lastSignature='';
@@ -71,16 +84,17 @@
       if(!force&&!switching&&signature===lastSignature){input.disabled=false;send.disabled=false;return}
       lastSignature=signature;
       const wasNearBottom=switching||isNearBottom();
-      messages.innerHTML=rows.length?'':'<div class="empty-state">Sin mensajes.</div>';
+      messages.replaceChildren();
+      if(!rows.length)messages.appendChild(emptyState('Sin mensajes.'));
       rows.forEach(m=>{
         const mine=String(m.usuario_id)===String(session.id);
         const el=document.createElement('div');
         el.className='chat-msg '+(mine?'resident':'guard');
-        el.innerHTML='<div class="chat-bubble"></div><span class="chat-time mono"></span>';
-        el.querySelector('.chat-bubble').textContent=m.contenido;
+        const bubble=document.createElement('div');bubble.className='chat-bubble';bubble.textContent=m.contenido;
+        const metaEl=document.createElement('span');metaEl.className='chat-time mono';
         let meta=(mine?'Tú':m.autor_nombre||name)+' · '+time(m.fecha_hora);
         if(mine)meta+=m.leido?' · Visto':' · Enviado';
-        el.querySelector('.chat-time').textContent=meta;
+        metaEl.textContent=meta;el.append(bubble,metaEl);
         messages.appendChild(el);
       });
       if(wasNearBottom)messages.scrollTop=messages.scrollHeight;

@@ -104,6 +104,11 @@
       try{
         const r=await VigiaAPI.request('/usuarios/me',{method:'PUT',body:JSON.stringify(valores)});
         usuario={...usuario,...r.data};
+        // El sidebar/dashboard leen el nombre desde vigia_session. Antes el
+        // perfil se guardaba bien en MySQL pero la sesion local quedaba con
+        // el nombre/correo anterior hasta volver a iniciar sesion.
+        const sesionActual=VigiaAPI.getSession()||{};
+        VigiaAPI.setSession({...sesionActual,...r.data,rol_codigo:sesionActual.rol_codigo},sesionActual.expira_en);
         showToast('Perfil actualizado');
       }catch(err){
         showToast(err.message,'bi-exclamation-triangle-fill');

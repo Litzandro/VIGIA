@@ -1,10 +1,62 @@
-(function(){const form=document.getElementById('vetoForm');if(!form)return;let evidence='';const reason=document.getElementById('veReason'),counter=document.getElementById('veCounter');reason.oninput=()=>{reason.value=reason.value.replace(/\n{3,}/g,'\n\n');counter.textContent=`${reason.value.length}/255`};async function img(file){if(!file)return'';const src=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});const i=await new Promise((ok,no)=>{const x=new Image();x.onload=()=>ok(x);x.onerror=no;x.src=src});const c=document.createElement('canvas'),s=Math.min(1,480/i.width);c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.52)}document.getElementById('vePhoto').onchange=async e=>{
-  try{
-    evidence=await img(e.target.files[0]);
-    showToast('Evidencia preparada');
-  }catch(err){
-    evidence='';
-    e.target.value='';
-    showToast('No se pudo leer esa imagen. Prueba con otra foto.','bi-exclamation-triangle-fill');
+(function(){
+  const form=document.getElementById('vetoForm');if(!form)return;
+  const reason=document.getElementById('veReason');
+  const counter=document.getElementById('veCounter');
+  const photoInput=document.getElementById('veEvidence');
+  let evidence='';
+
+  reason.addEventListener('input',()=>{counter.textContent=`${reason.value.length}/255`});
+  photoInput.onchange=async e=>{
+    try{
+      const file=e.target.files[0];
+      if(!file){evidence='';return}
+      const reader=new FileReader();
+      evidence=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});
+      showToast('Evidencia lista');
+    }catch(err){evidence='';e.target.value='';showToast('No se pudo leer esa imagen. Prueba con otra foto.','bi-exclamation-triangle-fill')}
+  };
+
+  attachDocumentoHNMask(document.getElementById('veDocument'));
+  attachTelefonoHNMask(document.getElementById('vePhone'));
+  attachPhoneCountryCode(document.getElementById('vePhone'));
+  attachSoloLetras(document.getElementById('veName'),180);
+
+  function icon(className){const i=document.createElement('i');i.className=`bi ${className}`;i.setAttribute('aria-hidden','true');return i}
+  function emptyState(text){const el=document.createElement('div');el.className='empty-state';el.textContent=text;return el}
+  function statusBadge(estado){const el=document.createElement('span');el.className=`badge ${estado==='activo'?'blocked':estado==='pendiente'?'pending':'neutral'}`;el.textContent=estado||'';return el}
+
+  async function load(){
+    const box=document.getElementById('vetoList');box.replaceChildren();
+    try{
+      const r=await VigiaAPI.request('/vetos-acceso');const rows=r.data||[];
+      if(!rows.length){box.appendChild(emptyState('No hay solicitudes.'));return}
+      rows.forEach(x=>{
+        const el=document.createElement('div');el.className='queue-item';
+        const number=document.createElement('div');number.className='queue-number';number.appendChild(icon('bi-shield-x'));
+        const copy=document.createElement('div');copy.className='queue-copy';
+        const name=document.createElement('b');name.textContent=x.nombre_persona||'';
+        const meta=document.createElement('span');meta.textContent=`${x.numero_documento||'Sin documento'} · ${x.alcance||''}`;
+        const motivo=document.createElement('span');motivo.textContent=x.motivo||'';
+        copy.append(name,meta,motivo);
+        const actions=document.createElement('div');actions.className='queue-actions';actions.appendChild(statusBadge(x.estado));
+        el.append(number,copy,actions);box.appendChild(el);
+      });
+    }catch(e){box.replaceChildren(emptyState(e.message))}
   }
-};attachDocumentoHNMask(document.getElementById('veDocument'));attachTelefonoHNMask(document.getElementById('vePhone'));attachPhoneCountryCode(document.getElementById('vePhone'));attachSoloLetras(document.getElementById('veName'),180);function state(x){return `<span class="badge ${x==='activo'?'blocked':x==='pendiente'?'pending':'neutral'}">${escapeHtml(x)}</span>`}async function load(){const box=document.getElementById('vetoList');try{const r=await VigiaAPI.request('/vetos-acceso');const rows=r.data||[];box.innerHTML=rows.length?'':'<div class="empty-state">No hay solicitudes.</div>';rows.forEach(x=>{const el=document.createElement('div');el.className='queue-item';el.innerHTML=`<div class="queue-number"><i class="bi bi-shield-x"></i></div><div class="queue-copy"><b>${escapeHtml(x.nombre_persona)}</b><span>${escapeHtml(x.numero_documento||'Sin documento')} · ${escapeHtml(x.alcance)}</span><span>${escapeHtml(x.motivo)}</span></div><div class="queue-actions">${state(x.estado)}</div>`;box.appendChild(el)})}catch(e){box.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}}form.onsubmit=async e=>{e.preventDefault();const submitBtn=form.querySelector('button[type="submit"]');await withSubmitLock(submitBtn,async()=>{try{await VigiaAPI.request('/vetos-acceso',{method:'POST',body:JSON.stringify({nombre_persona:document.getElementById('veName').value.trim(),numero_documento:document.getElementById('veDocument').value.trim()||null,telefono:document.getElementById('vePhone').value.trim()||null,motivo:reason.value.trim(),evidencia_url:evidence||null})});form.reset();evidence='';counter.textContent='0/255';showToast('Solicitud enviada a administración');load()}catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}},'<i class="bi bi-arrow-repeat"></i> Enviando...')};document.getElementById('reloadVetos').onclick=load;load()})();
+
+  form.onsubmit=async e=>{
+    e.preventDefault();const submitBtn=form.querySelector('button[type="submit"]');
+    await withSubmitLock(submitBtn,async()=>{
+      try{
+        await VigiaAPI.request('/vetos-acceso',{method:'POST',body:JSON.stringify({
+          nombre_persona:document.getElementById('veName').value.trim(),
+          numero_documento:document.getElementById('veDocument').value.trim()||null,
+          telefono:document.getElementById('vePhone').value.trim()||null,
+          motivo:reason.value.trim(),evidencia_url:evidence||null
+        })});
+        form.reset();evidence='';counter.textContent='0/255';showToast('Solicitud enviada a administración');await load();
+      }catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}
+    },'<i class="bi bi-arrow-repeat"></i> Enviando...');
+  };
+  document.getElementById('reloadVetos').onclick=load;load();
+})();

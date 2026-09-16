@@ -13,6 +13,7 @@ const bitacoraLogger = require('./middlewares/bitacoraLogger');
 const notFound = require('./middlewares/notFound');
 const errorHandler = require('./middlewares/errorHandler');
 const { apiLimiter, authLimiter } = require('./middlewares/rateLimiters');
+const { requirePageAuth } = require('./middlewares/auth');
 
 const app = express();
 
@@ -91,6 +92,34 @@ app.use('/api/auth/reset-password', authLimiter);
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// Proteccion de paginas privadas ANTES de express.static. Las rutas de
+// API ya validan permisos, pero ahora tampoco se entrega el HTML de los
+// paneles a un navegador sin una sesion valida.
+const publicHtmlPages = new Set([
+  'index.html', 'login.html', 'register.html', 'guardia-login.html',
+  'admin-login.html', 'vigialanding.html', 'recuperar-password.html',
+  'restablecer-password.html', 'terminos.html', 'politica-privacidad.html',
+]);
+const residentOnlyPages = new Set(['dashboard.html']);
+const guardPages = new Set(['guardia.html']);
+const guardAdminPages = new Set(['control-acceso.html']);
+const staffPages = new Set(['conflictos.html', 'operaciones.html', 'mensajeria.html']);
+const adminPages = new Set(['superadmin.html', 'integraciones.html']);
+const superadminPages = new Set(['suscripciones.html', 'benchmark.html']);
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  const page = String(req.path || '').split('/').pop().toLowerCase();
+  if (!page.endsWith('.html') || publicHtmlPages.has(page)) return next();
+  if (residentOnlyPages.has(page)) return requirePageAuth('residente')(req, res, next);
+  if (guardPages.has(page)) return requirePageAuth('guardia', 'admin')(req, res, next);
+  if (guardAdminPages.has(page)) return requirePageAuth('guardia', 'admin')(req, res, next);
+  if (staffPages.has(page)) return requirePageAuth('guardia', 'admin')(req, res, next);
+  if (adminPages.has(page)) return requirePageAuth('admin')(req, res, next);
+  if (superadminPages.has(page)) return requirePageAuth('superadmin')(req, res, next);
+  return requirePageAuth()(req, res, next);
+});
 
 // Sirve el frontend integrado desde la carpeta public.
 // Así, interfaz y API usan el mismo origen: http://localhost:3000
