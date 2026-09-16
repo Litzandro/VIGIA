@@ -122,6 +122,22 @@ const REGLAS = {
     ubicacion_origen: { tipo: 'texto', max: 255 },
     contacto_confirmacion: { tipo: 'texto', max: 150 },
   },
+  camaras: {
+    nombre: { tipo: 'texto', min: 2, max: 100 },
+    ubicacion: { tipo: 'texto', min: 2, max: 255 },
+    marca: { tipo: 'texto', max: 60 },
+    modelo: { tipo: 'texto', max: 60 },
+    // stream_url es la URL que el navegador va a intentar reproducir
+    // (idealmente .m3u8 o una imagen MJPEG) -- se valida solo el
+    // largo aqui; el formato real (que empiece con http/https/rtsp,
+    // que sea alcanzable, etc.) es responsabilidad del admin que la
+    // conecta, no algo que el servidor pueda comprobar sin conectarse
+    // el mismo a la camara.
+    stream_url: { tipo: 'texto', min: 5, max: 255 },
+    direccion_ip: { tipo: 'texto', max: 45 },
+    puerto: { tipo: 'entero', min: 1, max: 65535 },
+    usuario_stream: { tipo: 'texto', max: 100 },
+  },
 };
 
 function validarCampo(nombreCampo, valor, regla) {

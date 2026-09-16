@@ -51,6 +51,7 @@ const overrides = {
   mensajes: require('./overrides/mensajes'),
   incidencias_evidencias: require('./overrides/incidenciasEvidencias'),
   sanciones_usuarios: require('./overrides/sancionesUsuarios'),
+  camaras: require('./overrides/camaras'),
 };
 
 function toKebabCase(snakeCase) {

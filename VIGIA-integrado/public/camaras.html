@@ -28,16 +28,22 @@
           <div class="page-banner-glow"></div>
           <div class="page-banner-content">
             <div><span class="mono-tag">CÁMARAS</span><h1>Cámaras de seguridad</h1><p>Vista en vivo de los puntos de monitoreo del residencial.</p></div>
+            <div class="cam-admin-actions" id="camAdminActions" hidden>
+              <button type="button" class="btn btn-ghost" id="camHelpBtn"><i class="bi bi-question-circle-fill"></i> Cómo conectar tu cámara</button>
+              <button type="button" class="btn btn-solid" id="camAddBtn"><i class="bi bi-camera-video-fill"></i> Agregar cámara</button>
+            </div>
           </div>
         </div>
 
-        <div class="cam-disclaimer">
+        <div class="cam-disclaimer" id="camDisclaimer">
           <i class="bi bi-info-circle-fill"></i>
           <div>
             <b>Sobre estas transmisiones</b>
             <p>VIGIA todavía no tiene cámaras físicas instaladas en un residencial real. Los servicios comerciales de cámaras en vivo (EarthCam, SkylineWebcams, etc.) prohíben expresamente insertar su video en otros sitios, y agregadores como insecam muestran cámaras privadas expuestas sin el consentimiento de quienes aparecen en ellas — por eso no se usan aquí. En su lugar, cada tarjeta muestra una <b>imagen real que se actualiza sola cada 60 segundos</b>, publicada directamente por organismos de gobierno que sí permiten este uso: el Servicio de Parques Nacionales de EE. UU. y la Oficina Meteorológica de Islandia. No es video fluido, pero es una imagen real y actual, sin depender de un reproductor que puede bloquearse. Cuando se integren cámaras reales del residencial, estas se reemplazan sin cambiar el diseño.</p>
           </div>
         </div>
+
+        <div class="cam-grid" id="camGridReal" hidden></div>
 
         <div class="cam-grid" id="camGrid">
           <div class="cam-card" id="cam-porton-principal" data-img="https://www.nps.gov/webcams-yell/mammoth_arch.jpg">
@@ -153,7 +159,123 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="camFormModal">
+  <div class="modal-box form-modal" id="camFormModalBox">
+    <div class="modal-icon"><i class="bi bi-camera-video-fill"></i></div>
+    <h3 id="camFormTitle">Agregar cámara</h3>
+    <p>Registra una cámara conectando la URL que se pueda ver desde el navegador (idealmente termine en <span class="mono">.m3u8</span>, o sea una transmisión MJPEG). Si tu cámara solo da RTSP, revisa primero "Cómo conectar tu cámara".</p>
+    <form id="camForm" class="form-grid" novalidate>
+      <input type="hidden" id="camId">
+      <div class="form-group span-2">
+        <label for="camNombre">Nombre</label>
+        <input type="text" class="form-control" id="camNombre" maxlength="100" placeholder="Ej. Portón principal" required>
+      </div>
+      <div class="form-group span-2">
+        <label for="camUbicacion">Ubicación</label>
+        <input type="text" class="form-control" id="camUbicacion" maxlength="255" placeholder="Ej. Entrada peatonal, junto a garita" required>
+      </div>
+      <div class="form-group">
+        <label for="camTipo">Tipo</label>
+        <select class="form-control" id="camTipo">
+          <option value="fija">Fija</option>
+          <option value="ptz">PTZ (mueve/gira)</option>
+          <option value="domo">Domo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="camPuntoAcceso">Punto de acceso (opcional)</label>
+        <select class="form-control" id="camPuntoAcceso">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="camMarca">Marca (opcional)</label>
+        <input type="text" class="form-control" id="camMarca" maxlength="60" placeholder="Ej. Hikvision">
+      </div>
+      <div class="form-group">
+        <label for="camModelo">Modelo (opcional)</label>
+        <input type="text" class="form-control" id="camModelo" maxlength="60">
+      </div>
+      <div class="form-group span-2">
+        <label for="camStreamUrl">URL para ver en el navegador</label>
+        <input type="text" class="form-control" id="camStreamUrl" maxlength="255" placeholder="https://tu-servidor/camara1/index.m3u8" required>
+        <span class="field-help"><span>Debe ser algo que el navegador pueda reproducir directo (.m3u8, MJPEG, o una imagen que se refresca).</span></span>
+      </div>
+      <div class="form-group">
+        <label for="camProtocolo">Protocolo de la cámara</label>
+        <select class="form-control" id="camProtocolo">
+          <option value="rtsp">RTSP</option>
+          <option value="http">HTTP</option>
+          <option value="onvif">ONVIF</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="camEstado">Estado</label>
+        <select class="form-control" id="camEstado">
+          <option value="activa">Activa</option>
+          <option value="mantenimiento">Mantenimiento</option>
+          <option value="inactiva">Inactiva</option>
+          <option value="desconectada">Desconectada</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="camIp">Dirección IP (opcional)</label>
+        <input type="text" class="form-control" id="camIp" maxlength="45" placeholder="192.168.1.50">
+      </div>
+      <div class="form-group">
+        <label for="camPuerto">Puerto (opcional)</label>
+        <input type="number" class="form-control" id="camPuerto" min="1" max="65535" placeholder="554">
+      </div>
+      <div class="form-group">
+        <label for="camUsuario">Usuario de la cámara (opcional)</label>
+        <input type="text" class="form-control" id="camUsuario" maxlength="100" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="camClave">Contraseña de la cámara (opcional)</label>
+        <input type="password" class="form-control" id="camClave" maxlength="255" autocomplete="new-password" placeholder="Se guarda cifrada">
+      </div>
+      <div class="form-group span-2" style="display:flex;gap:.8rem;">
+        <button type="button" class="btn btn-ghost" id="camCancelBtn" style="flex:1;justify-content:center;">Cancelar</button>
+        <button type="submit" class="btn btn-solid" style="flex:1;justify-content:center;"><i class="bi bi-check-lg"></i> Guardar cámara</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="camHelpModal">
+  <div class="modal-box form-modal" id="camHelpModalBox" style="max-width:560px;">
+    <div class="modal-icon"><i class="bi bi-question-circle-fill"></i></div>
+    <h3>Cómo conectar tu cámara</h3>
+    <div class="cam-help-steps">
+      <div class="cam-help-step">
+        <b>1. Consigue la URL de tu cámara o NVR</b>
+        <p>En el manual o la app de tu cámara/NVR busca "URL RTSP", "enlace de streaming" o "compartir cámara". La mayoría de marcas (Hikvision, Dahua, Reolink, TP-Link, UniFi Protect, etc.) la muestran en su configuración de red o de "compartir". Anótala completa, con usuario y contraseña si la pide.</p>
+      </div>
+      <div class="cam-help-step">
+        <b>2. Revisa si ya termina en <span class="mono">.m3u8</span> o es una imagen</b>
+        <p>Si tu cámara o su app ya te da un enlace que termina en <span class="mono">.m3u8</span>, o una URL que muestra una imagen que se va actualizando (tipo MJPEG), esa misma URL sirve directo aquí abajo en "URL para ver en el navegador". Puedes saltar al paso 4.</p>
+      </div>
+      <div class="cam-help-step">
+        <b>3. Si tu cámara solo da RTSP puro</b>
+        <p>Los navegadores no pueden reproducir RTSP directo (<span class="mono">rtsp://...</span>). Necesitas un pequeño programa gratuito que la convierta a algo que sí se pueda ver en la web — <b>MediaMTX</b> (antes "rtsp-simple-server") es la opción más simple: se descarga, se corre en cualquier computadora de la misma red que la cámara (no necesita ser potente), se le apunta la URL RTSP de tu cámara, y te entrega una URL nueva que sí termina en <span class="mono">.m3u8</span> — esa es la que pegas aquí. Es software libre y bien documentado; cualquier persona con conocimientos básicos de redes puede instalarlo sin depender de VIGIA.</p>
+      </div>
+      <div class="cam-help-step">
+        <b>4. Agrega la cámara en VIGIA</b>
+        <p>Toca "Agregar cámara" arriba, pon un nombre y ubicación que la gente reconozca (ej. "Portón principal"), pega la URL final, y guarda. Los residentes y el guardia la van a ver de inmediato en esta misma página.</p>
+      </div>
+      <div class="cam-help-step">
+        <b>Seguridad</b>
+        <p>Usa una contraseña fuerte en tu cámara/NVR. Si el servidor que arma la URL final vive en tu propia red, procura que no quede abierto directo a todo internet sin contraseña — solo debería ser alcanzable desde donde VIGIA y tu equipo lo necesiten.</p>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:1.4rem;">
+      <button type="button" class="btn btn-solid" id="camHelpCloseBtn">Entendido</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 <script src="js/camaras.js"></script>
 </body>
 </html>

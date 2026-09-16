@@ -1079,6 +1079,41 @@ select.form-control{cursor:pointer;}
 .cam-external-link{display:inline-flex;align-items:center;gap:.35rem;margin-top:.5rem;font-size:.72rem;color:var(--accent);font-family:var(--f-mono);}
 .cam-external-link:hover{text-decoration:underline;}
 
+/* ---- Camaras reales conectadas por el admin (self-service) ---- */
+.cam-admin-actions{display:flex;gap:.7rem;flex-wrap:wrap;}
+/* Modificador, NO redefine .cam-card-info -- las 6 tarjetas de
+   referencia (Yellowstone/Islandia) usan .cam-card-info tal cual,
+   apilando <b>/<span>/<a> verticalmente, y eso no debe cambiar. Las
+   tarjetas de camaras reales que arma camaras.js le agregan esta
+   clase de mas para poner los botones de editar/eliminar del admin
+   a la derecha del texto en vez de abajo. */
+.cam-card-info.has-admin-btns{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;}
+.cam-card-info-text{min-width:0;flex:1;}
+.cam-card-admin-btns{display:flex;gap:.4rem;flex-shrink:0;}
+.cam-card-admin-btns .icon-btn{width:30px;height:30px;}
+.cam-status-badge{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.05em;padding:.2rem .5rem;border-radius:99px;margin-top:.35rem;}
+.cam-status-badge.activa{background:var(--accent-soft);color:var(--accent);}
+.cam-status-badge.mantenimiento{background:var(--warn-soft);color:var(--warn);}
+.cam-status-badge.inactiva,.cam-status-badge.desconectada{background:var(--alert-soft);color:var(--alert);}
+.cam-needs-conversion{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;
+  padding:1.4rem 1.2rem;text-align:center;background:linear-gradient(160deg, var(--panel), #000);color:var(--mist);height:100%;
+}
+.cam-needs-conversion i{font-size:1.8rem;color:var(--warn);}
+.cam-needs-conversion span{font-size:.8rem;color:var(--bone-dim);max-width:260px;}
+.cam-empty-state{
+  border:1px dashed var(--line-strong);border-radius:16px;padding:2.4rem 1.5rem;text-align:center;
+  color:var(--mist);grid-column:1/-1;
+}
+.cam-empty-state i{font-size:2rem;color:var(--line-strong);display:block;margin-bottom:.8rem;}
+.cam-empty-state b{color:var(--bone);display:block;margin-bottom:.4rem;font-size:.95rem;}
+.cam-empty-state p{font-size:.82rem;line-height:1.55;max-width:420px;margin:0 auto 1rem;}
+
+/* ---- Modal de ayuda "Como conectar tu camara" ---- */
+.cam-help-steps{display:flex;flex-direction:column;gap:1.1rem;margin-bottom:.4rem;}
+.cam-help-step b{display:block;color:var(--bone);font-size:.86rem;margin-bottom:.3rem;}
+.cam-help-step p{color:var(--mist);font-size:.8rem;line-height:1.6;margin:0;}
+
 /* ============ PORTAL DEL GUARDIA — TARJETAS DE ALERTA DE PANICO ============ */
 .panic-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.2rem 1.3rem;margin-bottom:1rem;}
 .panic-card.is-pendiente{border-color:rgba(229,84,74,.4);}
