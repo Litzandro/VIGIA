@@ -21,9 +21,18 @@
   const REFRESH_MS=60000;
   const session=VigiaAPI.getSession();
   const esAdmin=Boolean(session && ['admin','superadmin'].includes(session.rol_codigo));
+  // El superadmin no pertenece a ninguna residencial en particular (por
+  // diseno, ve todas) -- a diferencia del admin normal, el backend NO
+  // puede deducir solo con la sesion a que residencial va esta camara,
+  // asi que aqui se le pide explicitamente con un selector aparte.
+  const isSuper=Boolean(session && session.rol_codigo==='superadmin');
 
   const adminActions=document.getElementById('camAdminActions');
   if(esAdmin && adminActions) adminActions.hidden=false;
+
+  const residencialGroup=document.getElementById('camResidencialGroup');
+  const residencialSelect=document.getElementById('camResidencial');
+  if(isSuper && residencialGroup) residencialGroup.hidden=false;
 
   const disclaimer=document.getElementById('camDisclaimer');
   const formModal=document.getElementById('camFormModal');
@@ -208,6 +217,18 @@
   function abrirModal(el){ if(el) el.classList.add('open'); }
   function cerrarModal(el){ if(el) el.classList.remove('open'); }
 
+  async function cargarResidenciales(){
+    if(!residencialSelect)return;
+    try{
+      const r=await VigiaAPI.request('/residenciales?limit=300');
+      residencialSelect.querySelectorAll('option').forEach((opt,i)=>{ if(i>0) opt.remove(); });
+      (r.data||[]).forEach(res=>{
+        const opt=document.createElement('option');opt.value=res.id;opt.textContent=res.nombre||`Residencial #${res.id}`;
+        residencialSelect.appendChild(opt);
+      });
+    }catch(e){/* si falla, el select se queda solo con "Selecciona una residencial" */}
+  }
+
   async function cargarPuntosAcceso(){
     if(!puntoSelect)return;
     try{
@@ -225,6 +246,7 @@
     form.reset();
     document.getElementById('camId').value=cam?cam.id:'';
     formTitle.textContent=cam?'Editar cámara':'Agregar cámara';
+    if(residencialSelect) residencialSelect.value=cam&&cam.residencial_id?String(cam.residencial_id):'';
     document.getElementById('camNombre').value=cam?(cam.nombre||''):'';
     document.getElementById('camUbicacion').value=cam?(cam.ubicacion||''):'';
     document.getElementById('camTipo').value=cam?(cam.tipo||'fija'):'fija';
@@ -278,6 +300,10 @@
         showToast('Completa nombre, ubicación y la URL de transmisión.','bi-exclamation-triangle-fill');
         return;
       }
+      if(isSuper && residencialSelect && !residencialSelect.value){
+        showToast('Selecciona a qué residencial pertenece esta cámara.','bi-exclamation-triangle-fill');
+        return;
+      }
       const body={
         nombre, ubicacion,
         tipo: document.getElementById('camTipo').value,
@@ -291,6 +317,8 @@
         puerto: document.getElementById('camPuerto').value||null,
         usuario_stream: document.getElementById('camUsuario').value.trim()||null,
       };
+      if(isSuper && residencialSelect && residencialSelect.value) body.residencial_id=Number(residencialSelect.value);
+
       const clave=document.getElementById('camClave').value;
       if(clave) body.clave_stream=clave;
 
@@ -312,5 +340,6 @@
   }
 
   if(esAdmin) cargarPuntosAcceso();
+  if(isSuper) cargarResidenciales();
   cargarCamaras();
 })();

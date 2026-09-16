@@ -166,6 +166,13 @@
     <p>Registra una cámara conectando la URL que se pueda ver desde el navegador (idealmente termine en <span class="mono">.m3u8</span>, o sea una transmisión MJPEG). Si tu cámara solo da RTSP, revisa primero "Cómo conectar tu cámara".</p>
     <form id="camForm" class="form-grid" novalidate>
       <input type="hidden" id="camId">
+      <div class="form-group span-2" id="camResidencialGroup" hidden>
+        <label for="camResidencial">Residencial</label>
+        <select class="form-control" id="camResidencial">
+          <option value="">Selecciona una residencial</option>
+        </select>
+        <span class="field-help"><span>Como superadmin, tu cuenta no pertenece a una sola residencial -- indica a cual va conectada esta camara.</span></span>
+      </div>
       <div class="form-group span-2">
         <label for="camNombre">Nombre</label>
         <input type="text" class="form-control" id="camNombre" maxlength="100" placeholder="Ej. Portón principal" required>

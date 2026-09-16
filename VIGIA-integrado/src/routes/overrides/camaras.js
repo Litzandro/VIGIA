@@ -61,6 +61,20 @@ module.exports = function camarasOverride({ router, model, pkPath }) {
   router.post('/', async (req, res, next) => {
     try {
       const data = applyOwnershipOnCreate(model, req.user, prepararDatos(req.body));
+      // applyOwnershipOnCreate solo rellena residencial_id automaticamente
+      // para roles con una residencial fija (admin) -- el superadmin no
+      // tiene una propia, asi que debe mandarla el mismo en el body (el
+      // formulario le muestra un selector aparte para esto). Sin este
+      // resguardo, lo que se veia antes era un "Datos invalidos" opaco
+      // (el rechazo real de Sequelize por el NOT NULL de la columna, que
+      // el frontend no sabe explicar porque no llega en el formato que
+      // espera "detalle").
+      if (!data.residencial_id) {
+        const msg = req.user && req.user.rol_codigo === 'superadmin'
+          ? 'Selecciona a que residencial pertenece esta camara.'
+          : 'Falta la residencial de esta camara.';
+        return res.status(400).json({ error: 'Datos invalidos', detalle: msg, detalles: [msg] });
+      }
       const errores = validarCampos(model, data);
       if (errores.length) {
         return res.status(400).json({ error: 'Datos invalidos', detalle: errores.join('; '), detalles: errores });
