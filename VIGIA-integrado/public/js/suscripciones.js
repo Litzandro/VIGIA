@@ -47,7 +47,32 @@
 
       const rows=s.data||[];
       const rowsPorId=new Map(rows.map(x=>[String(x.id),x]));
-      document.getElementById('subscriptionRows').innerHTML=rows.length?rows.map(x=>`<tr><td>${escapeHtml((rn.get(String(x.residencial_id))||{}).nombre||`#${x.residencial_id}`)}</td><td>${escapeHtml((pn.get(String(x.plan_id))||{}).nombre||`#${x.plan_id}`)}</td><td><span class="badge ${x.estado==='activa'?'ok':x.estado==='vencida'?'blocked':'pending'}">${escapeHtml(x.estado)}</span></td><td>${escapeHtml(x.ciclo)}</td><td>${escapeHtml(x.proxima_facturacion||'—')}</td><td class="table-actions"><button class="btn btn-ghost" data-edit="${x.id}"><i class="bi bi-pencil-fill"></i> Editar</button> <button class="btn btn-ghost" data-id="${x.id}" data-state="${x.estado==='activa'?'suspendida':'activa'}">${x.estado==='activa'?'Suspender':'Activar'}</button></td></tr>`).join(''):'<tr><td colspan="6">Sin suscripciones.</td></tr>';
+      // La API ya devuelve esto ordenado por fecha_creacion descendente
+      // -- la PRIMERA fila que se ve por cada residencial es la mas
+      // reciente (mismo criterio que usa el servidor para decidir cual
+      // suscripcion es "la vigente" de cada residencial).
+      const masRecientePorResidencial=new Map();
+      rows.forEach(x=>{
+        const id=String(x.residencial_id);
+        if(!masRecientePorResidencial.has(id))masRecientePorResidencial.set(id,x);
+      });
+
+      // Antes esta tabla solo listaba FILAS DE SUSCRIPCION -- una
+      // residencial real, con usuarios y todo, que nunca llego a tener
+      // una fila (por ejemplo porque el plan que buscaba el script de
+      // siembra no existia todavia en ese momento) simplemente
+      // desaparecia de esta pantalla sin ningun aviso, aunque siguiera
+      // funcionando con normalidad. Ahora se recorren TODAS las
+      // residenciales -- la que no tenga suscripcion sale marcada como
+      // "Sin suscripcion" con un boton para crearle la primera, en vez
+      // de estar invisible.
+      document.getElementById('subscriptionRows').innerHTML=residentials.length?residentials.map(res=>{
+        const x=masRecientePorResidencial.get(String(res.id));
+        if(!x){
+          return `<tr><td>${escapeHtml(res.nombre)}</td><td colspan="3"><span class="badge neutral">Sin suscripción</span></td><td>—</td><td class="table-actions"><button class="btn btn-solid" data-crear="${res.id}"><i class="bi bi-plus-lg"></i> Crear suscripción</button></td></tr>`;
+        }
+        return `<tr><td>${escapeHtml(res.nombre)}</td><td>${escapeHtml((pn.get(String(x.plan_id))||{}).nombre||`#${x.plan_id}`)}</td><td><span class="badge ${x.estado==='activa'?'ok':x.estado==='vencida'?'blocked':'pending'}">${escapeHtml(x.estado)}</span></td><td>${escapeHtml(x.ciclo)}</td><td>${escapeHtml(x.proxima_facturacion||'—')}</td><td class="table-actions"><button class="btn btn-ghost" data-edit="${x.id}"><i class="bi bi-pencil-fill"></i> Editar</button> <button class="btn btn-ghost" data-id="${x.id}" data-state="${x.estado==='activa'?'suspendida':'activa'}">${x.estado==='activa'?'Suspender':'Activar'}</button></td></tr>`;
+      }).join(''):'<tr><td colspan="6">Sin residenciales.</td></tr>';
 
       document.querySelectorAll('#subscriptionRows [data-id]').forEach(b=>b.onclick=async()=>{
         try{
@@ -59,6 +84,11 @@
       document.querySelectorAll('#subscriptionRows [data-edit]').forEach(b=>b.onclick=()=>{
         const row=rowsPorId.get(String(b.dataset.edit));
         if(row)entrarModoEdicion(row);
+      });
+      document.querySelectorAll('#subscriptionRows [data-crear]').forEach(b=>b.onclick=()=>{
+        salirModoEdicion();
+        document.getElementById('suResidential').value=b.dataset.crear;
+        form.scrollIntoView({behavior:'smooth',block:'start'});
       });
     }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
   }

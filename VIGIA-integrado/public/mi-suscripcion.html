@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Mi suscripción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+</head>
+<body data-protect-demo="true">
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
+<div class="app">
+  <aside class="sidebar" id="vigiaSidebar" aria-label="Navegación de VIGIA"></aside>
+  <div class="main">
+    <div class="content">
+      <div class="page">
+        <div class="page-head">
+          <div><span class="mono-tag">FACTURACIÓN</span><h1>Mi suscripción</h1><p>El plan de tu residencial, qué incluye y cómo mantener el servicio activo.</p></div>
+        </div>
+
+        <div id="miPlanCargando" class="status-line"><i class="bi bi-arrow-repeat"></i> Cargando tu plan…</div>
+
+        <div id="miPlanContenido" hidden>
+          <div class="split-layout">
+            <div class="panel">
+              <div class="panel-head"><h3 id="miPlanNombre">Plan</h3><span class="badge" id="miPlanEstadoBadge">—</span></div>
+              <div class="info-grid" style="margin-top:.8rem">
+                <div><span class="mono-tag">PRECIO ACORDADO</span><p id="miPlanPrecio" style="font-size:1.3rem;font-weight:600;margin:.2rem 0 0">—</p></div>
+                <div><span class="mono-tag">CICLO DE COBRO</span><p id="miPlanCiclo" style="font-size:1.3rem;font-weight:600;margin:.2rem 0 0">—</p></div>
+                <div><span class="mono-tag">INICIO</span><p id="miPlanInicio" style="margin:.2rem 0 0">—</p></div>
+                <div><span class="mono-tag">PRÓXIMO PAGO</span><p id="miPlanProximoPago" style="margin:.2rem 0 0">—</p></div>
+              </div>
+              <div style="margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap">
+                <span class="badge" id="miPlanBadgeCamaras"><i class="bi bi-camera-video-fill"></i> Cámaras</span>
+                <span class="badge" id="miPlanBadgeTrancas"><i class="bi bi-door-closed-fill"></i> Trancas</span>
+                <span class="badge" id="miPlanBadgeSoporte"><i class="bi bi-headset"></i> Soporte</span>
+              </div>
+              <div id="miPlanAvisoSuspendida" class="status-line warn" style="margin-top:1rem" hidden><i class="bi bi-exclamation-triangle-fill"></i> El servicio está suspendido. Realiza el pago y avísanos para reactivarlo.</div>
+              <div id="miPlanAvisoSinDatos" class="status-line" style="margin-top:1rem" hidden><i class="bi bi-info-circle-fill"></i> Todavía no tienes una suscripción registrada con VIGIA. Contáctanos para activar tu plan.</div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head"><h3>Cómo pagar</h3></div>
+              <p style="color:var(--mist);font-size:.85rem;margin-top:.2rem">Realiza tu pago mensual por transferencia o depósito y envíanos el comprobante para que quede registrado.</p>
+              <div class="info-grid" style="margin-top:.8rem">
+                <div><span class="mono-tag">BENEFICIARIO</span><p style="margin:.2rem 0 0">VIGIA Seguridad Residencial S.A. de C.V.</p></div>
+                <div><span class="mono-tag">RTN</span><p style="margin:.2rem 0 0">0801-1999-123456</p></div>
+                <div><span class="mono-tag">BANCO</span><p style="margin:.2rem 0 0">Banco Atlántida, Honduras</p></div>
+                <div><span class="mono-tag">TIPO DE CUENTA</span><p style="margin:.2rem 0 0">Cuenta corriente (Lempiras)</p></div>
+                <div><span class="mono-tag">NÚMERO DE CUENTA</span><p style="margin:.2rem 0 0;font-family:'Space Mono',monospace">010-101-0123456-7</p></div>
+                <div><span class="mono-tag">CORREO PARA COMPROBANTE</span><p style="margin:.2rem 0 0">pagos@vigia-seguridad.hn</p></div>
+                <div><span class="mono-tag">TELÉFONO / WHATSAPP</span><p style="margin:.2rem 0 0">+504 9999-8888</p></div>
+                <div><span class="mono-tag">HORARIO DE ATENCIÓN</span><p style="margin:.2rem 0 0">Lunes a viernes, 8:00 a.m. – 5:00 p.m.</p></div>
+              </div>
+              <div class="status-line" style="margin-top:1rem"><i class="bi bi-shield-check"></i> VIGIA nunca te pedirá tu contraseña ni los datos de tu propia tarjeta por teléfono o WhatsApp.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="miPlanError" class="status-line warn" hidden><i class="bi bi-exclamation-triangle-fill"></i> <span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/common.js"></script>
+<script src="js/mi-suscripcion.js"></script>
+</body>
+</html>
