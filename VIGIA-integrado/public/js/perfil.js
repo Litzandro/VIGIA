@@ -21,7 +21,7 @@
 
   function initials(nombre,apellido){
     const text=[nombre,apellido].filter(Boolean).join(' ')||'VG';
-    return text.split(/\s+/).filter(Boolean).slice(0,1).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
+    return text.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
   }
 
   function pintar(u){
@@ -82,7 +82,7 @@
       input.value=(usuario&&usuario[field])||'';
       div.replaceWith(input);
       if(field==='telefono'&&window.attachTelefonoHNMask){attachTelefonoHNMask(input);attachPhoneCountryCode(input);}
-      if((field==='nombre'||field==='apellido')&&window.attachSoloLetras)attachSoloLetras(input,30);
+      if((field==='nombre'||field==='apellido')&&window.attachSoloLetras)attachSoloLetras(input,20);
     });
     editBtn.textContent='GUARDAR';
     cancelBtn.style.display='';

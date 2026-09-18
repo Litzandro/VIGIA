@@ -77,7 +77,7 @@
       list.innerHTML=rows.length?'':'<div class="empty-state">No hay personas esperando.</div>';
       rows.forEach((x,i)=>{
         const el=document.createElement('div');el.className='queue-item';
-        const time=new Date(x.fecha_llegada).toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'});
+        const time=new Date(x.fecha_llegada).toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit',hour12:true});
         let flag='';
         if(x.resultado_validacion==='veto')flag='<span style="color:var(--alert)">VETO ACTIVO — no permitir el ingreso</span>';
         else if(x.resultado_validacion==='fuera_horario')flag='<span style="color:var(--warn)">Autorizado, pero fuera de horario — revisar</span>';

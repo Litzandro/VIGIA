@@ -17,7 +17,7 @@
     if(hero){const em=document.createElement('em');em.textContent=firstName+'.';hero.replaceChildren(document.createTextNode('Hola, '),em);}
     document.querySelectorAll('.topnav-user .uname').forEach(el=>el.textContent=displayName);
     document.querySelectorAll('.topnav-user .av').forEach(el=>{
-      el.textContent=displayName.split(' ').filter(Boolean).slice(0,1).map(v=>v[0].toUpperCase()).join('');
+      el.textContent=displayName.split(' ').filter(Boolean).slice(0,2).map(v=>v[0].toUpperCase()).join('');
     });
   }
 

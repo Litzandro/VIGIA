@@ -542,14 +542,7 @@ function prepararSidebarUnico(sidebar,current){
 
   if(session){
     const displayName=session.name||session.nombre_completo||[session.nombre,session.apellido].filter(Boolean).join(' ')||'Usuario';
-    // El circulo del avatar solo debe llevar UNA letra (el diseño es
-    // un circulo, no una pastilla/franja alargada) -- antes se tomaban
-    // las iniciales de las primeras 2 palabras del nombre ("Ronaldo
-    // Antonio" -> "RA"), y esas 2 letras dentro del circulo fijo de
-    // 34x34px terminaban envolviendose en 2 renglones, deformando el
-    // circulo en una franja ovalada. Con 1 sola letra nunca hay
-    // wrap posible.
-    const initials=displayName.split(/\s+/).filter(Boolean).slice(0,1).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
+    const initials=displayName.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
     sidebar.querySelectorAll('.av').forEach(el=>el.textContent=initials);
     sidebar.querySelectorAll('.uname').forEach(el=>el.textContent=displayName);
     const home=sidebar.querySelector('#staffHomeLink');
@@ -732,7 +725,7 @@ cargarSidebarUnico();
 function tickClock(){
   document.querySelectorAll('#clock').forEach(el=>{
     const zone=localStorage.getItem('vigia_timezone')||'America/Tegucigalpa';
-    let s;try{s=new Date().toLocaleTimeString('es-HN',{hour12:false,timeZone:zone})}catch(e){s=new Date().toLocaleTimeString('es-HN',{hour12:false})}
+    let s;try{s=new Date().toLocaleTimeString('es-HN',{hour12:true,timeZone:zone})}catch(e){s=new Date().toLocaleTimeString('es-HN',{hour12:true})}
     el.textContent='VIGIA · '+s;
   });
 }

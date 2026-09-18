@@ -1161,13 +1161,10 @@ WHERE r.codigo = 'guardia' AND p.codigo IN
 INSERT INTO roles_permisos (rol_id, permiso_id)
 SELECT r.id, p.id FROM roles r, permisos p
 WHERE r.codigo = 'residente' AND p.codigo IN
-    ('visitas.crear','accesos.consultar','incidencias.reportar','alertas.emitir','chat.usar','autorizados.gestionar','vetos.solicitar','emergencias.consultar','comunidad.publicar','offline.sincronizar','camaras.ver');
--- El residente SI puede ver las camaras que el admin de su residencial
--- conecte (areas comunes -- porton, parque, garita, etc., nunca dentro
--- de una vivienda privada). Es decision de producto, no una limitacion
--- tecnica: el admin sigue siendo el unico que puede agregar, editar o
--- eliminar camaras (permiso "camaras.gestionar", que el residente no
--- tiene).
+    ('visitas.crear','accesos.consultar','incidencias.reportar','alertas.emitir','chat.usar','autorizados.gestionar','vetos.solicitar','emergencias.consultar','comunidad.publicar','offline.sincronizar');
+-- Nota: por privacidad, el residente no tiene camaras.ver por defecto (solo guardia/admin/superadmin).
+-- Si la residencial quiere dar acceso a residentes a ciertas camaras (ej. su propia calle),
+-- se recomienda un permiso mas granular a futuro en vez de abrir camaras.ver por completo.
 
 INSERT INTO tipos_alerta (codigo, nombre) VALUES
     ('medica',   'Emergencia medica'),

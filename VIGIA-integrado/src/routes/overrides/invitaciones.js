@@ -28,6 +28,22 @@ module.exports = function invitacionesOverride({ router, model, handlers, pkPath
       if (errores.length) {
         return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
       }
+
+      // Validacion temporal del lado servidor: el navegador ya evita
+      // fechas pasadas, pero una llamada directa a la API no debe poder
+      // crear invitaciones vencidas o con un rango invertido.
+      const desde = new Date(body.fecha_valida_desde);
+      const hasta = new Date(body.fecha_valida_hasta);
+      if (Number.isNaN(desde.getTime()) || Number.isNaN(hasta.getTime())) {
+        return res.status(400).json({ error: 'Las fechas de validez no son válidas.' });
+      }
+      if (hasta.getTime() <= desde.getTime()) {
+        return res.status(400).json({ error: 'La fecha final debe ser posterior a la fecha inicial.' });
+      }
+      if (hasta.getTime() < Date.now() - 2 * 60 * 1000) {
+        return res.status(400).json({ error: 'No se puede crear una invitación que ya está vencida.' });
+      }
+
       body.codigo_qr = qrService.generarCodigo();
       // el que crea la invitacion siempre es el residente logueado si
       // aplica; si la crea un admin/guardia a nombre de un residente,

@@ -4,9 +4,23 @@ const nodemailer = require('nodemailer');
 
 // Requisito 19: enviar invitaciones por WhatsApp o correo.
 //
-// Correo: si hay SMTP configurado en .env, manda de verdad. Si no,
-// simula el envio (lo deja en consola) para poder probar el flujo sin
-// credenciales reales.
+// Correo: hay dos formas de mandarlo, en este orden de preferencia:
+//   1) BREVO_API_KEY configurada -> se manda por la API HTTPS de Brevo
+//      (api.brevo.com), NO por SMTP.
+//   2) si no, SMTP_HOST configurado -> se manda por SMTP con nodemailer
+//      (sirve para correr esto en un servidor que no bloquee el puerto).
+//   3) si no hay ninguna, se simula (queda en consola) para poder
+//      probar el flujo sin credenciales reales.
+//
+// Por que existe la opcion 1 ademas de la 2: Railway (donde esta
+// desplegado VIGIA) bloquea las conexiones salientes por el puerto SMTP
+// (587/465) en su plan gratuito -- confirmado en los logs de produccion,
+// nodemailer se quedaba 120 segundos esperando y terminaba con
+// "Error: Connection timeout". No es un problema de credenciales ni de
+// configuracion: es que ese puerto especifico no sale del contenedor.
+// La API de Brevo evita el problema por completo porque viaja por
+// HTTPS (puerto 443), el mismo puerto que ya usa cualquier fetch a
+// cualquier API -- nunca esta bloqueado.
 //
 // WhatsApp: no existe una libreria gratuita que mande mensajes reales
 // sin una cuenta de un proveedor (Twilio, Meta Cloud API, etc.), asi
@@ -38,7 +52,40 @@ function getTransporter() {
   return transporter;
 }
 
+// Manda un correo real usando la API HTTPS de Brevo (nunca SMTP, por
+// eso no lo bloquea la red de Railway). Documentacion:
+// https://developers.brevo.com/reference/sendtransacemail
+async function enviarCorreoBrevo({ para, asunto, texto }) {
+  const respuesta = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { email: process.env.SMTP_FROM || process.env.BREVO_SENDER || 'no-reply@vigia.local', name: 'VIGIA' },
+      to: [{ email: para }],
+      subject: asunto,
+      textContent: texto,
+    }),
+  });
+  if (!respuesta.ok) {
+    const detalle = await respuesta.text().catch(() => '');
+    // Se registra el detalle completo en los logs (util para depurar,
+    // ej. remitente todavia no verificado en Brevo) pero el error que
+    // sube al usuario final se queda generico -- lo maneja el
+    // errorHandler de siempre.
+    console.error('[envioService] Brevo respondio con error:', respuesta.status, detalle);
+    throw new Error('No se pudo enviar el correo. Intenta de nuevo en unos minutos.');
+  }
+  return respuesta.json();
+}
+
 async function enviarCorreo({ para, asunto, texto }) {
+  if (process.env.BREVO_API_KEY) {
+    return enviarCorreoBrevo({ para, asunto, texto });
+  }
   const t = getTransporter();
   return t.sendMail({
     from: process.env.SMTP_FROM || 'no-reply@vigia.local',

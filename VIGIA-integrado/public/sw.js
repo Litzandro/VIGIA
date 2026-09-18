@@ -1,16 +1,52 @@
-const CACHE='vigia-ui-v4';
+const CACHE='vigia-ui-v6';
 const CORE=['/','/index.html','/login.html','/css/style.css','/js/common.js','/manifest.webmanifest'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{
-  const u=new URL(e.request.url);
-  if(e.request.method!=='GET'||u.pathname.startsWith('/api/'))return;
-  // Solo intervenimos peticiones del propio dominio (HTML/CSS/JS propios).
-  // Los recursos de otros dominios (Bootstrap Icons, Google Fonts, la foto
-  // de fondo) deben ir directo al navegador: si el service worker los
-  // reintenta con fetch() aqui adentro, quedan sujetos al "connect-src" del
-  // CSP de la pagina (que solo permite 'self'), y el navegador los bloquea
-  // silenciosamente. Por eso nunca cargaban los iconos ni las fuentes.
-  if(u.origin!==self.location.origin)return;
-  e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('/index.html'))));
+
+self.addEventListener('install',event=>{
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache=>cache.addAll(CORE))
+      .then(()=>self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
+      .then(()=>self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  const url=new URL(request.url);
+
+  if(request.method!=='GET' || url.pathname.startsWith('/api/')) return;
+  if(url.origin!==self.location.origin) return;
+
+  event.respondWith((async()=>{
+    try{
+      const response=await fetch(request);
+
+      // No guardar redirecciones (por ejemplo dashboard -> login cuando
+      // expira la sesion) ni respuestas de error bajo la URL original.
+      if(response.ok && !response.redirected){
+        const cache=await caches.open(CACHE);
+        cache.put(request,response.clone()).catch(()=>{});
+      }
+      return response;
+    }catch(error){
+      const exact=await caches.match(request);
+      if(exact) return exact;
+
+      // Un fallback HTML solo tiene sentido para una NAVEGACION. Antes se
+      // devolvia index.html tambien para .js/.css y el navegador intentaba
+      // interpretar HTML como JavaScript: "Unexpected token '<'".
+      if(request.mode==='navigate'){
+        return (await caches.match('/index.html')) || (await caches.match('/login.html')) || Response.error();
+      }
+
+      return Response.error();
+    }
+  })());
 });

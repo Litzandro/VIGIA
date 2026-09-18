@@ -212,7 +212,8 @@
       'es-HN',
       {
         hour: 'numeric',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: true
       }
     );
   }
@@ -1198,6 +1199,35 @@
     return inv.tipo === 'temporal' && String(inv.notas || '').includes('Frecuencia:');
   }
 
+  // Bug real reportado: una visita "recurrente" semanal o mensual
+  // aparecia en el calendario TODOS los dias del año de vigencia --
+  // "Frecuencia: Semanal/Mensual" solo se guardaba como texto dentro de
+  // notas, pero nada volvia a leerlo para decidir en que dias mostrar
+  // el chip; el filtro de "esta dentro del rango de fecha_valida_desde
+  // a fecha_valida_hasta" (un año completo) se trataba como si fuera
+  // el unico criterio. Ahora si se respeta la frecuencia: semanal repite
+  // el mismo dia de la semana en que se creo, mensual repite el mismo
+  // dia del mes.
+  function frecuenciaDeVisita(inv) {
+    const m = String(inv.notas || '').match(/Frecuencia:\s*(Semanal|Mensual)/i);
+    return m ? m[1].toLowerCase() : null;
+  }
+
+  function recurrenteAplicaEnDia(inv, d) {
+    const desde = new Date(inv.fecha_valida_desde);
+    const hasta = new Date(inv.fecha_valida_hasta);
+    const dia = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const desdeSoloFecha = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
+    const hastaSoloFecha = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+    if (dia < desdeSoloFecha || dia > hastaSoloFecha) return false;
+    const frecuencia = frecuenciaDeVisita(inv);
+    if (frecuencia === 'semanal') return dia.getDay() === desde.getDay();
+    if (frecuencia === 'mensual') return dia.getDate() === desde.getDate();
+    // Frecuencia desconocida (dato viejo sin la etiqueta): se mantiene
+    // el comportamiento anterior en vez de ocultarla por completo.
+    return true;
+  }
+
   const COLOR_POR_CATEGORIA = {
     familiar: '#12E8A0',
     entrega: '#579AFF',
@@ -1330,12 +1360,7 @@
         return !Number.isNaN(di.getTime()) && fechaISOLocal(di) === iso;
       }).filter(pasaFiltros);
 
-      const recurrentesDelDia = invitacionesRecurrentesActivas.filter(inv => {
-        const desde = new Date(inv.fecha_valida_desde);
-        const hasta = new Date(inv.fecha_valida_hasta);
-        return d >= new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()) &&
-               d <= new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
-      });
+      const recurrentesDelDia = invitacionesRecurrentesActivas.filter(inv => recurrenteAplicaEnDia(inv, d));
 
       return [...recurrentesDelDia, ...eventosDia];
     });
@@ -1426,13 +1451,7 @@
         if (!celda) return;
         const iso = celda.dataset.fecha;
         const todos = [
-          ...invitacionesRecurrentesActivas.filter(inv => {
-            const desde = new Date(inv.fecha_valida_desde);
-            const hasta = new Date(inv.fecha_valida_hasta);
-            const d = new Date(iso + 'T00:00:00');
-            return d >= new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()) &&
-                   d <= new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
-          }),
+          ...invitacionesRecurrentesActivas.filter(inv => recurrenteAplicaEnDia(inv, new Date(iso + 'T00:00:00'))),
           ...invitacionesCache.filter(inv => {
             if (esRecurrente(inv)) return false;
             const di = new Date(inv.fecha_valida_desde);

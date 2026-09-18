@@ -97,7 +97,7 @@
       const inc=r.data||{};
       document.getElementById('detailTitulo').textContent=inc.titulo||'Incidencia';
       const tipoNombre=(inc.tipoIncidencia&&inc.tipoIncidencia.nombre)||'Sin tipo';
-      const fechaHecho=inc.fecha_hora_hecho?new Date(inc.fecha_hora_hecho).toLocaleString('es-HN'):null;
+      const fechaHecho=inc.fecha_hora_hecho?new Date(inc.fecha_hora_hecho).toLocaleString('es-HN',{hour12:true}):null;
       document.getElementById('detailMeta').textContent=`#INC-${String(inc.id).padStart(4,'0')} · ${tipoNombre} · Prioridad ${inc.prioridad}${fechaHecho?' · Ocurrió: '+fechaHecho:''}`;
       document.getElementById('detailDescripcion').textContent=inc.descripcion||'';
       const ubicacionWrap=document.getElementById('detailUbicacionWrap');

@@ -97,6 +97,14 @@ function applyOwnershipScope(model, user, where) {
     scoped.residente_id = user.id;
   }
 
+  // Accesos identifica al residente por usuario_id, no por residente_id.
+  // Sin este caso especial, GET /api/accesos devolvia los accesos de toda
+  // la residencial y el frontend intentaba filtrarlos despues. La
+  // privacidad debe aplicarse en el servidor, no depender del navegador.
+  if (user.rol_codigo === 'residente' && model.getTableName() === 'accesos' && model.rawAttributes.usuario_id) {
+    scoped.usuario_id = user.id;
+  }
+
   if (model.getTableName() === 'notificaciones' && !['admin', 'superadmin'].includes(user.rol_codigo)) {
     scoped.usuario_id = user.id;
   }
@@ -171,11 +179,29 @@ function createCrudHandlers(model) {
         where = applyOwnershipScope(model, req.user, where);
         const row = await model.findOne({ where });
         if (!row) return res.status(404).json({ error: `${model.name} no encontrado` });
-        const errores = validarCampos(model, req.body || {});
+
+        // Nunca permitimos cambiar una PK desde el body. Ademas, al editar
+        // se vuelven a imponer los campos de pertenencia igual que al crear:
+        // un residente no puede mover una fila a otro residente y un usuario
+        // no-superadmin no puede moverla a otra residencial despues de haber
+        // pasado el filtro de lectura.
+        const data = { ...(req.body || {}) };
+        model.primaryKeyAttributes.forEach((attr) => { delete data[attr]; });
+        if (req.user && req.user.rol_codigo !== 'superadmin' && model.rawAttributes.residencial_id) {
+          data.residencial_id = req.user.residencial_id;
+        }
+        if (req.user && req.user.rol_codigo === 'residente' && model.rawAttributes.residente_id) {
+          data.residente_id = req.user.id;
+        }
+        if (req.user && req.user.rol_codigo === 'residente' && model.getTableName() === 'accesos' && model.rawAttributes.usuario_id) {
+          data.usuario_id = req.user.id;
+        }
+
+        const errores = validarCampos(model, data);
         if (errores.length) {
           return res.status(400).json({ error: 'Datos invalidos', detalles: errores });
         }
-        await row.update(req.body || {});
+        await row.update(data);
         res.json({ data: row });
       } catch (err) {
         next(err);

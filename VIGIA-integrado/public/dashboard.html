@@ -3460,7 +3460,8 @@ function tiempoRelativo(
         day:"numeric",
         month:"short",
         hour:"numeric",
-        minute:"2-digit"
+        minute:"2-digit",
+        hour12:true
       }
     );
 
@@ -3559,7 +3560,8 @@ function formatearFechaActividad(
       day:"numeric",
       month:"short",
       hour:"numeric",
-      minute:"2-digit"
+      minute:"2-digit",
+      hour12:true
     }
   );
 
@@ -4089,7 +4091,8 @@ function renderizarProximaVisita(
 
             hour:"numeric",
 
-            minute:"2-digit"
+            minute:"2-digit",
+            hour12:true
 
           }
 
@@ -4485,7 +4488,7 @@ function actualizarReloj(){
       .toLocaleTimeString(
         "es-HN",
         {
-          hour12:false
+          hour12:true
         }
       );
 

@@ -14,8 +14,8 @@
   }
 
   attachTelefonoHNMask(document.getElementById('adPhone'));attachPhoneCountryCode(document.getElementById('adPhone'));
-  attachSoloLetras(document.getElementById('adName'),30);
-  attachSoloLetras(document.getElementById('adLast'),30);
+  attachSoloLetras(document.getElementById('adName'),20);
+  attachSoloLetras(document.getElementById('adLast'),20);
   attachSoloLetras(document.getElementById('reName'),150);
 
   const roleSelect = document.getElementById('adRole');

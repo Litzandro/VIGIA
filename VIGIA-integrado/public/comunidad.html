@@ -38,6 +38,7 @@
               <label for="postText">¿Qué quieres compartir?</label>
               <textarea class="form-control" id="postText" maxlength="300" rows="4" placeholder="Escribe un mensaje breve..." required></textarea><div class="field-help"><span id="postCount">0/300</span><span>Máximo 4 líneas</span></div>
             </div>
+            <label class="privacy-check"><input type="checkbox" id="postPrivate"><span><b>Publicación privada</b><small>Solo administración podrá verla</small></span></label>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
               <select class="form-control" id="postCategory" style="max-width:220px;">
                 <option value="General">General</option>
@@ -45,7 +46,7 @@
                 <option value="Compra-venta">Compra-venta</option>
                 <option value="Aviso importante">Aviso importante</option>
               </select>
-              <label class="privacy-check" style="margin:0;flex:1;max-width:260px"><input type="checkbox" id="postPrivate"><span><b>Publicación privada</b><small>Solo administración podrá verla</small></span></label><button type="submit" class="btn btn-solid"><i class="bi bi-send-fill"></i> Publicar</button>
+              <button type="submit" class="btn btn-solid"><i class="bi bi-send-fill"></i> Publicar</button>
             </div>
           </form>
         </div>

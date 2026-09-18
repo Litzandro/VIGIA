@@ -6,11 +6,11 @@
   function empty(el,text){clear(el);const d=document.createElement('div');d.className='empty-state';d.textContent=text;el.appendChild(d)}
   function row(title,sub,badge,klass){const d=document.createElement('div');d.className='security-row';const copy=document.createElement('div');const b=document.createElement('b');b.textContent=title;copy.appendChild(b);if(sub){const s=document.createElement('small');s.textContent=sub;copy.appendChild(s)}const st=document.createElement('span');st.className=`badge security-status ${klass||'neutral'}`;st.textContent=badge||'';d.append(copy,st);return d}
   function ruleItem(r){const d=document.createElement('div');d.className=`security-alert ${r.nivel||'media'}`;const i=document.createElement('i');i.className=r.nivel==='critica'?'bi bi-exclamation-octagon-fill':r.nivel==='alta'?'bi bi-shield-exclamation':'bi bi-info-circle-fill';const c=document.createElement('div');const b=document.createElement('b');b.textContent=r.codigo.replaceAll('_',' ');const p=document.createElement('div');p.textContent=r.mensaje;c.append(b,p);d.append(i,c);return d}
-  function fmt(v){const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toLocaleString('es-HN',{dateStyle:'short',timeStyle:'short'})}
+  function fmt(v){const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toLocaleString('es-HN',{dateStyle:'short',timeStyle:'short',hour12:true})}
   async function load(){
     try{
       const r=await VigiaAPI.request('/centro-seguridad/resumen',{offline:false});const d=r.data||{},m=d.metricas||{};
-      $('mAccess').textContent=m.accesos_hoy||0;$('mQueue').textContent=m.cola_activa||0;$('mIncidents').textContent=m.incidencias_abiertas||0;$('mSOS').textContent=m.alertas_sos||0;$('mGuards').textContent=m.guardias_activos||0;$('mInvites').textContent=m.invitaciones_vigentes||0;
+      $('mAccess').textContent=m.accesos_hoy||0;$('mQueue').textContent=m.cola_activa||0;$('mIncidents').textContent=m.incidencias_abiertas||0;$('mSOS').textContent=m.alertas_sos||0;$('mGuards').textContent=m.guardias_activos||0;$('mPackages').textContent=m.paquetes_pendientes||0;$('mArrivals').textContent=m.llegadas_en_curso||0;$('mInvites').textContent=m.invitaciones_vigentes||0;
       $('updatedAt').textContent=d.actualizado_en?`Actualizado ${fmt(d.actualizado_en)}`:'';
       $('emergencyBanner').classList.toggle('active',(m.alertas_sos||0)>0);$('emergencyText').textContent=(m.alertas_sos||0)===1?'Hay 1 alerta SOS activa que requiere atención.':`Hay ${m.alertas_sos||0} alertas SOS activas que requieren atención.`;
       const rules=$('ruleList');clear(rules);(d.reglas||[]).forEach(x=>rules.appendChild(ruleItem(x)));if(!(d.reglas||[]).length)empty(rules,'Sin alertas inteligentes. La operación está dentro de parámetros normales.');

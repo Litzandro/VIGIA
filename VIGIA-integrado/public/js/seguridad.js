@@ -2,6 +2,41 @@
   const fingerprint=localStorage.getItem('vigia_device_id')||(crypto.randomUUID?crypto.randomUUID():String(Date.now()));
   localStorage.setItem('vigia_device_id',fingerprint);
 
+  // Antes esta pagina mostraba el User-Agent crudo tal cual llega del
+  // navegador (ej. "Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+  // AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0
+  // Safari/537.36 Edg/153.0.0.0"), algo ilegible para la mayoria de
+  // quienes usan VIGIA (segun el propio equipo, casi nadie sabe de
+  // computadoras). No se toca lo que se guarda en la base de datos
+  // (sigue siendo util para soporte/depuracion): esto solo traduce el
+  // texto a algo humano en el momento de mostrarlo, ej. "Chrome en
+  // Windows".
+  function humanizeUA(ua){
+    const raw=String(ua||'').trim();
+    if(!raw)return 'Dispositivo desconocido';
+    // Si no parece un User-Agent de navegador (no trae "Mozilla" ni
+    // "AppleWebKit"), probablemente ya es un texto amigable puesto a
+    // mano en otro lado -- se deja tal cual en vez de intentar
+    // "traducir" algo que no es un UA.
+    if(!/mozilla|applewebkit|gecko/i.test(raw))return raw;
+
+    let os='Dispositivo';
+    if(/windows/i.test(raw))os='Windows';
+    else if(/iphone|ipad|ipod/i.test(raw))os='iPhone/iPad';
+    else if(/android/i.test(raw))os='Android';
+    else if(/mac os x|macintosh/i.test(raw))os='Mac';
+    else if(/linux/i.test(raw))os='Linux';
+
+    let nav='Navegador';
+    if(/edg\//i.test(raw))nav='Edge';
+    else if(/opr\/|opera/i.test(raw))nav='Opera';
+    else if(/firefox/i.test(raw))nav='Firefox';
+    else if(/chrome\//i.test(raw))nav='Chrome';
+    else if(/safari/i.test(raw))nav='Safari';
+
+    return `${nav} en ${os}`;
+  }
+
   function clear(el){ if(el) el.replaceChildren(); }
   function textEl(tag,className,text){
     const el=document.createElement(tag);
@@ -22,8 +57,8 @@
     const el=document.createElement('div');el.className='queue-item';
     const number=document.createElement('div');number.className='queue-number';number.appendChild(icon('bi-browser-chrome'));
     const copy=document.createElement('div');copy.className='queue-copy';
-    copy.appendChild(textEl('b','',x.dispositivo||'Navegador'));
-    copy.appendChild(textEl('span','',`${x.ip_origen||'IP no disponible'} · ${new Date(x.fecha_inicio).toLocaleString('es-HN')}`));
+    copy.appendChild(textEl('b','',humanizeUA(x.dispositivo)||'Navegador'));
+    copy.appendChild(textEl('span','',`${x.ip_origen||'IP no disponible'} · ${new Date(x.fecha_inicio).toLocaleString('es-HN',{hour12:true})}`));
     const actions=document.createElement('div');actions.className='queue-actions';
     actions.appendChild(badge(x.activa?'activa':'cerrada',x.activa?'ok':'neutral'));
     if(x.activa){
@@ -39,7 +74,7 @@
     const number=document.createElement('div');number.className='queue-number';number.appendChild(icon('bi-phone-fill'));
     const copy=document.createElement('div');copy.className='queue-copy';
     copy.appendChild(textEl('b','',x.nombre||'Dispositivo'));
-    copy.appendChild(textEl('span','',`${x.plataforma||'Plataforma desconocida'} · ${x.confiable?'Confiable':'No confiable'}`));
+    copy.appendChild(textEl('span','',`${humanizeUA(x.plataforma)||'Plataforma desconocida'} · ${x.confiable?'Confiable':'No confiable'}`));
     const actions=document.createElement('div');actions.className='queue-actions';
     actions.appendChild(badge(x.revocado?'revocado':'activo',x.revocado?'blocked':'ok'));
     if(!x.revocado){

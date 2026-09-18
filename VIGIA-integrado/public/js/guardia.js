@@ -13,7 +13,7 @@
   function clear(el){while(el&&el.firstChild)el.removeChild(el.firstChild)}
   function text(tag,value,cls){const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=value??'';return e}
   function empty(el,msg){clear(el);el.appendChild(text('div',msg,'empty-state'))}
-  function fmtDate(v){const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+  function fmtDate(v){const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toLocaleString('es-HN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:true})}
   function elapsed(v){const ms=Math.max(0,Date.now()-new Date(v).getTime()),min=Math.floor(ms/60000);if(min<60)return `${min} min`;const h=Math.floor(min/60),m=min%60;return `${h} h ${m} min`}
   function icon(name){const i=document.createElement('i');i.className=`bi ${name}`;return i}
 
@@ -101,7 +101,7 @@
     }
     return card;
   }
-  function renderAlerts(){const list=$('guardPanicList'),active=state.alerts.filter(a=>a.estado==='activa'),today=state.alerts.filter(a=>a.estado!=='activa'&&new Date(a.fecha_atencion||a.fecha_hora).toDateString()===new Date().toDateString()),rows=[...active,...today.slice(0,4)];clear(list);rows.forEach(a=>list.appendChild(panicCard(a)));$('guardPanicEmptyMsg').style.display=rows.length?'none':'';$('sosUpdated').textContent=`Actualizado ${new Date().toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit'})}`;}
+  function renderAlerts(){const list=$('guardPanicList'),active=state.alerts.filter(a=>a.estado==='activa'),today=state.alerts.filter(a=>a.estado!=='activa'&&new Date(a.fecha_atencion||a.fecha_hora).toDateString()===new Date().toDateString()),rows=[...active,...today.slice(0,4)];clear(list);rows.forEach(a=>list.appendChild(panicCard(a)));$('guardPanicEmptyMsg').style.display=rows.length?'none':'';$('sosUpdated').textContent=`Actualizado ${new Date().toLocaleTimeString('es-HN',{hour:'2-digit',minute:'2-digit',hour12:true})}`;}
   async function loadAlerts(){try{const r=await VigiaAPI.request('/alertas-panico?limit=100&sort=fecha_hora:desc',{offline:false});state.alerts=r.data||[];const active=state.alerts.filter(a=>a.estado==='activa');if(state.knownActiveIds!==null)active.filter(a=>!state.knownActiveIds.has(a.id)).forEach(notifyNew);state.knownActiveIds=new Set(active.map(a=>a.id));renderAlerts();}catch(e){empty($('guardPanicList'),e.message)}}
 
   async function loadSummary(){try{const r=await VigiaAPI.request('/centro-seguridad/resumen',{offline:false});state.summary=r.data||{};renderKPIs(state.summary);renderShift(state.summary.turno_actual);renderInside();renderQueue(state.summary);renderIncidents(state.summary);}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}

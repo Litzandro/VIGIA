@@ -2,12 +2,6 @@
 
 const bcrypt = require('bcryptjs');
 const db = require('../../models');
-const { validatePassword } = require('../../utils/passwordPolicy');
-const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
-const { validarCampos } = require('../../config/resourceValidation');
-
-// Mismo costo de bcrypt que authController.js (mantenerlos sincronizados).
-const BCRYPT_ROUNDS = 12;
 
 // Agrega /me sobre el CRUD generico de usuarios: cualquier usuario
 // logueado puede ver/editar SU PROPIO perfil sin necesitar el permiso
@@ -35,28 +29,9 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         await transaction.rollback();
         return res.status(400).json({ error: 'Nombre, apellido, correo, contraseña y rol son requeridos.' });
       }
-      // "  " (solo espacios) pasa el chequeo de arriba porque es
-      // truthy -- sin este recorte previo, la cuenta quedaria creada
-      // con nombre o apellido vacios y el saludo/las listas de usuarios
-      // mostrarian un espacio en blanco en vez de un nombre real.
-      if (!String(nombre).trim() || !String(apellido).trim()) {
+      if (String(password).length < 8) {
         await transaction.rollback();
-        return res.status(400).json({ error: 'Nombre y apellido no pueden estar vacíos.' });
-      }
-      // Mismo hueco que se encontro en el registro publico y en
-      // incidencias.js, aqui en la creacion de cuentas desde el panel
-      // de administracion: los chequeos de arriba solo verifican "no
-      // vacio", nunca formato ni un minimo razonable -- un admin podia
-      // crear una cuenta con nombre "123" o telefono "abcd".
-      const erroresUsuario = validarCampos(db.Usuarios, { nombre: String(nombre).trim(), apellido: String(apellido).trim(), telefono: req.body.telefono });
-      if (erroresUsuario.length) {
-        await transaction.rollback();
-        return res.status(400).json({ error: erroresUsuario[0] });
-      }
-      const passwordCheck = validatePassword(password);
-      if (!passwordCheck.ok) {
-        await transaction.rollback();
-        return res.status(400).json({ error: passwordCheck.error });
+        return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
       }
       if (!['residente', 'guardia', 'admin'].includes(rol_codigo)) {
         await transaction.rollback();
@@ -80,8 +55,8 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
         nombre: String(nombre).trim(),
         apellido: String(apellido).trim(),
         email: String(email).trim().toLowerCase(),
-        telefono: normalizarTelefonoHN(req.body.telefono),
-        password_hash: await bcrypt.hash(String(password), BCRYPT_ROUNDS),
+        telefono: req.body.telefono || null,
+        password_hash: await bcrypt.hash(String(password), 10),
         estado: 'activo',
         debe_cambiar_clave: true,
         creado_por: req.user.id,
@@ -159,44 +134,6 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
 
       const { password_hash, rol_id, residencial_id, estado, ...permitido } = req.body || {};
-      // El "+504" que ve el residente en Perfil (attachPhoneCountryCode)
-      // es solo visual -- lo que llega aca sigue siendo el numero de 8
-      // digitos. Se normaliza al guardar para que quede consistente con
-      // el resto de la base, igual que en register/admin-create.
-      if (permitido.telefono !== undefined) permitido.telefono = normalizarTelefonoHN(permitido.telefono);
-
-      // Mismo hueco que se encontro en el registro publico: register()
-      // y admin-create SI revisan formato de nombre/apellido/telefono
-      // antes de guardar, pero editar el perfil propio (aca) no llamaba
-      // a validarCampos en absoluto -- alguien podia registrarse bien y
-      // despues, editando su perfil, cambiar su nombre a "123" o su
-      // telefono a cualquier cosa sin que el servidor lo rechazara (el
-      // formulario de Perfil si pone las mascaras, pero eso no protege
-      // nada si se llama la API directo).
-      const camposParaValidar = {};
-      if (permitido.nombre !== undefined) camposParaValidar.nombre = permitido.nombre;
-      if (permitido.apellido !== undefined) camposParaValidar.apellido = permitido.apellido;
-      if (permitido.telefono !== undefined) camposParaValidar.telefono = permitido.telefono;
-      const erroresPerfil = validarCampos(db.Usuarios, camposParaValidar);
-      if (erroresPerfil.length) {
-        return res.status(400).json({ error: erroresPerfil[0] });
-      }
-
-      // Mismo hueco que nombre/apellido/telefono: el correo tampoco se
-      // revisaba con formato al editar el perfil (solo al registrarse).
-      if (permitido.email !== undefined) {
-        const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const nuevoEmail = String(permitido.email).trim().toLowerCase();
-        if (!RE_EMAIL.test(nuevoEmail)) {
-          return res.status(400).json({ error: 'Escribe un correo electrónico válido.' });
-        }
-        permitido.email = nuevoEmail;
-        if (nuevoEmail !== usuario.email) {
-          const yaExiste = await db.Usuarios.findOne({ where: { email: nuevoEmail } });
-          if (yaExiste) return res.status(409).json({ error: 'Ya existe una cuenta con ese correo.' });
-        }
-      }
-
       await usuario.update(permitido);
       const data = usuario.toJSON(); delete data.password_hash;
       res.json({ data });
@@ -231,14 +168,6 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       if (!row) return res.status(404).json({ error: 'Usuario no encontrado.' });
       const allowed = {};
       ['nombre','apellido','email','telefono','foto_url','estado','debe_cambiar_clave'].forEach(k=>{ if(req.body[k]!==undefined) allowed[k]=req.body[k]; });
-      if (allowed.telefono !== undefined) allowed.telefono = normalizarTelefonoHN(allowed.telefono);
-      // Mismo chequeo que /me y admin-create: formato real, no solo "no vacio".
-      const camposParaValidarAdmin = {};
-      if (allowed.nombre !== undefined) camposParaValidarAdmin.nombre = allowed.nombre;
-      if (allowed.apellido !== undefined) camposParaValidarAdmin.apellido = allowed.apellido;
-      if (allowed.telefono !== undefined) camposParaValidarAdmin.telefono = allowed.telefono;
-      const erroresAdminUpdate = validarCampos(db.Usuarios, camposParaValidarAdmin);
-      if (erroresAdminUpdate.length) return res.status(400).json({ error: erroresAdminUpdate[0] });
       if (req.user.rol_codigo === 'superadmin') {
         if (req.body.rol_id !== undefined) allowed.rol_id = req.body.rol_id;
         if (req.body.residencial_id !== undefined) allowed.residencial_id = req.body.residencial_id;
@@ -250,41 +179,5 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
   };
   router.put(`/${pkPath}`, adminUpdate);
   router.patch(`/${pkPath}`, adminUpdate);
-
-  // Eliminar usuarios (admin/superadmin, ya filtrado por
-  // resourcePermissions.js con "usuarios.gestionar"). No se usa el
-  // handlers.remove generico de crudFactory.js porque Usuarios no tiene
-  // columna "activo" -> hasSoftDelete() da false -> haria un DELETE
-  // fisico de la fila. Eso reventaria con error de foreign key en
-  // cuanto el usuario tuviera CUALQUIER historial real: accesos,
-  // incidencias.reportado_por, sanciones_usuarios.aplicado_por,
-  // seguimientos_incidencias, paquetes.recibido_por,
-  // veto_residentes.solicitado_por, turnos_guardia, evacuaciones... casi
-  // todas esas tablas referencian usuarios(id) con ON DELETE RESTRICT.
-  // En vez de borrar la fila, se reutiliza el mismo ENUM "estado" que ya
-  // usa login() para bloquear el acceso (igual que "suspendido"), y se
-  // cierran todas sus sesiones activas para que no pueda seguir usando
-  // un token que ya tenia antes de que caduque solo.
-  router.delete(`/${pkPath}`, async (req, res, next) => {
-    try {
-      const where = { id: req.params.id };
-      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
-      const usuario = await model.findOne({ where });
-      if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado.' });
-
-      if (String(usuario.id) === String(req.user.id)) {
-        return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta.' });
-      }
-
-      // fecha_eliminacion ya existia en la tabla (pensada para el
-      // borrado logico generico de crudFactory.js, que en Usuarios
-      // nunca se activaba porque hasSoftDelete() exige una columna
-      // "activo" que esta tabla no tiene) -- se reutiliza aca para
-      // dejar registrado cuando se elimino la cuenta.
-      await usuario.update({ estado: 'inactivo', fecha_eliminacion: new Date() });
-      await db.Sesiones.update({ activa: false }, { where: { usuario_id: usuario.id } });
-
-      res.json({ mensaje: 'Usuario eliminado.' });
-    } catch (err) { next(err); }
-  });
+  router.delete(`/${pkPath}`, handlers.remove);
 };

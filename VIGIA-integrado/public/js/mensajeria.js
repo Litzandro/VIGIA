@@ -32,7 +32,7 @@
       });
     }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
   }
-  function initials(name){return String(name||'VG').split(/\s+/).filter(Boolean).slice(0,1).map(x=>x[0]).join('').toUpperCase()||'VG'}
+  function initials(name){return String(name||'VG').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'VG'}
   function counterpart(t){
     // Prioriza al residente como "la otra parte" del hilo: con turnos
     // rotativos puede haber varios guardias en la misma conversación, y
@@ -41,7 +41,7 @@
     return participants.find(x=>x.rol_codigo==='residente')||participants.find(x=>String(x.id)!==String(session.id));
   }
   function participantName(t){const p=counterpart(t);return p?p.nombre_completo:(t.nombre||'Conversación')}
-  function time(v){try{return new Date(v).toLocaleString('es-HN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
+  function time(v){try{return new Date(v).toLocaleString('es-HN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true})}catch(e){return ''}}
   function isNearBottom(){return messages.scrollHeight-messages.scrollTop-messages.clientHeight<80}
   function updateCharCount(){
     if(!charCount)return;

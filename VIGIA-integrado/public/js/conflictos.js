@@ -7,7 +7,7 @@
   }
   function formatFecha(iso){
     if(!iso) return '';
-    return new Date(iso).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    return new Date(iso).toLocaleString('es-HN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
   }
   function isImageUrl(url){
     return typeof url==='string' && (url.startsWith('data:image') || /\.(jpe?g|png|webp|gif)(\?.*)?$/i.test(url));
