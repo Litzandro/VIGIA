@@ -187,7 +187,27 @@
     },'<i class="bi bi-arrow-repeat"></i> Enviando...');
   };
   document.getElementById('emergencyContactsBtn').onclick=()=>location.href='emergencias.html';
-  async function panic(target){try{const r=await VigiaAPI.request('/tipos-alerta?limit=20');const type=(r.data||[]).find(x=>x.codigo==='otro')||(r.data||[])[0];if(!type)throw new Error('No hay tipo de alerta configurado.');await VigiaAPI.request('/alertas-panico',{method:'POST',body:JSON.stringify({tipo_alerta_id:type.id})});showToast(target==='guardia'?'Alerta privada enviada a garita':'Alerta enviada al sistema','bi-broadcast')}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}
+  // Antes "Alertar a residentes" y "Alertar al guardia" mandaban EXACTAMENTE
+  // la misma alerta (solo cambiaba el texto del toast) -- el modal le
+  // prometia a la persona que se avisaria a los vecinos de su torre, pero
+  // el backend solo notificaba a guardia/admin siempre, sin importar el
+  // boton presionado. Ahora se manda "alcance" para que el servidor si
+  // notifique tambien a los vecinos de la misma torre cuando corresponde.
+  async function panic(target){
+    try{
+      const r=await VigiaAPI.request('/tipos-alerta?limit=20');
+      const type=(r.data||[]).find(x=>x.codigo==='otro')||(r.data||[])[0];
+      if(!type)throw new Error('No hay tipo de alerta configurado.');
+      const alcance=target==='guardia'?'guardia':'residentes';
+      const resp=await VigiaAPI.request('/alertas-panico',{method:'POST',body:JSON.stringify({tipo_alerta_id:type.id,alcance})});
+      if(alcance==='guardia'){
+        showToast('Alerta privada enviada a garita','bi-broadcast');
+      }else{
+        const vecinos=(resp&&resp.vecinos_notificados)||0;
+        showToast(vecinos>0?`Alerta enviada a garita y a ${vecinos} vecino${vecinos===1?'':'s'} de tu torre`:'Alerta enviada a garita. No se encontraron vecinos registrados en tu torre para avisarles.','bi-broadcast');
+      }
+    }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
+  }
   function modalPanic(button,mid,cancel,confirm,target){const m=document.getElementById(mid);document.getElementById(button).onclick=()=>m.classList.add('open');document.getElementById(cancel).onclick=()=>m.classList.remove('open');document.getElementById(confirm).onclick=async()=>{m.classList.remove('open');await panic(target)}}
   modalPanic('panicGuardBtn','panicGuardModal','panicGuardCancel','panicGuardConfirm','guardia');modalPanic('panicResidentsBtn','panicResidentsModal','panicResidentsCancel','panicResidentsConfirm','residentes');
 

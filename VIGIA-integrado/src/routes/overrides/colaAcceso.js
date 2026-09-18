@@ -4,6 +4,90 @@ const db = require('../../models');
 const { Op } = require('sequelize');
 const { primaryKeyWhere } = require('../../utils/crudFactory');
 const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
+const invitacionesService = require('../../services/invitacionesService');
+
+// Bug real encontrado en auditoria general: completar un registro de la
+// cola de garita SOLO actualizaba cola_acceso.estado a "completada" --
+// nunca creaba la fila real en "accesos", que es la tabla que de verdad
+// leen guardia.html ("quien esta dentro", entradas/salidas de hoy),
+// centro-seguridad.html (metricas del dia), "Mis accesos" del residente
+// y el conteo de usos de una invitacion QR (usos_actuales). Resultado:
+// aunque el guardia procesara visitantes todo el dia por la garita,
+// esos numeros se quedaban siempre en cero, y una invitacion de un solo
+// uso nunca se marcaba como usada por esta via -- la unica ruta que si
+// la consumia (POST /accesos con invitacion_id, en accesos.js) no la
+// llama ninguna pantalla real.
+//
+// Resuelve vehiculo_id (por placa) y visitante_id (por numero de
+// documento) cuando puede, para que la persona aparezca de verdad en
+// "quien esta dentro". Un visitante sin placa ni documento no tiene
+// forma de identificarse de nuevo, asi que no aparecera ahi -- pero SI
+// se cuenta en los totales del dia y queda su nombre en observaciones.
+async function crearAccesoDesdeCola(row, req, transaction) {
+  let vehiculoId = null;
+  if (row.placa_vehiculo) {
+    const placa = String(row.placa_vehiculo).trim().toUpperCase();
+    let vehiculo = await db.Vehiculos.findOne({ where: { residencial_id: row.residencial_id, placa }, transaction });
+    if (!vehiculo) {
+      vehiculo = await db.Vehiculos.create({ residencial_id: row.residencial_id, placa }, { transaction });
+    }
+    vehiculoId = vehiculo.id;
+  }
+
+  let visitanteId = row.visitante_id || null;
+  if (!visitanteId && row.numero_documento) {
+    let visitante = await db.Visitantes.findOne({ where: { numero_documento: row.numero_documento }, transaction });
+    if (!visitante) {
+      const partes = String(row.nombre_persona || 'Visitante').trim().split(/\s+/);
+      visitante = await db.Visitantes.create({
+        nombre: partes[0] || 'Visitante',
+        apellido: partes.slice(1).join(' ') || '—',
+        tipo_documento: row.tipo_documento || null,
+        numero_documento: row.numero_documento || null,
+        telefono: row.telefono || null,
+        foto_url: row.foto_url || null,
+      }, { transaction });
+    }
+    visitanteId = visitante.id;
+  }
+
+  let invitacionId = null;
+  if (row.invitacion_id) {
+    invitacionId = row.invitacion_id;
+    const invitacion = await db.Invitaciones.findByPk(row.invitacion_id, { transaction, lock: transaction.LOCK.UPDATE });
+    const { valido } = invitacionesService.evaluarValidez(invitacion);
+    // Si ya no es valida (otro guardia la uso primero, o vencio
+    // mientras esta persona esperaba en cola), no bloqueamos el
+    // ingreso -- a estas alturas del flujo ya fue "autorizada" y la
+    // persona ya esta pasando la garita fisicamente -- pero tampoco se
+    // le descuenta un uso que ya no existe. El acceso queda registrado
+    // igual, con la referencia a la invitacion para trazabilidad.
+    if (invitacion && valido) {
+      const nuevosUsos = invitacion.usos_actuales + 1;
+      await invitacion.update({
+        usos_actuales: nuevosUsos,
+        estado: nuevosUsos >= invitacion.max_usos ? 'usada' : invitacion.estado,
+      }, { transaction });
+    }
+  }
+
+  const detalle = [row.nombre_persona || 'Visitante', row.vivienda_destino ? `-> ${row.vivienda_destino}` : '', row.motivo ? `(${row.motivo})` : '']
+    .filter(Boolean).join(' ').slice(0, 255);
+
+  return db.Accesos.create({
+    residencial_id: row.residencial_id,
+    punto_acceso_id: row.punto_acceso_id,
+    visitante_id: visitanteId,
+    invitacion_id: invitacionId,
+    vehiculo_id: vehiculoId,
+    guardia_id: req.user.id,
+    turno_guardia_id: row.turno_guardia_id || null,
+    tipo_movimiento: 'entrada',
+    modo_registro: row.origen_registro || 'manual',
+    foto_url: row.foto_url || null,
+    observaciones: detalle || null,
+  }, { transaction });
+}
 
 function activeStates() { return ['esperando', 'en_validacion']; }
 
@@ -237,18 +321,24 @@ module.exports = function colaAccesoOverride({ router, model, handlers, pkPath }
   });
 
   router.patch(`/${pkPath}/atender`, async (req, res, next) => {
+    const transaction = await db.sequelize.transaction();
     try {
       const where = primaryKeyWhere(model, req.params);
       if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
-      const row = await model.findOne({ where });
-      if (!row) return res.status(404).json({ error: 'Registro de cola no encontrado.' });
+      const row = await model.findOne({ where, transaction });
+      if (!row) {
+        await transaction.rollback();
+        return res.status(404).json({ error: 'Registro de cola no encontrado.' });
+      }
       const accion = req.body.accion;
       const patch = { guardia_actual_id: req.user.id };
+      let acceso = null;
       if (accion === 'iniciar') {
         patch.estado = 'en_validacion';
         patch.fecha_inicio_atencion = row.fecha_inicio_atencion || new Date();
       } else if (accion === 'autorizar') {
         if (['veto', 'conflicto'].includes(row.resultado_validacion) && req.user.rol_codigo === 'guardia') {
+          await transaction.rollback();
           return res.status(403).json({ error: 'Un guardia no puede ignorar un veto o conflicto. Debe resolverlo administracion.' });
         }
         patch.estado = 'autorizada';
@@ -258,15 +348,27 @@ module.exports = function colaAccesoOverride({ router, model, handlers, pkPath }
         patch.estado = 'rechazada';
         patch.fecha_fin_atencion = new Date();
       } else if (accion === 'completar') {
+        if (row.estado === 'completada') {
+          // Doble clic o reintento de red: ya se completo antes, no
+          // crear un segundo acceso duplicado para el mismo ingreso.
+          await transaction.rollback();
+          return res.json({ data: row });
+        }
         patch.estado = 'completada';
-        patch.fecha_fin_atencion = new Date();
+        patch.fecha_fin_atencion = row.fecha_fin_atencion || new Date();
+        acceso = await crearAccesoDesdeCola(row, req, transaction);
       } else {
+        await transaction.rollback();
         return res.status(400).json({ error: 'Accion invalida.' });
       }
       if (req.body.observaciones) patch.observaciones = req.body.observaciones;
-      await row.update(patch);
-      res.json({ data: row });
-    } catch (err) { next(err); }
+      await row.update(patch, { transaction });
+      await transaction.commit();
+      res.json({ data: row, acceso });
+    } catch (err) {
+      await transaction.rollback();
+      next(err);
+    }
   });
 
   router.get('/', handlers.list);

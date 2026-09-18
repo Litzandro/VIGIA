@@ -50,6 +50,17 @@
           </form>
         </div>
 
+        <div class="panel" style="margin-top:1.2rem;display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+          <div class="filter-chips" id="communityFilters" style="margin:0;">
+            <button class="filter-chip active" data-filter="todas">Todas</button>
+            <button class="filter-chip" data-filter="General">General</button>
+            <button class="filter-chip" data-filter="Objetos perdidos">Objetos perdidos</button>
+            <button class="filter-chip" data-filter="Compra-venta">Compra-venta</button>
+            <button class="filter-chip" data-filter="Aviso importante">Aviso importante</button>
+          </div>
+          <input type="search" class="form-control" id="communitySearch" placeholder="Buscar en el muro..." style="max-width:240px;">
+        </div>
+
         <div id="postsFeed" style="margin-top:1.6rem;display:flex;flex-direction:column;gap:1.1rem;">
           <div class="empty-state">Cargando…</div>
         </div>

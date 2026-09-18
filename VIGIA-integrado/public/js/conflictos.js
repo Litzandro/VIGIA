@@ -152,24 +152,76 @@
     return el;
   }
 
+  // "Autorizaciones pendientes" (buses escolares, familiares, servicio
+  // domestico y proveedores que registran los residentes en
+  // autorizados.html) tenia panel, contador y lista propia en el HTML
+  // desde siempre, pero este script nunca la consultaba ni la
+  // dibujaba: pendingAuthCount se quedaba fijo en el "0" que trae el
+  // HTML y pendingAuthList jamas recibia contenido -- exactamente el
+  // patron de "aparece un numero pero el incidente/solicitud no se ve"
+  // reportado, solo que aca ni siquiera el numero se actualizaba nunca.
+  const TIPO_AUTORIZACION_LABEL={bus_escolar:'Bus escolar',familiar:'Familiar',servicio_domestico:'Servicio doméstico',proveedor:'Proveedor',transporte:'Transporte',otro:'Otro'};
+
+  function renderAutorizacion(x, nombreResidente){
+    const el=document.createElement('div');
+    el.className='queue-item';
+    el.innerHTML=
+      `<div class="queue-number"><i class="bi bi-person-check-fill"></i></div>`+
+      `<div class="queue-copy"><b>${escapeHtml(x.nombre_completo)}</b><span>${escapeHtml(TIPO_AUTORIZACION_LABEL[x.tipo]||x.tipo)} · Solicitado por ${escapeHtml(nombreResidente)}</span>`+
+      (x.empresa?`<span>${escapeHtml(x.empresa)}</span>`:'')+
+      `</div>`+
+      `<div class="queue-actions">${badge(x.estado)}<button class="btn btn-alert" data-a="activa">Aprobar</button><button class="btn btn-ghost" data-a="cancelada">Rechazar</button></div>`;
+    el.querySelector('.queue-copy span:last-child').appendChild(document.createRange().createContextualFragment(expandHint()));
+
+    const rows=[
+      ['Documento', x.numero_documento || 'No proporcionado'],
+      ['Teléfono', x.telefono || 'No proporcionado'],
+      ['Placa', x.placa_vehiculo || 'No aplica'],
+      ['Solicitado', formatFecha(x.fecha_creacion)],
+    ];
+    const details=buildDetails(rows, x.foto_url);
+    el.appendChild(details);
+
+    el.querySelectorAll('[data-a]').forEach(b=>b.onclick=async(e)=>{
+      e.stopPropagation();
+      try{
+        await VigiaAPI.request(`/personas-autorizadas/${x.id}/estado`,{method:'PATCH',body:JSON.stringify({estado:b.dataset.a})});
+        showToast(b.dataset.a==='activa'?'Autorización aprobada':'Autorización rechazada');
+        load();
+      }catch(err){ showToast(err.message,'bi-exclamation-triangle-fill'); }
+    });
+    wireToggle(el, details, el.querySelector('.queue-copy span:last-child i'));
+    return el;
+  }
+
   async function load(){
-    const vb=document.getElementById('adminVetoList'),cb=document.getElementById('conflictList');
+    const vb=document.getElementById('adminVetoList'),cb=document.getElementById('conflictList'),ab=document.getElementById('pendingAuthList');
     try{
-      const [v,c]=await Promise.all([
+      const [v,c,a,u]=await Promise.all([
         VigiaAPI.request('/vetos-acceso'),
         VigiaAPI.request('/conflictos-permisos?limit=200&sort=fecha_deteccion:desc'),
+        admin?VigiaAPI.request('/personas-autorizadas?limit=200&estado=pendiente'):Promise.resolve({data:[]}),
+        admin?VigiaAPI.request('/usuarios?limit=200'):Promise.resolve({data:[]}),
       ]);
-      const vetos=v.data||[], conf=c.data||[];
+      const vetos=v.data||[], conf=c.data||[], autorizaciones=a.data||[];
+      const nombresUsuarios=new Map((u.data||[]).map(x=>[String(x.id),`${x.nombre||''} ${x.apellido||''}`.trim()||`Usuario #${x.id}`]));
       document.getElementById('pendingVetoCount').textContent=vetos.filter(x=>x.estado==='pendiente').length;
       document.getElementById('conflictCount').textContent=conf.filter(x=>['abierto','en_revision'].includes(x.estado)).length;
+      if(document.getElementById('pendingAuthCount'))document.getElementById('pendingAuthCount').textContent=autorizaciones.length;
 
       vb.innerHTML=vetos.length?'':'<div class="empty-state">Sin solicitudes.</div>';
       vetos.forEach(x=> vb.appendChild(renderVeto(x)));
 
       cb.innerHTML=conf.length?'':'<div class="empty-state">No hay conflictos detectados.</div>';
       conf.forEach(x=> cb.appendChild(renderConflicto(x)));
+
+      if(ab){
+        ab.innerHTML=autorizaciones.length?'':'<div class="empty-state">No hay autorizaciones pendientes.</div>';
+        autorizaciones.forEach(x=> ab.appendChild(renderAutorizacion(x, nombresUsuarios.get(String(x.residente_id))||`Residente #${x.residente_id}`)));
+      }
     }catch(e){
       vb.innerHTML=cb.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;
+      if(ab)ab.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;
     }
   }
 

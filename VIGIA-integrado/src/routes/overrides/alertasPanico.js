@@ -80,8 +80,18 @@ module.exports = function alertasPanicoOverride({ router, model, handlers, pkPat
     try {
       if (!req.user) return res.status(401).json({ error: 'No autenticado' });
 
+      // "alcance" no se guarda en la base (alertas_panico no tiene esa
+      // columna, y no hace falta migracion: es solo una instruccion de
+      // este request, no un dato del incidente). Solo decide, ademas de
+      // avisar siempre a guardia/admin, si TAMBIEN se notifica a los
+      // vecinos de la misma torre -- antes "Alertar a residentes" en el
+      // frontend prometia esto y nunca lo hacia (ver incidencias.js).
+      const alcance = req.body.alcance === 'residentes' ? 'residentes' : 'guardia';
+
       const body = {
-        ...req.body,
+        tipo_alerta_id: req.body.tipo_alerta_id,
+        ubicacion_lat: req.body.ubicacion_lat,
+        ubicacion_lng: req.body.ubicacion_lng,
         usuario_id: req.user.id,
         residencial_id: resolverResidencialId(req.user, req.body),
       };
@@ -93,20 +103,55 @@ module.exports = function alertasPanicoOverride({ router, model, handlers, pkPat
         include: [{ model: db.Roles, as: 'rol', where: { codigo: ROLES_NOTIFICAR_ALERTA } }],
       });
 
-      await Promise.all(
-        destinatarios.map((destinatario) =>
-          notificacionesService.crear({
-            usuario_id: destinatario.id,
-            tipo: 'alerta',
-            titulo: 'Alerta de panico activada',
-            mensaje: 'Se activo una alerta de panico/SOS en la residencial. Revisar de inmediato.',
-            referencia_tipo: 'alertas_panico',
-            referencia_id: alerta.id,
-          })
-        )
+      const tareasNotificacion = destinatarios.map((destinatario) =>
+        notificacionesService.crear({
+          usuario_id: destinatario.id,
+          tipo: 'alerta',
+          titulo: 'Alerta de panico activada',
+          mensaje: 'Se activo una alerta de panico/SOS en la residencial. Revisar de inmediato.',
+          referencia_tipo: 'alertas_panico',
+          referencia_id: alerta.id,
+        })
       );
 
-      res.status(201).json({ data: alerta, notificados: destinatarios.length });
+      let vecinosNotificados = 0;
+      if (alcance === 'residentes') {
+        const propio = await db.Residentes.findOne({ where: { usuario_id: req.user.id } });
+        const propiaVivienda = propio ? await db.Viviendas.findByPk(propio.vivienda_id) : null;
+        if (propiaVivienda && propiaVivienda.bloque_torre) {
+          const viviendasTorre = await db.Viviendas.findAll({
+            where: { residencial_id: alerta.residencial_id, bloque_torre: propiaVivienda.bloque_torre },
+            attributes: ['id'],
+          });
+          const viviendaIds = viviendasTorre.map((v) => v.id);
+          const vecinosResidentes = viviendaIds.length
+            ? await db.Residentes.findAll({ where: { vivienda_id: { [Op.in]: viviendaIds }, usuario_id: { [Op.ne]: req.user.id } } })
+            : [];
+          const vecinoUsuarioIds = [...new Set(vecinosResidentes.map((v) => v.usuario_id))];
+          if (vecinoUsuarioIds.length) {
+            const vecinosActivos = await db.Usuarios.findAll({
+              where: { id: { [Op.in]: vecinoUsuarioIds }, estado: 'activo' },
+            });
+            vecinosNotificados = vecinosActivos.length;
+            tareasNotificacion.push(
+              ...vecinosActivos.map((v) =>
+                notificacionesService.crear({
+                  usuario_id: v.id,
+                  tipo: 'alerta',
+                  titulo: 'Alerta de un vecino en tu torre',
+                  mensaje: 'Un vecino de tu torre activo una alerta de panico/SOS. Mantente alerta y evita esa zona hasta que el guardia confirme que fue atendida.',
+                  referencia_tipo: 'alertas_panico',
+                  referencia_id: alerta.id,
+                })
+              )
+            );
+          }
+        }
+      }
+
+      await Promise.all(tareasNotificacion);
+
+      res.status(201).json({ data: alerta, notificados: destinatarios.length, vecinos_notificados: vecinosNotificados });
     } catch (err) {
       next(err);
     }
