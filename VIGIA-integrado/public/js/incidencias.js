@@ -20,10 +20,20 @@
   function sugerirTipo(texto){
     const t=texto.toLowerCase();
     if(/robo|ladr[oó]n|robaron|hurto|forzaron/.test(t))return'Robo';
-    if(/fuego|humo|incendio|quemando|quemad/.test(t))return'Incendio';
+    // Fuga u olor a gas es riesgo de incendio/explosion, no un dano
+    // cualquiera -- se trata igual que fuego/humo (mismo nivel critico).
+    if(/fuego|humo|incendio|quemando|quemad|explosi[oó]n|huele a gas|olor a gas|fuga de gas/.test(t))return'Incendio';
     if(/médic|medic|desmay|convulsi[oó]n|infarto|sangr|ambulancia/.test(t))return'Médico';
     if(/accidente|choque|ca[ií]da|golpe|atropell/.test(t))return'Accidente';
     if(/sospech|extra[ñn]o|merode|ronda/.test(t))return'Sospechoso';
+    // Antes ninguna palabra de dano/mantenimiento (fuga de agua, gotera,
+    // inundacion, corto circuito, apagon, tuberia rota, etc.) coincidia
+    // con nada, asi que el selector se quedaba mudo -- ni siquiera caia
+    // en "Otro" -- y se veia como si la sugerencia nunca hubiera leido
+    // la descripcion. Como el catalogo no tiene una categoria de "dano a
+    // la propiedad", esto se declara explicitamente como "Otro" en vez
+    // de dejarlo sin sugerir nada.
+    if(/fuga|gotera|inundaci[oó]n|derrame|corto\s*circuito|apag[oó]n|aver[ií]a|da[ñn]o|rotura|quebr[oó]|tuber[ií]a|filtraci[oó]n|ruido|escandal|mascota|animal suelto|basura|obstru/.test(t))return'Otro';
     return null;
   }
   function actualizarPrioridadInfo(){
@@ -35,7 +45,18 @@
     if(!tipoSelect||!types.length)return;
     const actual=tipoSelect.value;
     tipoSelect.innerHTML=types.map(t=>`<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('');
-    if(actual&&types.some(t=>String(t.id)===actual))tipoSelect.value=actual;
+    if(actual&&types.some(t=>String(t.id)===actual)){
+      tipoSelect.value=actual;
+    }else{
+      // Antes, al abrir el formulario en blanco, quedaba preseleccionado
+      // lo que fuera el primer tipo del catalogo ("Robo" por orden de
+      // creacion) sin que nadie lo hubiera elegido -- si alguien
+      // describia algo que la sugerencia no reconocia (ej. "fuga de
+      // agua"), el reporte se quedaba marcado como Robo sin que se
+      // notara. "Otro" es un punto de partida neutral y honesto.
+      const otro=types.find(t=>t.nombre==='Otro');
+      if(otro)tipoSelect.value=otro.id;
+    }
     actualizarPrioridadInfo();
   }
   if(tipoSelect)tipoSelect.addEventListener('change',actualizarPrioridadInfo);
@@ -64,6 +85,13 @@
         actualizarPrioridadInfo();
         document.getElementById('aiAssistText').textContent=`Coincide con "${sugerido}" según tu descripción — cámbialo arriba si no es correcto.`;
       }
+    }else if(desc.value.trim().length>=8){
+      // Antes, si la descripcion no coincidia con ninguna palabra clave,
+      // el mensaje se quedaba pegado en la ultima sugerencia (o en el
+      // texto generico inicial) sin avisar que esta vez no encontro
+      // nada -- daba la impresion de que seguia "pensando" en algo que
+      // ya no aplicaba. Esto lo deja explicito.
+      document.getElementById('aiAssistText').textContent='No encontramos una coincidencia clara con tu descripción — revisa el tipo elegido arriba y cámbialo si no corresponde.';
     }
   });
   async function compress(file){if(!file)return'';const src=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src});const c=document.createElement('canvas'),s=Math.min(1,520/img.width);c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.55)}
