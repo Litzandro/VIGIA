@@ -295,9 +295,18 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
     try {
       const where = primaryKeyWhere(model, req.params);
       if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
-      // Misma correccion que en el listado: propias o publicas del
-      // mismo residencial, nunca privadas/administracion de otro vecino.
-      if (req.user.rol_codigo === 'residente') where[Op.or] = [{ reportado_por: req.user.id }, { visibilidad: 'comunidad' }];
+      // Misma correccion que en el listado (ver GET '/' mas arriba):
+      // propias (cualquier estado) o publicas del mismo residencial que
+      // YA fueron aprobadas -- si no, alguien podia ver el detalle
+      // completo de una publicacion "comunidad" ajena que ni siquiera
+      // aparece en su listado, simplemente conociendo o adivinando el
+      // id.
+      if (req.user.rol_codigo === 'residente') {
+        where[Op.or] = [
+          { reportado_por: req.user.id },
+          { visibilidad: 'comunidad', estado: { [Op.notIn]: ['pendiente_aprobacion', 'rechazada'] } },
+        ];
+      }
       const row = await model.findOne({
         where,
         include: [
