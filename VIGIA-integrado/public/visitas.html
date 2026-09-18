@@ -129,6 +129,22 @@
           <option value="Mensual">Mensual</option>
         </select>
       </div>
+      <div class="form-group" id="visitWeekdayGroup" style="display:none;">
+        <label>¿Qué día de la semana?</label>
+        <div class="day-selector" id="visitWeekdaySelector">
+          <label title="Lunes"><input type="radio" name="visitWeekday" value="1"><span>Lu</span></label>
+          <label title="Martes"><input type="radio" name="visitWeekday" value="2"><span>Ma</span></label>
+          <label title="Miércoles"><input type="radio" name="visitWeekday" value="3"><span>Mi</span></label>
+          <label title="Jueves"><input type="radio" name="visitWeekday" value="4"><span>Ju</span></label>
+          <label title="Viernes"><input type="radio" name="visitWeekday" value="5"><span>Vi</span></label>
+          <label title="Sábado"><input type="radio" name="visitWeekday" value="6"><span>Sá</span></label>
+          <label title="Domingo"><input type="radio" name="visitWeekday" value="0"><span>Do</span></label>
+        </div>
+      </div>
+      <div class="form-group" id="visitMonthDayGroup" style="display:none;">
+        <label for="visitMonthDay">¿Qué día del mes?</label>
+        <select class="form-control" id="visitMonthDay"></select>
+      </div>
       <div class="form-group" id="visitDateTimeGroup" style="display:flex;gap:.8rem;">
         <div style="flex:1;">
           <label for="visitDate">Fecha</label>

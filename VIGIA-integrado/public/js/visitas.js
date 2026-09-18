@@ -34,6 +34,84 @@
   const recurringCheckbox = document.getElementById('visitRecurring');
   const frequencyGroup = document.getElementById('visitFrequencyGroup');
   const frequencyInput = document.getElementById('visitFrequency');
+  const weekdayGroup = document.getElementById('visitWeekdayGroup');
+  const monthDayGroup = document.getElementById('visitMonthDayGroup');
+  const monthDayInput = document.getElementById('visitMonthDay');
+
+  // Antes una visita "recurrente" simplemente tomaba el dia de HOY (el
+  // momento en que se llena el formulario) como el dia de la semana o
+  // del mes en que se repite -- nunca se le preguntaba a quien la crea
+  // que dia querian de verdad. Esto rellena el selector de dia del mes
+  // (1..31) y deja los radios de dia de la semana listos para usarse.
+  if (monthDayInput) {
+    for (let dia = 1; dia <= 31; dia++) {
+      const opt = document.createElement('option');
+      opt.value = String(dia);
+      opt.textContent = String(dia);
+      monthDayInput.appendChild(opt);
+    }
+  }
+
+  function marcarDiaActualPorDefecto() {
+    const hoy = new Date();
+    const radioHoy = document.querySelector(`input[name="visitWeekday"][value="${hoy.getDay()}"]`);
+    if (radioHoy) radioHoy.checked = true;
+    if (monthDayInput) monthDayInput.value = String(hoy.getDate());
+  }
+
+  // Muestra el selector que corresponde segun la frecuencia elegida
+  // (dia de la semana para "Semanal", dia del mes para "Mensual",
+  // ninguno para "Diario" porque ese ya aplica todos los dias).
+  function actualizarSelectorDeDia() {
+    if (!recurringCheckbox || !recurringCheckbox.checked) {
+      if (weekdayGroup) weekdayGroup.style.display = 'none';
+      if (monthDayGroup) monthDayGroup.style.display = 'none';
+      return;
+    }
+    const frecuencia = frequencyInput ? frequencyInput.value : 'Diario';
+    if (weekdayGroup) weekdayGroup.style.display = frecuencia === 'Semanal' ? '' : 'none';
+    if (monthDayGroup) monthDayGroup.style.display = frecuencia === 'Mensual' ? '' : 'none';
+  }
+
+  if (frequencyInput) {
+    frequencyInput.addEventListener('change', actualizarSelectorDeDia);
+  }
+
+  // Calcula la PRIMERA fecha real en la que debe empezar a aplicar la
+  // recurrencia, segun el dia que se elija en el formulario -- en vez
+  // de asumir que es hoy (que es lo que hacia antes: comparar new
+  // Date() y ya, sin preguntar nada). "Diario" no necesita elegir dia
+  // (aplica siempre), asi que empieza hoy mismo.
+  function calcularInicioRecurrente(frecuencia) {
+    const hoy = new Date();
+    hoy.setHours(9, 0, 0, 0);
+
+    if (frecuencia === 'Semanal') {
+      const radioMarcado = document.querySelector('input[name="visitWeekday"]:checked');
+      const diaElegido = radioMarcado ? Number(radioMarcado.value) : hoy.getDay();
+      const fecha = new Date(hoy);
+      const diff = (diaElegido - fecha.getDay() + 7) % 7;
+      fecha.setDate(fecha.getDate() + diff);
+      return fecha;
+    }
+
+    if (frecuencia === 'Mensual') {
+      const diaElegido = monthDayInput ? Number(monthDayInput.value) : hoy.getDate();
+      let fecha = new Date(hoy.getFullYear(), hoy.getMonth(), diaElegido, 9, 0, 0, 0);
+      // Si ese dia de este mes ya paso (o el mes no tiene ese dia, ej.
+      // 31 en un mes de 30), se pasa al mes siguiente. new Date con un
+      // dia fuera de rango ya "rueda" solo al mes que sigue, pero se
+      // vuelve a armar explicito para que quede claro y no dependa de
+      // ese comportamiento implicito.
+      if (fecha.getTime() < hoy.getTime()) {
+        fecha = new Date(hoy.getFullYear(), hoy.getMonth() + 1, diaElegido, 9, 0, 0, 0);
+      }
+      return fecha;
+    }
+
+    // 'Diario' (o cualquier valor desconocido): empieza hoy mismo.
+    return hoy;
+  }
 
   // ---- Selector de color libre para la visita que se está creando ----
   const colorSwatches = document.getElementById('visitColorSwatches');
@@ -634,6 +712,14 @@
       frequencyGroup.style.display = 'none';
     }
 
+    if (weekdayGroup) {
+      weekdayGroup.style.display = 'none';
+    }
+
+    if (monthDayGroup) {
+      monthDayGroup.style.display = 'none';
+    }
+
     if (nowCheckbox) {
       nowCheckbox.disabled = false;
     }
@@ -798,6 +884,9 @@
 
           }
 
+          marcarDiaActualPorDefecto();
+          actualizarSelectorDeDia();
+
 
         } else {
 
@@ -814,6 +903,8 @@
           if (nowCheckbox) {
             nowCheckbox.disabled = false;
           }
+
+          actualizarSelectorDeDia();
 
         }
 
@@ -918,7 +1009,12 @@
 
           if (eraRecurrente) {
 
-            const inicio = new Date();
+            const frecuenciaElegida =
+              frequencyInput
+                ? frequencyInput.value
+                : 'Diario';
+
+            const inicio = calcularInicioRecurrente(frecuenciaElegida);
 
             const fin =
               new Date(inicio);
@@ -927,6 +1023,19 @@
               fin.getFullYear() + 1
             );
 
+            // Aparte de "Frecuencia: Semanal/Mensual" (que ya leia
+            // recurrenteAplicaEnDia para saber que dia mostrar), se
+            // agrega tambien un texto legible del dia elegido, solo
+            // para que quede claro en la nota de la invitacion --
+            // recurrenteAplicaEnDia sigue basandose en inicio.getDay()/
+            // getDate(), no en este texto.
+            const DIAS_LARGOS_NOTA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+            let detalleDia = '';
+            if (frecuenciaElegida === 'Semanal') {
+              detalleDia = ` (todos los ${DIAS_LARGOS_NOTA[inicio.getDay()]})`;
+            } else if (frecuenciaElegida === 'Mensual') {
+              detalleDia = ` (día ${inicio.getDate()} de cada mes)`;
+            }
 
             payload = {
 
@@ -948,11 +1057,7 @@
                 'manual',
 
               notas:
-                `Frecuencia: ${
-                  frequencyInput
-                    ? frequencyInput.value
-                    : 'Recurrente'
-                } · ${motivo}`
+                `Frecuencia: ${frecuenciaElegida}${detalleDia} · ${motivo}`
 
             };
 
