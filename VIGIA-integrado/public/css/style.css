@@ -818,7 +818,7 @@ body::before{
 .priority{font-family:var(--f-mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;padding:.28rem .6rem;border-radius:6px;white-space:nowrap;}
 .priority.alta{background:var(--alert-soft);color:var(--alert);}
 .priority.media{background:var(--warn-soft);color:var(--warn);}
-.priority.baja{background:rgba(237,231,214,.08);color:var(--bone-dim);}
+.priority.baja{background:var(--accent-soft);color:var(--accent);}
 
 .kcard-progress{height:5px;border-radius:99px;background:rgba(237,231,214,.08);overflow:hidden;margin:.9rem 0 .2rem;}
 .kcard-progress span{display:block;height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--accent));border-radius:99px;}

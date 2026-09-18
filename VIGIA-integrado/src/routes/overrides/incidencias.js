@@ -39,7 +39,22 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       // ni nada de otro residencial (eso ya lo filtra residencial_id).
       const andConditions = [];
       if (req.user.rol_codigo === 'residente') {
-        andConditions.push({ [Op.or]: [{ reportado_por: req.user.id }, { visibilidad: 'comunidad' }] });
+        // Bug real (encontrado con capturas de la app en vivo): una
+        // incidencia "comunidad" de OTRO residente aparecia de una vez
+        // en el muro de todos, aunque todavia estuviera
+        // "pendiente_aprobacion" -- la aprobacion de guardia/admin
+        // (ruta /revisar, mas abajo) ya evitaba la notificacion masiva
+        // para ese caso, pero nunca evito que la propia incidencia
+        // apareciera en este listado. Ahora una incidencia "comunidad"
+        // de otra persona solo se ve aqui si ya fue aprobada (no esta
+        // pendiente ni fue rechazada); las tuyas siempre las ves, sea
+        // cual sea su estado, para que puedas darle seguimiento.
+        andConditions.push({
+          [Op.or]: [
+            { reportado_por: req.user.id },
+            { visibilidad: 'comunidad', estado: { [Op.notIn]: ['pendiente_aprobacion', 'rechazada'] } },
+          ],
+        });
       }
       if (req.query.estado && model.rawAttributes.estado) where.estado = req.query.estado;
       if (req.query.prioridad && model.rawAttributes.prioridad) where.prioridad = req.query.prioridad;
@@ -55,9 +70,17 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       // Se incluye el tipo para que el tablero pueda mostrar de que
       // categoria es cada incidencia (antes no viajaba, asi que la
       // tarjeta solo mostraba prioridad, nunca el tipo elegido).
+      // Se incluye tambien quien reporto (solo nombre/apellido, nunca
+      // email/telefono/password_hash) -- antes la tarjeta del tablero no
+      // tenia de donde sacar un nombre real y mostraba la visibilidad
+      // ("comunidad"/"privada") en su lugar, como si esa palabra fuera
+      // el autor.
       const rows = await model.findAll({
         where,
-        include: [{ model: db.TiposIncidencia, as: 'tipoIncidencia', attributes: ['id', 'nombre', 'nivel_urgencia'] }],
+        include: [
+          { model: db.TiposIncidencia, as: 'tipoIncidencia', attributes: ['id', 'nombre', 'nivel_urgencia'] },
+          { model: db.Usuarios, as: 'reportadoPor', attributes: ['id', 'nombre', 'apellido'] },
+        ],
         order: [['fecha_hora', 'DESC']],
         limit: 200,
       });

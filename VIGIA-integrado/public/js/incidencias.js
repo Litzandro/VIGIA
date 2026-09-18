@@ -109,7 +109,32 @@
     }
   };
   const stateLabel={reportada:'Abierta',en_revision:'En progreso',resuelta:'Resuelta',cerrada:'Historial'};
-  function card(x){const tipoNombre=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin tipo';return `<article class="kcard" data-priority="${escapeHtml(x.prioridad)}" data-id="${x.id}" style="cursor:pointer;" title="Ver detalle"><div class="kcard-top"><span class="kcard-icon ${x.prioridad==='urgente'||x.prioridad==='alta'?'warn':'ok'}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span><span class="badge neutral" style="margin-left:.4rem;">${escapeHtml(tipoNombre)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">VG</span> ${escapeHtml(x.visibilidad)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${new Date(x.fecha_hora).toLocaleDateString('es-HN')}</span></div></article>`}
+  // Antes la tarjeta mostraba la VISIBILIDAD ("comunidad"/"privada")
+  // en el lugar donde deberia ir el autor -- se veia como si esa
+  // palabra fuera el nombre de quien reporto. Ahora usa el nombre real
+  // que ya viaja incluido desde el backend (reportadoPor).
+  function nombreAutor(x){
+    const u=x.reportadoPor;
+    if(!u)return'Vecino';
+    const nombre=`${u.nombre||''} ${u.apellido||''}`.trim();
+    return nombre||'Vecino';
+  }
+  function iniciales(nombre){
+    const partes=nombre.trim().split(/\s+/);
+    return ((partes[0]||'')[0]||'V').toUpperCase()+((partes[1]||'')[0]||'').toUpperCase();
+  }
+  // El icono de bandera antes solo distinguia 2 colores (ambar para
+  // urgente/alta, verde para el resto) mientras que la etiqueta de
+  // texto junto a el ya distinguia 3 (rojo/ambar/verde) -- terminaban
+  // sin coincidir entre si en la misma tarjeta. Ahora usan el mismo
+  // mapeo: urgente y alta en rojo, media en ambar, baja en verde.
+  const ICONO_POR_PRIORIDAD={urgente:'alert',alta:'alert',media:'warn',baja:'ok'};
+  function card(x){
+    const tipoNombre=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin tipo';
+    const autor=nombreAutor(x);
+    const claseIcono=ICONO_POR_PRIORIDAD[x.prioridad]||'ok';
+    return `<article class="kcard" data-priority="${escapeHtml(x.prioridad)}" data-id="${x.id}" style="cursor:pointer;" title="Ver detalle"><div class="kcard-top"><span class="kcard-icon ${claseIcono}"><i class="bi bi-flag-fill"></i></span><span class="priority ${escapeHtml(x.prioridad)}">Prioridad ${escapeHtml(x.prioridad)}</span><span class="badge neutral" style="margin-left:.4rem;">${escapeHtml(tipoNombre)}</span></div><h4>${escapeHtml(x.titulo)}</h4><p>${escapeHtml(x.descripcion)}</p><div class="kcard-footer"><div class="kcard-assignee"><span class="mini-av">${escapeHtml(iniciales(autor))}</span> ${escapeHtml(autor)}</div><span class="kcard-updated mono">#INC-${String(x.id).padStart(4,'0')} · ${new Date(x.fecha_hora).toLocaleDateString('es-HN')}</span></div></article>`;
+  }
 
   // Antes no habia NINGUNA forma de ver la evidencia (foto) que se
   // adjuntaba al reportar -- se guardaba bien en el servidor, pero la
