@@ -9,8 +9,8 @@ module.exports = (sequelize, DataTypes) => {
     incidencia_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     usuario_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     comentario: { type: DataTypes.TEXT, allowNull: true },
-    estado_anterior: { type: DataTypes.ENUM('reportada', 'en_revision', 'resuelta', 'cerrada'), allowNull: true },
-    estado_nuevo: { type: DataTypes.ENUM('reportada', 'en_revision', 'resuelta', 'cerrada'), allowNull: false },
+    estado_anterior: { type: DataTypes.ENUM('pendiente_aprobacion', 'reportada', 'en_revision', 'resuelta', 'cerrada', 'rechazada'), allowNull: true },
+    estado_nuevo: { type: DataTypes.ENUM('pendiente_aprobacion', 'reportada', 'en_revision', 'resuelta', 'cerrada', 'rechazada'), allowNull: false },
     fecha_hora: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
   }, {
     tableName: 'incidencias_seguimiento',

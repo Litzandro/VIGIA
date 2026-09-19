@@ -489,8 +489,15 @@ CREATE TABLE incidencias_seguimiento (
     incidencia_id  BIGINT UNSIGNED NOT NULL,
     usuario_id     BIGINT UNSIGNED NOT NULL,
     comentario     TEXT NULL,
-    estado_anterior ENUM('reportada','en_revision','resuelta','cerrada') NULL,
-    estado_nuevo    ENUM('reportada','en_revision','resuelta','cerrada') NOT NULL,
+    -- Se agregaron 'pendiente_aprobacion' y 'rechazada' para que este
+    -- historial pueda registrar tambien la aprobacion/rechazo de un
+    -- reporte de residente (ver incidencias.estado, que ya los tenia) --
+    -- antes de esto, aprobar o rechazar cualquier reporte fallaba con
+    -- 'Data truncated for column estado_anterior' porque ese paso
+    -- intenta guardar 'pendiente_aprobacion' en un ENUM que no lo
+    -- reconocia.
+    estado_anterior ENUM('pendiente_aprobacion','reportada','en_revision','resuelta','cerrada','rechazada') NULL,
+    estado_nuevo    ENUM('pendiente_aprobacion','reportada','en_revision','resuelta','cerrada','rechazada') NOT NULL,
     fecha_hora     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_incseg_incidencia FOREIGN KEY (incidencia_id) REFERENCES incidencias(id) ON DELETE CASCADE,
     CONSTRAINT fk_incseg_usuario    FOREIGN KEY (usuario_id)    REFERENCES usuarios(id)    ON DELETE RESTRICT

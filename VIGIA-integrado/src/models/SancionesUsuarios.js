@@ -1,6 +1,7 @@
 'use strict';
-// Igual que el resto de src/models/*.js: generado a partir de
-// database/vigia_schema.sql (tabla "sanciones_usuarios").
+// Archivo generado automaticamente por scripts/generate-models.js
+// a partir de database/vigia_schema.sql (tabla "sanciones_usuarios").
+// No editar a mano: si el esquema SQL cambia, correr "npm run generate:models".
 
 module.exports = (sequelize, DataTypes) => {
   const SancionesUsuarios = sequelize.define('SancionesUsuarios', {

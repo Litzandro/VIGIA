@@ -234,6 +234,24 @@
     "onDelete": "SET NULL"
   },
   {
+    "table": "sanciones_usuarios",
+    "column": "usuario_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "sanciones_usuarios",
+    "column": "incidencia_id",
+    "refTable": "incidencias",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "sanciones_usuarios",
+    "column": "aplicado_por",
+    "refTable": "usuarios",
+    "onDelete": "RESTRICT"
+  },
+  {
     "table": "incidencias_evidencias",
     "column": "incidencia_id",
     "refTable": "incidencias",
