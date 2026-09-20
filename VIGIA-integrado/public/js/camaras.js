@@ -10,8 +10,10 @@
 //    o un aviso claro si la URL es RTSP puro (el navegador no puede
 //    reproducir eso sin convertirlo primero -- ver el modal de ayuda).
 //
-// Solo admin/superadmin ven los botones de agregar/editar/eliminar;
-// residente y guardia (con permiso "camaras.ver") solo miran.
+// admin/superadmin/guardia ven los botones de agregar/editar/eliminar
+// (guardia tambien gestiona camaras -- suele ser quien esta fisicamente
+// en garita conectando o ajustando el equipo); residente (con permiso
+// "camaras.ver") solo mira.
 
 (function(){
   const grid=document.getElementById('camGrid');
@@ -20,7 +22,7 @@
 
   const REFRESH_MS=60000;
   const session=VigiaAPI.getSession();
-  const esAdmin=Boolean(session && ['admin','superadmin'].includes(session.rol_codigo));
+  const puedeGestionar=Boolean(session && ['admin','superadmin','guardia'].includes(session.rol_codigo));
   // El superadmin no pertenece a ninguna residencial en particular (por
   // diseno, ve todas) -- a diferencia del admin normal, el backend NO
   // puede deducir solo con la sesion a que residencial va esta camara,
@@ -28,7 +30,7 @@
   const isSuper=Boolean(session && session.rol_codigo==='superadmin');
 
   const adminActions=document.getElementById('camAdminActions');
-  if(esAdmin && adminActions) adminActions.hidden=false;
+  if(puedeGestionar && adminActions) adminActions.hidden=false;
 
   const planBloqueado=document.getElementById('camPlanBloqueado');
   // Superadmin nunca se ve limitado por planes (los administra el, no le
@@ -167,7 +169,7 @@
     wrap.appendChild(badge);
     card.appendChild(wrap);
 
-    const info=document.createElement('div');info.className='cam-card-info'+(esAdmin?' has-admin-btns':'');
+    const info=document.createElement('div');info.className='cam-card-info'+(puedeGestionar?' has-admin-btns':'');
     const textWrap=document.createElement('div');textWrap.className='cam-card-info-text';
     const nombre=document.createElement('b');nombre.textContent=cam.nombre||'Cámara';
     const ubic=document.createElement('span');ubic.className='mono';ubic.textContent=cam.ubicacion||'';
@@ -175,7 +177,7 @@
     textWrap.append(nombre,ubic,statusBadge);
     info.appendChild(textWrap);
 
-    if(esAdmin){
+    if(puedeGestionar){
       const btns=document.createElement('div');btns.className='cam-card-admin-btns';
       const editBtn=document.createElement('button');editBtn.type='button';editBtn.className='icon-btn';editBtn.title='Editar';
       editBtn.appendChild(Object.assign(document.createElement('i'),{className:'bi bi-pencil-fill'}));
@@ -195,7 +197,7 @@
     const icon=document.createElement('i');icon.className='bi bi-camera-video-off';
     const title=document.createElement('b');
     const p=document.createElement('p');
-    if(esAdmin){
+    if(puedeGestionar){
       title.textContent='Todavía no has conectado ninguna cámara';
       p.textContent='Mientras tanto, abajo se muestran cámaras de referencia. Toca "Agregar cámara" para conectar la primera.';
     }else{
@@ -358,7 +360,7 @@
     });
   }
 
-  if(esAdmin) cargarPuntosAcceso();
+  if(puedeGestionar) cargarPuntosAcceso();
   if(isSuper) cargarResidenciales();
   revisarPlan().then(permitido=>{ if(permitido) cargarCamaras(); });
 })();

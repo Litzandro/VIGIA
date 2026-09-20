@@ -34,6 +34,11 @@
       <div><b id="guardSosTitle">SOS activo</b><span id="guardSosText">Se requiere atención inmediata.</span></div>
       <button type="button" class="btn btn-solid" id="guardFocusSOS">Atender alerta</button>
     </div>
+    <section class="panel guard-panel" id="sosSection">
+      <div class="panel-head"><div><h3>Alertas SOS</h3><p class="config-section-note">Las activas permanecen arriba hasta que un guardia las atienda.</p></div><span class="mono" id="sosUpdated"></span></div>
+      <div id="guardPanicList" class="guard-panic-list"></div>
+      <p class="mono" id="guardPanicEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:1.5rem 0;text-align:center;">No hay alertas SOS activas.</p>
+    </section>
 
     <div class="guard-kpi-grid">
       <button class="guard-kpi" type="button" data-jump="insideSection"><span class="guard-kpi-icon"><i class="bi bi-people-fill"></i></span><span class="guard-kpi-value" id="gInside">0</span><span class="guard-kpi-label">Dentro ahora</span></button>
@@ -76,11 +81,6 @@
       </section>
     </div>
 
-    <section class="panel guard-panel" id="sosSection">
-      <div class="panel-head"><div><h3>Alertas SOS</h3><p class="config-section-note">Las activas permanecen arriba hasta que un guardia las atienda.</p></div><span class="mono" id="sosUpdated"></span></div>
-      <div id="guardPanicList" class="guard-panic-list"></div>
-      <p class="mono" id="guardPanicEmptyMsg" style="color:var(--mist);font-size:.85rem;padding:1.5rem 0;text-align:center;">No hay alertas SOS activas.</p>
-    </section>
   </div></div></div>
 </div>
 <script src="js/common.js"></script>

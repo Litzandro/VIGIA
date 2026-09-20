@@ -1163,7 +1163,7 @@ WHERE r.codigo = 'admin' AND p.codigo NOT IN ('residenciales.gestionar','suscrip
 INSERT INTO roles_permisos (rol_id, permiso_id)
 SELECT r.id, p.id FROM roles r, permisos p
 WHERE r.codigo = 'guardia' AND p.codigo IN
-    ('accesos.registrar','accesos.consultar','incidencias.reportar','incidencias.gestionar','alertas.atender','chat.usar','camaras.ver','cola.gestionar','turnos.consultar','vetos.consultar','emergencias.consultar','offline.sincronizar');
+    ('accesos.registrar','accesos.consultar','incidencias.reportar','incidencias.gestionar','alertas.atender','chat.usar','camaras.ver','camaras.gestionar','cola.gestionar','turnos.consultar','vetos.consultar','emergencias.consultar','offline.sincronizar');
 
 INSERT INTO roles_permisos (rol_id, permiso_id)
 SELECT r.id, p.id FROM roles r, permisos p
