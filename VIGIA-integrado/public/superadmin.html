@@ -15,7 +15,14 @@
     <a class="ao-stat alert" href="guardia.html"><span class="ao-val" id="aoSOS">0</span><span class="ao-label">Alertas SOS activas</span></a>
     <a class="ao-stat" href="operaciones.html"><span class="ao-val" id="aoTurnos">0</span><span class="ao-label">Guardias en turno</span></a>
     <a class="ao-stat" href="control-acceso.html"><span class="ao-val" id="aoCola">0</span><span class="ao-label">Esperando en garita</span></a>
-    <div class="ao-stat static"><span class="ao-val" id="aoAccesos">0</span><span class="ao-label">Accesos hoy</span></div>
+    <div class="ao-stat static ao-stat-range"><span class="ao-val" id="aoAccesos">0</span><span class="ao-label" id="aoAccesosLabel">Accesos hoy</span>
+      <div class="ao-range" id="aoRange">
+        <button type="button" class="active" data-rango="hoy">Hoy</button>
+        <button type="button" data-rango="7">7 días</button>
+        <button type="button" data-rango="30">30 días</button>
+        <button type="button" data-rango="todo">Todo</button>
+      </div>
+    </div>
   </div>
 </section>
 
