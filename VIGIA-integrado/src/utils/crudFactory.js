@@ -12,6 +12,7 @@
 // OTRO residente) via estos endpoints genericos. El primer nivel
 // (permisos/roles) lo aplica buildAccessMiddleware antes de llegar aca.
 
+const { Op, literal } = require('sequelize');
 const RESERVED_QUERY_PARAMS = new Set(['page', 'limit', 'sort']);
 const { validarCampos } = require('../config/resourceValidation');
 
@@ -101,8 +102,20 @@ function applyOwnershipScope(model, user, where) {
   // Sin este caso especial, GET /api/accesos devolvia los accesos de toda
   // la residencial y el frontend intentaba filtrarlos despues. La
   // privacidad debe aplicarse en el servidor, no depender del navegador.
+  // El residente ve (a) sus propios movimientos (usuario_id) y (b) los de
+  // las visitas que EL invito: accesos.invitacion_id apunta a una de sus
+  // invitaciones. Antes solo aplicaba (a), y como el guardia registra a
+  // las visitas sin usuario_id, "Mis accesos" quedaba vacia aunque la
+  // gente de sus invitaciones ya hubiera entrado. La subconsulta usa el id
+  // numerico del token (nunca texto del cliente).
   if (user.rol_codigo === 'residente' && model.getTableName() === 'accesos' && model.rawAttributes.usuario_id) {
-    scoped.usuario_id = user.id;
+    const residenteId = Number(user.id);
+    delete scoped.usuario_id;
+    const propios = [
+      { usuario_id: residenteId },
+      { invitacion_id: { [Op.in]: literal(`(SELECT id FROM invitaciones WHERE residente_id = ${residenteId})`) } },
+    ];
+    scoped[Op.and] = [...(scoped[Op.and] || []), { [Op.or]: propios }];
   }
 
   if (model.getTableName() === 'notificaciones' && !['admin', 'superadmin'].includes(user.rol_codigo)) {
