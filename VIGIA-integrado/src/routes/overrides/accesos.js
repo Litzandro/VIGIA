@@ -89,14 +89,28 @@ module.exports = function accesosOverride({ router, model, handlers, pkPath }) {
         // tiene sentido deshacer el acceso ya registrado ni el uso ya
         // descontado, que son los datos que de verdad importan.
         try {
-          await notificacionesService.crear({
-            usuario_id: invitacion.residente_id,
-            tipo: 'ingreso_visita',
-            titulo: acceso.tipo_movimiento === 'entrada' ? 'Tu visita ingreso' : 'Tu visita salio',
-            mensaje: `Se registro un(a) ${acceso.tipo_movimiento} de tu invitacion el ${new Date(acceso.fecha_hora).toLocaleString()}.`,
-            referencia_tipo: 'accesos',
-            referencia_id: acceso.id,
-          });
+          // En una fiesta (invitacion tipo "evento") entran decenas de
+          // personas con el mismo QR: una notificacion por cada una
+          // inundaria al residente. Solo se avisa en la primera entrada,
+          // cada 10 y cuando se agota el cupo.
+          const esEvento = invitacion.tipo === 'evento';
+          const usos = invitacion.usos_actuales;
+          const avisar = !esEvento || acceso.tipo_movimiento !== 'entrada'
+            || usos === 1 || usos % 10 === 0 || usos >= invitacion.max_usos;
+          if (avisar) {
+            await notificacionesService.crear({
+              usuario_id: invitacion.residente_id,
+              tipo: 'ingreso_visita',
+              titulo: esEvento
+                ? `Tu evento: ${usos} de ${invitacion.max_usos} invitados`
+                : (acceso.tipo_movimiento === 'entrada' ? 'Tu visita ingreso' : 'Tu visita salio'),
+              mensaje: esEvento
+                ? `Ya ingresaron ${usos} de ${invitacion.max_usos} invitados a "${invitacion.nombre_evento || 'tu evento'}".`
+                : `Se registro un(a) ${acceso.tipo_movimiento} de tu invitacion el ${new Date(acceso.fecha_hora).toLocaleString()}.`,
+              referencia_tipo: 'accesos',
+              referencia_id: acceso.id,
+            });
+          }
         } catch (errNotif) {
           console.error('[VIGIA] No se pudo notificar el acceso de la invitacion', invitacion.id, errNotif.message);
         }
