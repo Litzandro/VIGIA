@@ -11,7 +11,56 @@
   if (!isSuper) {
     document.getElementById('residentialPanel').style.display = 'none';
     document.getElementById('subscriptionLink').style.display = 'none';
+    // Sin el panel "Nueva residencial", el layout de 2 columnas dejaba
+    // "Crear cuenta" ocupando solo la mitad izquierda con la derecha en
+    // blanco -- se colapsa a 1 columna para que aproveche todo el ancho.
+    document.getElementById('accountsLayout').classList.add('single-col');
   }
+
+  // ---------- RESUMEN OPERATIVO ----------
+  // Antes el portal de administracion abria directo en "Crear cuenta":
+  // ni una sola metrica de como esta la residencial en este momento
+  // (incidencias, SOS, turnos, cola) sin entrar pagina por pagina.
+  const NIVEL_CLS={critica:'alert',alta:'warn',media:'info'};
+  const RANGO_LABEL={hoy:'Accesos hoy',7:'Accesos últimos 7 días','7':'Accesos últimos 7 días',30:'Accesos últimos 30 días','30':'Accesos últimos 30 días',todo:'Accesos totales'};
+  let rangoAccesos='hoy';
+  async function cargarResumenOperativo(){
+    const sub=document.getElementById('aoSubtitle');
+    try{
+      const r=await VigiaAPI.request(`/centro-seguridad/resumen?rango=${rangoAccesos}`);
+      const d=r.data||{},m=d.metricas||{};
+      document.getElementById('aoPorAprobar').textContent=m.incidencias_por_aprobar||0;
+      document.getElementById('aoAbiertas').textContent=m.incidencias_abiertas||0;
+      document.getElementById('aoSOS').textContent=m.alertas_sos||0;
+      document.getElementById('aoTurnos').textContent=m.guardias_activos||0;
+      document.getElementById('aoCola').textContent=m.cola_activa||0;
+      document.getElementById('aoAccesos').textContent=(m.accesos_rango!=null?m.accesos_rango:m.accesos_hoy)||0;
+      document.getElementById('aoAccesosLabel').textContent=RANGO_LABEL[rangoAccesos]||'Accesos hoy';
+      document.querySelectorAll('#aoGrid .ao-stat').forEach(el=>{
+        const v=Number(el.querySelector('.ao-val').textContent)||0;
+        el.classList.toggle('has-value',v>0);
+      });
+      const box=document.getElementById('aoAlerts');
+      const reglas=d.reglas||[];
+      box.hidden=!reglas.length;
+      box.innerHTML=reglas.map(x=>`<div class="ao-alert ${NIVEL_CLS[x.nivel]||'info'}"><i class="bi bi-exclamation-triangle-fill"></i><span>${escapeHtml(x.mensaje)}</span></div>`).join('');
+      sub.textContent=reglas.length?`${reglas.length} cosa${reglas.length===1?'':'s'} necesita${reglas.length===1?'':'n'} tu atención.`:'Todo en orden por ahora.';
+    }catch(err){
+      sub.textContent='No se pudo cargar el resumen.';
+    }
+  }
+  document.querySelectorAll('#aoRange button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      if(b.classList.contains('active'))return;
+      document.querySelectorAll('#aoRange button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      rangoAccesos=b.dataset.rango;
+      cargarResumenOperativo();
+    });
+  });
+  document.getElementById('aoRefresh').addEventListener('click',cargarResumenOperativo);
+  cargarResumenOperativo();
+  setInterval(cargarResumenOperativo,30000);
 
   attachTelefonoHNMask(document.getElementById('adPhone'));attachPhoneCountryCode(document.getElementById('adPhone'));
   attachSoloLetras(document.getElementById('adName'),20);
