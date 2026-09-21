@@ -22,20 +22,17 @@
   // ni una sola metrica de como esta la residencial en este momento
   // (incidencias, SOS, turnos, cola) sin entrar pagina por pagina.
   const NIVEL_CLS={critica:'alert',alta:'warn',media:'info'};
-  const RANGO_LABEL={hoy:'Accesos hoy',7:'Accesos últimos 7 días','7':'Accesos últimos 7 días',30:'Accesos últimos 30 días','30':'Accesos últimos 30 días',todo:'Accesos totales'};
-  let rangoAccesos='hoy';
   async function cargarResumenOperativo(){
     const sub=document.getElementById('aoSubtitle');
     try{
-      const r=await VigiaAPI.request(`/centro-seguridad/resumen?rango=${rangoAccesos}`);
+      const r=await VigiaAPI.request('/centro-seguridad/resumen');
       const d=r.data||{},m=d.metricas||{};
       document.getElementById('aoPorAprobar').textContent=m.incidencias_por_aprobar||0;
       document.getElementById('aoAbiertas').textContent=m.incidencias_abiertas||0;
       document.getElementById('aoSOS').textContent=m.alertas_sos||0;
       document.getElementById('aoTurnos').textContent=m.guardias_activos||0;
       document.getElementById('aoCola').textContent=m.cola_activa||0;
-      document.getElementById('aoAccesos').textContent=(m.accesos_rango!=null?m.accesos_rango:m.accesos_hoy)||0;
-      document.getElementById('aoAccesosLabel').textContent=RANGO_LABEL[rangoAccesos]||'Accesos hoy';
+      document.getElementById('aoAccesos').textContent=m.accesos_hoy||0;
       document.querySelectorAll('#aoGrid .ao-stat').forEach(el=>{
         const v=Number(el.querySelector('.ao-val').textContent)||0;
         el.classList.toggle('has-value',v>0);
@@ -49,15 +46,6 @@
       sub.textContent='No se pudo cargar el resumen.';
     }
   }
-  document.querySelectorAll('#aoRange button').forEach(b=>{
-    b.addEventListener('click',()=>{
-      if(b.classList.contains('active'))return;
-      document.querySelectorAll('#aoRange button').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      rangoAccesos=b.dataset.rango;
-      cargarResumenOperativo();
-    });
-  });
   document.getElementById('aoRefresh').addEventListener('click',cargarResumenOperativo);
   cargarResumenOperativo();
   setInterval(cargarResumenOperativo,30000);

@@ -71,6 +71,31 @@
     }
   }
 
+  // Antes esta pantalla solo servia para dejar ENTRAR (arriba); para
+  // registrar la salida de alguien que ya habia entrado con este mismo QR
+  // habia que ir a "Quien esta dentro ahora" y buscarlo a mano. Se
+  // consulta cuantos de esta invitacion siguen dentro (GET .../en-sitio) y,
+  // si hay alguien, se ofrece el mismo endpoint que ya usa el panel del
+  // guardia para registrar la salida.
+  async function registrarSalida(data,btn){
+    btn.disabled=true;
+    try{
+      const r=await VigiaAPI.request(`/invitaciones/${data.id}/en-sitio`);
+      const info=r.data||{};
+      if(!info.dentro||!info.entrada_id){
+        showToast('No queda nadie de esta invitación registrado como dentro.','bi-exclamation-triangle-fill');
+        return;
+      }
+      await VigiaAPI.request(`/centro-seguridad/salida/${info.entrada_id}`,{method:'POST',body:JSON.stringify(data.tipo==='evento'?{cantidad:1}:{})});
+      showToast(data.tipo==='evento'?'Salida registrada (1 persona)':'Salida registrada');
+      await verificarCodigo(data.codigo_qr);
+    }catch(err){
+      showToast(err.message,'bi-exclamation-triangle-fill');
+    }finally{
+      btn.disabled=false;
+    }
+  }
+
   async function mostrarResultado(valido,motivo,data){
     resultBox.className='qr-result show '+(valido?'valido':'invalido');
     if(valido&&data){
@@ -100,6 +125,18 @@
       btn.innerHTML='<i class="bi bi-box-arrow-in-right"></i> Registrar ingreso'+(esEvento?' (+1)':'');
       btn.addEventListener('click',()=>registrarIngreso(data,btn,sel));
       cont.appendChild(btn);
+
+      const salidaBtn=document.createElement('button');
+      salidaBtn.type='button';salidaBtn.className='btn btn-caution';
+      salidaBtn.innerHTML='<i class="bi bi-box-arrow-right"></i> Registrar salida'+(esEvento?' (-1)':'');
+      salidaBtn.addEventListener('click',()=>registrarSalida(data,salidaBtn));
+      cont.appendChild(salidaBtn);
+      try{
+        const est=await VigiaAPI.request(`/invitaciones/${data.id}/en-sitio`);
+        const dentro=(est.data||{}).dentro||0;
+        salidaBtn.disabled=!dentro;
+        salidaBtn.title=dentro?(esEvento?`${dentro} de este evento sigue${dentro===1?'':'n'} dentro`:'Esta persona sigue dentro'):'Nadie de esta invitación sigue dentro';
+      }catch(e){salidaBtn.disabled=true}
     }else{
       resultBox.innerHTML=`
         <h4><i class="bi bi-x-circle-fill"></i> Código no válido</h4>

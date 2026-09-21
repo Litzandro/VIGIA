@@ -42,17 +42,81 @@
       // Formato 12h explicito: el default de Intl para 'es-HN' no siempre
       // cae en 12h segun el navegador, asi que se fuerza hour12:true.
       const fmt12h={day:'2-digit',month:'2-digit',hour:'numeric',minute:'2-digit',hour12:true};
-      el.innerHTML=`<div class="queue-number"><i class="bi bi-clock-history"></i></div><div class="queue-copy"><b>${escapeHtml(x.guardia_original_nombre||`Guardia #${x.guardia_original_id}`)}</b><span>${new Date(x.inicio_programado).toLocaleString('es-HN',fmt12h)} — ${new Date(x.fin_programado).toLocaleString('es-HN',fmt12h)}</span>${x.guardia_relevo_nombre?`<span>Relevo: ${escapeHtml(x.guardia_relevo_nombre)}</span>`:''}<span>${escapeHtml(x.observaciones||'Sin observaciones')}</span></div><div class="queue-actions" style="grid-column:1 / -1;justify-content:flex-start;margin-top:.6rem;"><span class="badge ${x.estado==='activo'?'ok':x.estado==='programado'?'pending':'neutral'}">${escapeHtml(x.estado)}</span>${x.estado==='programado'?'<button class="btn btn-solid" data-a="iniciar">Iniciar</button>':''}${canManage&&['programado','activo'].includes(x.estado)?'<button class="btn btn-caution" data-a="relevar">Relevar</button>':''}${['activo','relevado'].includes(x.estado)?'<button class="btn btn-danger" data-a="finalizar">Finalizar</button>':''}</div>`;
+      el.innerHTML=`<div class="queue-number"><i class="bi bi-clock-history"></i></div><div class="queue-copy"><b>${escapeHtml(x.guardia_original_nombre||`Guardia #${x.guardia_original_id}`)}</b><span>${new Date(x.inicio_programado).toLocaleString('es-HN',fmt12h)} — ${new Date(x.fin_programado).toLocaleString('es-HN',fmt12h)}</span>${x.guardia_relevo_nombre?`<span>Relevo: ${escapeHtml(x.guardia_relevo_nombre)}</span>`:''}<span>${escapeHtml(x.observaciones||'Sin observaciones')}</span></div><div class="queue-actions" style="grid-column:1 / -1;justify-content:flex-start;margin-top:.6rem;"><span class="badge ${x.estado==='activo'?'ok':x.estado==='programado'?'pending':'neutral'}">${escapeHtml(x.estado)}</span>${x.estado==='programado'?'<button class="btn btn-solid" data-a="iniciar">Iniciar</button>':''}${canManage&&['programado','activo'].includes(x.estado)?'<button class="btn btn-caution" data-a="relevar">Relevar</button>':''}${['activo','relevado'].includes(x.estado)?'<button class="btn btn-danger" data-a="finalizar">Finalizar</button>':''}${x.estado!=='programado'?`<button class="btn btn-ghost" data-bitacora="1"><i class="bi bi-journal-text"></i> Bitácora</button>`:''}</div>`;
+      const bitBtn=el.querySelector('[data-bitacora]');
+      if(bitBtn)bitBtn.onclick=()=>abrirBitacora(x);
       el.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{
         const body={accion:b.dataset.a};
         if(b.dataset.a==='relevar'){
           const relief=document.getElementById('opRelief').value||prompt('ID del guardia de relevo:');if(!relief)return;
-          body.guardia_relevo_id=Number(relief);body.observaciones=prompt('Motivo del relevo:')||'Relevo de jornada';
+          const motivoRelevo=prompt('Motivo del relevo:')||'Relevo de jornada';
+          body.guardia_relevo_id=Number(relief);body.observaciones=motivoRelevo;
         }
-        try{await VigiaAPI.request(`/turnos-guardia/${x.id}/accion`,{method:'PATCH',body:JSON.stringify(body)});showToast('Jornada actualizada');await load()}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
+        try{
+          await VigiaAPI.request(`/turnos-guardia/${x.id}/accion`,{method:'PATCH',body:JSON.stringify(body)});
+          if(b.dataset.a==='relevar')await VigiaAPI.request(`/turnos-guardia/${x.id}/nota`,{method:'PATCH',body:JSON.stringify({comentario:`Relevo: ${body.observaciones}`})}).catch(()=>{});
+          showToast('Jornada actualizada');await load();
+        }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
       });box.appendChild(el);
     });
   }
+
+  // ---------- BITÁCORA DEL TURNO ----------
+  // Antes ningun guardia tenia donde dejar constancia de lo que paso
+  // durante su jornada (rondas, visitas atendidas, algo para el
+  // siguiente turno) ni de un motivo de relevo mas detallado que el
+  // "Motivo del relevo" de un solo prompt(). Reusa GET/PATCH
+  // /turnos-guardia/:id/bitacora y /nota (ver el override del backend).
+  let turnoBitacora=null;
+  const bitPanel=document.getElementById('opBitacoraPanel');
+  const bitList=document.getElementById('opBitacoraList');
+  const bitNote=document.getElementById('opBitacoraNote');
+  const bitForm=document.getElementById('opBitacoraForm');
+
+  function puedeAnotar(turno){
+    if(canManage)return true;
+    return [turno.guardia_original_id,turno.guardia_relevo_id].map(String).includes(String(session.id));
+  }
+  function fmtNota(v){return new Date(v).toLocaleString('es-HN',{day:'2-digit',month:'short',hour:'numeric',minute:'2-digit',hour12:true})}
+  async function cargarBitacora(turno){
+    bitList.innerHTML='<div class="empty-state">Cargando…</div>';
+    try{
+      const r=await VigiaAPI.request(`/turnos-guardia/${turno.id}/bitacora`);
+      const rows=r.data||[];
+      bitList.innerHTML=rows.length?'':'<div class="empty-state">Todavía no hay novedades registradas en este turno.</div>';
+      rows.forEach(n=>{
+        const el=document.createElement('div');el.className='op-bit-entry';
+        el.innerHTML=`<p></p><span></span>`;
+        el.querySelector('p').textContent=n.comentario;
+        el.querySelector('span').textContent=`${n.usuario_nombre} · ${fmtNota(n.fecha_hora)}`;
+        bitList.appendChild(el);
+      });
+      bitList.scrollTop=bitList.scrollHeight;
+    }catch(e){bitList.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}
+  }
+  function abrirBitacora(turno){
+    turnoBitacora=turno;
+    document.getElementById('opBitacoraSub').textContent=`${turno.guardia_original_nombre||'Guardia'} · ${new Date(turno.inicio_programado).toLocaleDateString('es-HN',{day:'2-digit',month:'short'})}`;
+    bitForm.style.display=puedeAnotar(turno)?'flex':'none';
+    bitNote.value='';
+    bitPanel.hidden=false;
+    cargarBitacora(turno);
+    bitPanel.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  document.getElementById('opBitacoraClose').onclick=()=>{bitPanel.hidden=true;turnoBitacora=null};
+  document.getElementById('opBitacoraAdd').onclick=async()=>{
+    const c=bitNote.value.trim();
+    if(c.length<3){showToast('Escribe la novedad.','bi-exclamation-triangle-fill');return}
+    if(!turnoBitacora)return;
+    const btn=document.getElementById('opBitacoraAdd');
+    await withSubmitLock(btn,async()=>{
+      try{
+        await VigiaAPI.request(`/turnos-guardia/${turnoBitacora.id}/nota`,{method:'PATCH',body:JSON.stringify({comentario:c})});
+        bitNote.value='';
+        await cargarBitacora(turnoBitacora);
+      }catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}
+    });
+  };
 
   async function load(){
     try{

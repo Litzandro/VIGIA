@@ -339,8 +339,10 @@
   // "Marcar como incidencia" de Comunidad) abre el reporte ya prellenado.
   cargar().then(()=>{
     const p=new URLSearchParams(location.search);
+    const tabValido=['por_aprobar','abiertas','en_progreso','historial','urgentes','todas'];
     if(p.get('inc'))abrirDetalle(p.get('inc'));
     else if(p.get('desde_comunidad'))abrirReporte({titulo:p.get('titulo')||'',descripcion:p.get('descripcion')||''});
+    else if(tabValido.includes(p.get('tab'))){tab=p.get('tab');render()}
     if([...p.keys()].length)history.replaceState(null,'',location.pathname);
   });
   setInterval(()=>{if(!document.hidden&&!$('igDetail').classList.contains('open')&&!modal.classList.contains('open'))cargar()},30000);
