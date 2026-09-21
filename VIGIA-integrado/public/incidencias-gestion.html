@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIGIA — Gestión de incidencias</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+</head>
+<body data-protect-demo="true">
+<div class="bg-photo"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="app">
+  <aside class="sidebar" id="vigiaSidebar" aria-label="Navegación de VIGIA"></aside>
+
+  <div class="main"><div class="content"><div class="page ig-page">
+
+    <div class="page-head">
+      <div>
+        <span class="mono-tag">GESTIÓN DE INCIDENCIAS</span>
+        <h1>Incidencias de la residencial</h1>
+        <p>Aprueba los reportes de los residentes, toma casos y dales seguimiento hasta cerrarlos.</p>
+      </div>
+      <div class="ig-head-actions">
+        <button type="button" class="btn btn-ghost" id="igRefresh"><i class="bi bi-arrow-clockwise"></i> Actualizar</button>
+        <button type="button" class="btn btn-solid" id="igNew"><i class="bi bi-plus-circle-fill"></i> Reportar incidencia</button>
+      </div>
+    </div>
+
+    <div class="ig-summary" id="igSummary">
+      <button type="button" class="ig-stat warn" data-tab="por_aprobar"><span class="ig-stat-value" id="igCPorAprobar">0</span><span class="ig-stat-label">Por aprobar</span></button>
+      <button type="button" class="ig-stat info" data-tab="abiertas"><span class="ig-stat-value" id="igCAbiertas">0</span><span class="ig-stat-label">Abiertas</span></button>
+      <button type="button" class="ig-stat ok" data-tab="en_progreso"><span class="ig-stat-value" id="igCProgreso">0</span><span class="ig-stat-label">En progreso</span></button>
+      <button type="button" class="ig-stat alert" data-tab="urgentes"><span class="ig-stat-value" id="igCUrgentes">0</span><span class="ig-stat-label">Urgentes abiertas</span></button>
+    </div>
+
+    <div class="ig-toolbar">
+      <div class="agenda-tabs" id="igTabs">
+        <button type="button" data-tab="por_aprobar">Por aprobar</button>
+        <button type="button" data-tab="abiertas">Abiertas</button>
+        <button type="button" data-tab="en_progreso">En progreso</button>
+        <button type="button" data-tab="historial">Historial</button>
+        <button type="button" data-tab="todas">Todas</button>
+      </div>
+      <div class="ig-filters">
+        <div class="guard-search"><i class="bi bi-search"></i><input id="igSearch" type="search" placeholder="Buscar título, residente o vivienda" autocomplete="off" maxlength="60"></div>
+        <select class="form-control" id="igPriority" aria-label="Filtrar por prioridad">
+          <option value="">Toda prioridad</option>
+          <option value="urgente">Urgente</option>
+          <option value="alta">Alta</option>
+          <option value="media">Media</option>
+          <option value="baja">Baja</option>
+        </select>
+        <label class="ig-mine"><input type="checkbox" id="igMine"><span>Solo mis casos</span></label>
+      </div>
+    </div>
+
+    <div id="igList" class="ig-list"><div class="empty-state">Cargando incidencias…</div></div>
+
+  </div></div></div>
+</div>
+
+<!-- ============ DETALLE ============ -->
+<div class="modal-overlay" id="igDetail">
+  <div class="modal-box form-modal ig-wide">
+    <div class="ig-detail-head">
+      <div>
+        <div class="ig-badges" id="igDBadges"></div>
+        <h3 id="igDTitle">Incidencia</h3>
+        <p class="ig-meta" id="igDMeta"></p>
+      </div>
+      <button type="button" class="icon-btn" id="igDClose" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="ig-grid">
+      <div class="ig-block">
+        <label>Reportó</label>
+        <div class="ig-person" id="igDPerson"></div>
+      </div>
+      <div class="ig-block">
+        <label>Dónde y cuándo</label>
+        <p id="igDWhere"></p>
+      </div>
+    </div>
+
+    <div class="ig-block">
+      <label>Descripción</label>
+      <p id="igDDesc" class="ig-desc"></p>
+    </div>
+
+    <div class="ig-block" id="igDEvidWrap" hidden>
+      <label>Evidencia</label>
+      <div class="ig-evid" id="igDEvid"></div>
+    </div>
+
+    <div class="ig-block" id="igDRejectedWrap" hidden>
+      <label>Motivo del rechazo</label>
+      <p id="igDRejected" class="ig-desc"></p>
+    </div>
+
+    <div class="ig-actions" id="igDActions"></div>
+
+    <div class="ig-block">
+      <label>Historial y notas</label>
+      <div class="ig-timeline" id="igDTimeline"></div>
+      <div class="ig-note" id="igDNoteBox">
+        <textarea class="form-control" id="igDNote" rows="2" maxlength="500" placeholder="Agregar una nota (p. ej. “llamé al residente”)"></textarea>
+        <button type="button" class="btn btn-info" id="igDNoteBtn"><i class="bi bi-chat-left-text"></i> Agregar nota</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REPORTAR ============ -->
+<div class="modal-overlay" id="igReport">
+  <div class="modal-box form-modal ig-wide">
+    <div class="modal-icon"><i class="bi bi-flag-fill"></i></div>
+    <h3>Reportar incidencia</h3>
+    <p>Registra lo que ocurrió en la residencial. Un reporte del personal queda oficial de inmediato.</p>
+    <form id="igReportForm" novalidate>
+      <div class="form-group">
+        <label for="igRTitle">Título</label>
+        <input type="text" class="form-control" id="igRTitle" maxlength="80" placeholder="Ej. Portón vehicular atascado" required>
+      </div>
+      <div class="ig-two">
+        <div class="form-group">
+          <label for="igRType">Tipo</label>
+          <select class="form-control" id="igRType" required></select>
+        </div>
+        <div class="form-group">
+          <label for="igRPriority">Prioridad</label>
+          <select class="form-control" id="igRPriority">
+            <option value="">Según el tipo</option>
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+            <option value="urgente">Urgente</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="igRDesc">Descripción</label>
+        <textarea class="form-control" id="igRDesc" rows="4" maxlength="350" placeholder="Describe lo esencial (máx. 350 caracteres)" required></textarea>
+        <div class="char-counter" id="igRCount">0/350</div>
+      </div>
+      <div class="form-group">
+        <label for="igRWhere">Ubicación exacta</label>
+        <input type="text" class="form-control" id="igRWhere" maxlength="255" placeholder="Ej. Entrada principal, carril de salida" required>
+      </div>
+      <div class="ig-two">
+        <div class="form-group">
+          <label for="igRWhen">Cuándo ocurrió</label>
+          <input type="datetime-local" class="form-control" id="igRWhen" required>
+        </div>
+        <div class="form-group">
+          <label for="igRVis">Quién la ve</label>
+          <select class="form-control" id="igRVis">
+            <option value="administracion">Personal y administración</option>
+            <option value="privada">Solo personal de seguridad</option>
+            <option value="comunidad">Toda la comunidad</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="igRPhoto" id="igRPhotoLabel">Evidencia fotográfica</label>
+        <input type="file" class="form-control" id="igRPhoto" accept="image/*" capture="environment">
+        <div id="igRPhotoWrap" hidden style="margin-top:.7rem;"><img id="igRPhotoImg" alt="Vista previa" class="ig-photo-preview"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="igRCancel">Cancelar</button>
+        <button type="submit" class="btn btn-solid"><i class="bi bi-send-fill"></i> Enviar reporte</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script src="js/incidencias-gestion.js"></script>
+</body>
+</html>

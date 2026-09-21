@@ -32,7 +32,7 @@
     <div class="guard-sos-banner" id="guardSosBanner" hidden>
       <div class="guard-sos-pulse"><i class="bi bi-exclamation-octagon-fill"></i></div>
       <div><b id="guardSosTitle">SOS activo</b><span id="guardSosText">Se requiere atención inmediata.</span></div>
-      <button type="button" class="btn btn-solid" id="guardFocusSOS">Atender alerta</button>
+      <button type="button" class="btn btn-alert" id="guardFocusSOS">Ver alertas</button>
     </div>
     <section class="panel guard-panel" id="sosSection">
       <div class="panel-head"><div><h3>Alertas SOS</h3><p class="config-section-note">Las activas permanecen arriba hasta que un guardia las atienda.</p></div><span class="mono" id="sosUpdated"></span></div>
@@ -76,7 +76,7 @@
         <div id="guardQueueList" class="guard-compact-list"><div class="empty-state">Cargando cola...</div></div>
       </section>
       <section class="panel guard-panel" id="incidentSection">
-        <div class="panel-head"><div><h3>Incidencias prioritarias</h3><p class="config-section-note">Pendientes que requieren seguimiento.</p></div><a href="incidencias.html" class="btn btn-ghost btn-sm">Ver incidencias</a></div>
+        <div class="panel-head"><div><h3>Incidencias prioritarias</h3><p class="config-section-note" id="guardIncidentNote">Por aprobar primero.</p></div><a href="incidencias-gestion.html" class="btn btn-info btn-sm">Gestionar</a></div>
         <div id="guardIncidentList" class="guard-compact-list"><div class="empty-state">Cargando incidencias...</div></div>
       </section>
     </div>
