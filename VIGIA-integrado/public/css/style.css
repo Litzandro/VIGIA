@@ -22,6 +22,18 @@
   --f-mono:'Space Mono', monospace;
 }
 *{box-sizing:border-box;}
+/* Bug real (reportado con captura: el banner de SOS del guardia seguia
+   visible con "0 alertas" aunque ya no quedara ninguna). La causa: varios
+   componentes fijan su propio "display" (ej. .guard-sos-banner{display:
+   flex}, .cam-disclaimer{display:flex}) con la MISMA especificidad que la
+   regla del navegador "[hidden]{display:none}" -- cuando eso pasa, gana
+   la que este declarada despues en la hoja de estilos, que es esta (la
+   del sitio), no la del navegador. El resultado: la propiedad JS
+   "elemento.hidden=true" dejaba de esconder nada en cualquier elemento
+   cuya clase trajera su propio "display". Esta regla, con mas
+   especificidad que cualquier selector de una sola clase, asegura que
+   "hidden" gane siempre, sin tener que revisar clase por clase. */
+[hidden]{display:none!important;}
 body{
   background:var(--bg);color:var(--bone);font-family:var(--f-body);
   margin:0;-webkit-font-smoothing:antialiased;
