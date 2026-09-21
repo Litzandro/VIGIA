@@ -133,15 +133,33 @@ function priorizarIncidencias(filas) {
   });
 }
 
+// El contador de accesos del resumen (panel "Resumen operativo" del portal
+// de administracion) por defecto es SOLO de hoy -- correcto para una
+// revision diaria, pero una residencial con meses de historial tambien
+// quiere poder ver "esta semana" o "este mes" sin ir a otra pantalla.
+// ?rango=hoy|7|30|todo cambia unicamente "accesos_rango" (accesos_hoy se
+// deja intacto: otras pantallas, como el dashboard del guardia, siguen
+// asumiendo que ese campo es siempre el conteo de hoy).
+function inicioDeRango(rango) {
+  if (rango === 'todo') return null;
+  const dias = { '7': 7, '30': 30 }[rango];
+  const inicio = startOfToday();
+  if (dias) inicio.setDate(inicio.getDate() - (dias - 1));
+  return inicio;
+}
+
 router.get('/resumen', async (req, res, next) => {
   try {
     const base = scope(req);
     const today = startOfToday();
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const rango = ['hoy', '7', '30', 'todo'].includes(req.query.rango) ? req.query.rango : 'hoy';
+    const inicioRango = inicioDeRango(rango);
 
     const [
       accesosHoy,
+      accesosRango,
       entradasHoy,
       salidasHoy,
       colaActiva,
@@ -159,6 +177,7 @@ router.get('/resumen', async (req, res, next) => {
       cola,
     ] = await Promise.all([
       db.Accesos.count({ where: { ...base, fecha_hora: { [Op.gte]: today } } }),
+      db.Accesos.count({ where: { ...base, ...(inicioRango ? { fecha_hora: { [Op.gte]: inicioRango } } : {}) } }),
       db.Accesos.count({ where: { ...base, tipo_movimiento: 'entrada', fecha_hora: { [Op.gte]: today } } }),
       db.Accesos.count({ where: { ...base, tipo_movimiento: 'salida', fecha_hora: { [Op.gte]: today } } }),
       db.ColaAcceso.count({ where: { ...base, estado: { [Op.in]: ['esperando', 'en_validacion'] } } }),
@@ -205,7 +224,7 @@ router.get('/resumen', async (req, res, next) => {
 
     res.json({
       data: {
-        metricas: { accesos_hoy: accesosHoy, entradas_hoy: entradasHoy, salidas_hoy: salidasHoy, cola_activa: colaActiva, incidencias_abiertas: incidenciasAbiertas, incidencias_urgentes: incidenciasUrgentes, incidencias_por_aprobar: incidenciasPorAprobar, alertas_sos: alertasActivas, guardias_activos: turnosActivos, invitaciones_vigentes: invitacionesPendientes, qr_usados_hoy: qrUsadosHoy },
+        metricas: { accesos_hoy: accesosHoy, accesos_rango: accesosRango, rango, entradas_hoy: entradasHoy, salidas_hoy: salidasHoy, cola_activa: colaActiva, incidencias_abiertas: incidenciasAbiertas, incidencias_urgentes: incidenciasUrgentes, incidencias_por_aprobar: incidenciasPorAprobar, alertas_sos: alertasActivas, guardias_activos: turnosActivos, invitaciones_vigentes: invitacionesPendientes, qr_usados_hoy: qrUsadosHoy },
         reglas,
         actividad,
         alertas,
