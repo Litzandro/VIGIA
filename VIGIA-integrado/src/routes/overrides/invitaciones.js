@@ -44,6 +44,20 @@ module.exports = function invitacionesOverride({ router, model, handlers, pkPath
         return res.status(400).json({ error: 'No se puede crear una invitación que ya está vencida.' });
       }
 
+      // Fiesta/evento: UNA invitacion con cupo para varios invitados
+      // (cada ingreso en garita descuenta un uso, ver accesos.js). Se
+      // acota para que un solo QR no se convierta en un pase abierto.
+      if (body.tipo === 'evento') {
+        const cupo = Number(body.max_usos);
+        if (!Number.isInteger(cupo) || cupo < 2 || cupo > 300) {
+          return res.status(400).json({ error: 'Un evento debe tener entre 2 y 300 invitados.' });
+        }
+        const horas = (hasta.getTime() - desde.getTime()) / 3600000;
+        if (horas > 24) {
+          return res.status(400).json({ error: 'Un evento no puede durar mas de 24 horas.' });
+        }
+      }
+
       body.codigo_qr = qrService.generarCodigo();
       // el que crea la invitacion siempre es el residente logueado si
       // aplica; si la crea un admin/guardia a nombre de un residente,
