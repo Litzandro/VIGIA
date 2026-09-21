@@ -115,7 +115,7 @@ const publicHtmlPages = new Set([
 const residentOnlyPages = new Set(['dashboard.html']);
 const guardPages = new Set(['guardia.html']);
 const guardAdminPages = new Set(['control-acceso.html']);
-const staffPages = new Set(['conflictos.html', 'operaciones.html', 'mensajeria.html']);
+const staffPages = new Set(['conflictos.html', 'operaciones.html', 'mensajeria.html', 'incidencias-gestion.html']);
 const adminPages = new Set(['superadmin.html', 'integraciones.html', 'mi-suscripcion.html']);
 const superadminPages = new Set(['suscripciones.html', 'benchmark.html']);
 
