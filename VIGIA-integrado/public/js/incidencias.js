@@ -1,3 +1,14 @@
+// El personal (guardia/admin/superadmin) gestiona las incidencias en su propia
+// pantalla (incidencias-gestion.html). Esta es la vista del RESIDENTE: "Mis
+// incidencias", con los botones de panico. Se conserva el query string para
+// que los enlaces viejos (?inc=ID de notificaciones, ?desde_comunidad=...
+// de Comunidad) sigan funcionando.
+(function(){
+  const s=(typeof VigiaAPI!=='undefined'&&VigiaAPI.getSession())||null;
+  if(s&&['guardia','admin','superadmin'].includes(s.rol_codigo)){
+    location.replace('incidencias-gestion.html'+location.search);
+  }
+})();
 (function(){
   const modal=document.getElementById('reportModal'),form=document.getElementById('reportForm'),kanban=document.querySelector('.kanban');if(!modal||!form||!kanban)return;
   const desc=document.getElementById('reportDesc'),count=document.getElementById('reportDescCount'),tipoSelect=document.getElementById('reportTipo'),priorityInfo=document.getElementById('reportPriorityInfo');let photoData='',types=[];

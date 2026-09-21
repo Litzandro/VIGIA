@@ -59,7 +59,11 @@
       tr.append(makeCell(`${x.nombre} ${x.apellido}`),makeCell(x.email),makeCell(role),makeCell(residential));
       const stateTd=document.createElement('td');const state=document.createElement('span');state.className=`badge ${x.estado==='activo'?'ok':'blocked'}`;state.textContent=x.estado;stateTd.appendChild(state);tr.appendChild(stateTd);
       const actions=document.createElement('td');actions.className='table-actions';
-      const toggle=makeButton(x.estado==='activo'?'Suspender':'Activar','btn btn-ghost','toggle',x.id,nextState);
+      // Nadie puede suspender ni eliminar su propia cuenta (el servidor tambien lo
+      // rechaza), y un admin no gestiona a otros admins: solo superadmin.
+      if(String(x.id)===String(session.id)){actions.appendChild(Object.assign(document.createElement('span'),{className:'badge info',textContent:'Tu cuenta'}));tr.appendChild(actions);tbody.appendChild(tr);return;}
+      if(!isSuper&&['admin','superadmin'].includes(role)){actions.appendChild(Object.assign(document.createElement('span'),{className:'badge neutral',textContent:'Solo superadmin'}));tr.appendChild(actions);tbody.appendChild(tr);return;}
+      const toggle=makeButton(x.estado==='activo'?'Suspender':'Activar',x.estado==='activo'?'btn btn-caution':'btn btn-ok','toggle',x.id,nextState);
       const del=makeButton('Eliminar','btn btn-danger','delete',x.id);
       toggle.addEventListener('click',async()=>{
         const ok=await confirmAction({title:'¿Cambiar estado de la cuenta?',message:`La cuenta pasará a estado ${nextState}.`,confirmText:x.estado==='activo'?'Suspender':'Activar',icon:'bi-person-lock'});if(!ok)return;

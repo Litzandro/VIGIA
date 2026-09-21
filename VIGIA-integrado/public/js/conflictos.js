@@ -2,8 +2,10 @@
   const session=VigiaAPI.getSession();
   const admin=['admin','superadmin'].includes(session.rol_codigo);
 
+  const ESTADO_LABEL={pendiente:'Pendiente',activo:'Veto activo',activa:'Activa',rechazado:'Rechazado',revocado:'Revocado',suspendida:'Suspendida',cancelada:'Cancelada',abierto:'Abierto',en_revision:'En revisión',resuelto_autorizar:'Autorizado',resuelto_bloquear:'Bloqueado'};
+  const ESTADO_CLS={activo:'blocked',resuelto_bloquear:'blocked',activa:'ok',pendiente:'pending',abierto:'pending',en_revision:'pending',suspendida:'warn',cancelada:'neutral',rechazado:'neutral',revocado:'neutral',resuelto_autorizar:'ok'};
   function badge(x){
-    return `<span class="badge ${['activo','resuelto_bloquear'].includes(x)?'blocked':x==='pendiente'||x==='abierto'?'pending':'neutral'}">${escapeHtml(x)}</span>`;
+    return `<span class="badge ${ESTADO_CLS[x]||'neutral'}">${escapeHtml(ESTADO_LABEL[x]||x)}</span>`;
   }
   function formatFecha(iso){
     if(!iso) return '';
@@ -107,10 +109,10 @@
     el.className='queue-item';
     el.innerHTML=
       `<div class="queue-number"><i class="bi bi-shield-x"></i></div>`+
-      `<div class="queue-copy"><b>${escapeHtml(x.nombre_persona)}</b><span>${escapeHtml(x.numero_documento||'Sin documento')} · ${escapeHtml(x.alcance)}</span><span>${escapeHtml(x.motivo)}</span></div>`+
+      `<div class="queue-copy"><b>${escapeHtml(x.nombre_persona)}</b><span>${escapeHtml(x.numero_documento||'Sin documento')} · Alcance: ${escapeHtml(x.alcance)}</span>${x.estado==='activo'?'<span style="color:var(--alert);font-weight:700;">NO PERMITIR EL INGRESO</span>':''}<span>${escapeHtml(x.motivo)}</span></div>`+
       `<div class="queue-actions">${badge(x.estado)}`+
-        (admin&&x.estado==='pendiente' ? `<button class="btn btn-alert" data-s="activo">Aprobar</button><button class="btn btn-ghost" data-s="rechazado">Rechazar</button>` : '')+
-        (admin&&x.estado==='activo' ? `<button class="btn btn-ghost" data-s="revocado">Revocar</button>` : '')+
+        (admin&&x.estado==='pendiente' ? `<button class="btn btn-alert" data-s="activo" title="Activa el veto: la persona no podrá ingresar">Activar veto</button><button class="btn btn-ghost" data-s="rechazado">Rechazar</button>` : '')+
+        (admin&&x.estado==='activo' ? `<button class="btn btn-caution" data-s="revocado">Revocar</button>` : '')+
       `</div>`;
     el.querySelector('.queue-copy span:last-child').appendChild(document.createRange().createContextualFragment(expandHint()));
 
@@ -161,16 +163,38 @@
   // patron de "aparece un numero pero el incidente/solicitud no se ve"
   // reportado, solo que aca ni siquiera el numero se actualizaba nunca.
   const TIPO_AUTORIZACION_LABEL={bus_escolar:'Bus escolar',familiar:'Familiar',servicio_domestico:'Servicio doméstico',proveedor:'Proveedor',transporte:'Transporte',otro:'Otro'};
+  const DIAS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  let autorizaciones=[],authFilter=admin?'pendiente':'activa';
 
-  function renderAutorizacion(x, nombreResidente){
+  // Antes esta lista solo se pedia si eras admin ("admin?request:[]"), asi que
+  // el guardia veia SIEMPRE "No hay autorizaciones pendientes" aunque hubiera
+  // personas autorizadas -- justo lo que necesita consultar en la garita. Ahora
+  // todos los roles de personal la ven; el guardia solo lectura (aprobar,
+  // suspender o cancelar sigue siendo de administracion).
+  function horario(x){
+    const dias=Array.isArray(x.dias_semana_json)&&x.dias_semana_json.length?x.dias_semana_json.map(Number).sort().map(d=>DIAS[d]).join(', '):'Todos los días';
+    const horas=(x.hora_desde||x.hora_hasta)?`${(x.hora_desde||'00:00').slice(0,5)}–${(x.hora_hasta||'23:59').slice(0,5)}`:'Cualquier hora';
+    return `${dias} · ${horas} · máx. ${x.max_accesos_dia||'—'} por día`;
+  }
+  async function cambiarAutorizacion(x,estado,ok){
+    try{
+      await VigiaAPI.request(`/personas-autorizadas/${x.id}/estado`,{method:'PATCH',body:JSON.stringify({estado})});
+      showToast(ok);load();
+    }catch(err){ showToast(err.message,'bi-exclamation-triangle-fill'); }
+  }
+  function renderAutorizacion(x){
     const el=document.createElement('div');
     el.className='queue-item';
+    const acciones=!admin?'':
+      x.estado==='pendiente'?`<button class="btn btn-solid" data-a="activa">Aprobar</button><button class="btn btn-danger" data-a="cancelada">Rechazar</button>`:
+      x.estado==='activa'?`<button class="btn btn-caution" data-a="suspendida">Suspender</button>`:
+      x.estado==='suspendida'?`<button class="btn btn-ok" data-a="activa">Reactivar</button><button class="btn btn-danger" data-a="cancelada">Cancelar</button>`:'';
     el.innerHTML=
       `<div class="queue-number"><i class="bi bi-person-check-fill"></i></div>`+
-      `<div class="queue-copy"><b>${escapeHtml(x.nombre_completo)}</b><span>${escapeHtml(TIPO_AUTORIZACION_LABEL[x.tipo]||x.tipo)} · Solicitado por ${escapeHtml(nombreResidente)}</span>`+
+      `<div class="queue-copy"><b>${escapeHtml(x.nombre_completo)}</b><span>${escapeHtml(TIPO_AUTORIZACION_LABEL[x.tipo]||x.tipo)} · ${escapeHtml(x.residente_nombre||'Residente')}${x.vivienda?' · '+escapeHtml(x.vivienda):''}</span>`+
       (x.empresa?`<span>${escapeHtml(x.empresa)}</span>`:'')+
-      `</div>`+
-      `<div class="queue-actions">${badge(x.estado)}<button class="btn btn-alert" data-a="activa">Aprobar</button><button class="btn btn-ghost" data-a="cancelada">Rechazar</button></div>`;
+      `<span>${escapeHtml(horario(x))}</span></div>`+
+      `<div class="queue-actions">${badge(x.estado)}${acciones}</div>`;
     el.querySelector('.queue-copy span:last-child').appendChild(document.createRange().createContextualFragment(expandHint()));
 
     const rows=[
@@ -182,32 +206,51 @@
     const details=buildDetails(rows, x.foto_url);
     el.appendChild(details);
 
-    el.querySelectorAll('[data-a]').forEach(b=>b.onclick=async(e)=>{
+    el.querySelectorAll('[data-a]').forEach(b=>b.onclick=(e)=>{
       e.stopPropagation();
-      try{
-        await VigiaAPI.request(`/personas-autorizadas/${x.id}/estado`,{method:'PATCH',body:JSON.stringify({estado:b.dataset.a})});
-        showToast(b.dataset.a==='activa'?'Autorización aprobada':'Autorización rechazada');
-        load();
-      }catch(err){ showToast(err.message,'bi-exclamation-triangle-fill'); }
+      const est=b.dataset.a;
+      cambiarAutorizacion(x,est,est==='activa'?'Autorización aprobada':est==='suspendida'?'Autorización suspendida':'Autorización cancelada');
     });
     wireToggle(el, details, el.querySelector('.queue-copy span:last-child i'));
     return el;
   }
+  function renderAutorizaciones(){
+    const ab=document.getElementById('pendingAuthList');if(!ab)return;
+    const pend=autorizaciones.filter(x=>x.estado==='pendiente'),act=autorizaciones.filter(x=>x.estado==='activa');
+    document.getElementById('pendingAuthCount').textContent=pend.length;
+    document.getElementById('authCntActiva').textContent=act.length;
+    document.getElementById('authCntPend').textContent=pend.length;
+    document.getElementById('authCntTodas').textContent=autorizaciones.length;
+    document.querySelectorAll('#authFilters .filter-chip').forEach(b=>b.classList.toggle('active',b.dataset.f===authFilter));
+    const lista=authFilter==='todas'?autorizaciones:autorizaciones.filter(x=>x.estado===authFilter);
+    const note=document.getElementById('authNote');
+    if(note)note.textContent=admin
+      ?'Nada queda activo sin tu aprobación. Aprueba o rechaza las solicitudes de los residentes.'
+      :'Consulta quién está autorizado a ingresar, con qué horario y a qué vivienda va. La aprobación la hace administración.';
+    ab.replaceChildren();
+    if(!lista.length){
+      const d=document.createElement('div');d.className='empty-state';
+      d.textContent={activa:'No hay personas autorizadas activas.',pendiente:'No hay autorizaciones pendientes.',todas:'Todavía no hay autorizaciones registradas.'}[authFilter];
+      ab.appendChild(d);return;
+    }
+    lista.forEach(x=>ab.appendChild(renderAutorizacion(x)));
+  }
+  document.querySelectorAll('#authFilters .filter-chip').forEach(b=>b.addEventListener('click',()=>{authFilter=b.dataset.f;renderAutorizaciones()}));
 
   async function load(){
     const vb=document.getElementById('adminVetoList'),cb=document.getElementById('conflictList'),ab=document.getElementById('pendingAuthList');
     try{
-      const [v,c,a,u]=await Promise.all([
+      const [v,c,a]=await Promise.all([
         VigiaAPI.request('/vetos-acceso'),
         VigiaAPI.request('/conflictos-permisos?limit=200&sort=fecha_deteccion:desc'),
-        admin?VigiaAPI.request('/personas-autorizadas?limit=200&estado=pendiente'):Promise.resolve({data:[]}),
-        admin?VigiaAPI.request('/usuarios?limit=200'):Promise.resolve({data:[]}),
+        VigiaAPI.request('/personas-autorizadas?limit=200&sort=fecha_creacion:desc'),
       ]);
-      const vetos=v.data||[], conf=c.data||[], autorizaciones=a.data||[];
-      const nombresUsuarios=new Map((u.data||[]).map(x=>[String(x.id),`${x.nombre||''} ${x.apellido||''}`.trim()||`Usuario #${x.id}`]));
+      // Vetos activos primero (es lo que el guardia debe tener presente), luego pendientes.
+      const orden={activo:0,pendiente:1};
+      const vetos=(v.data||[]).slice().sort((p,q)=>(orden[p.estado]??2)-(orden[q.estado]??2)), conf=c.data||[];
+      autorizaciones=a.data||[];
       document.getElementById('pendingVetoCount').textContent=vetos.filter(x=>x.estado==='pendiente').length;
       document.getElementById('conflictCount').textContent=conf.filter(x=>['abierto','en_revision'].includes(x.estado)).length;
-      if(document.getElementById('pendingAuthCount'))document.getElementById('pendingAuthCount').textContent=autorizaciones.length;
 
       vb.innerHTML=vetos.length?'':'<div class="empty-state">Sin solicitudes.</div>';
       vetos.forEach(x=> vb.appendChild(renderVeto(x)));
@@ -215,10 +258,7 @@
       cb.innerHTML=conf.length?'':'<div class="empty-state">No hay conflictos detectados.</div>';
       conf.forEach(x=> cb.appendChild(renderConflicto(x)));
 
-      if(ab){
-        ab.innerHTML=autorizaciones.length?'':'<div class="empty-state">No hay autorizaciones pendientes.</div>';
-        autorizaciones.forEach(x=> ab.appendChild(renderAutorizacion(x, nombresUsuarios.get(String(x.residente_id))||`Residente #${x.residente_id}`)));
-      }
+      renderAutorizaciones();
     }catch(e){
       vb.innerHTML=cb.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;
       if(ab)ab.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`;
