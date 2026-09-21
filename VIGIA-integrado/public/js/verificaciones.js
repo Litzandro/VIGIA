@@ -39,16 +39,67 @@
     return {pendiente:'Pendiente',usada:'Utilizada',expirada:'Expirada',cancelada:'Cancelada'}[estado]||estado;
   }
 
-  function mostrarResultado(valido,motivo,data){
+  // ---- Registrar el ingreso desde la misma pantalla ----
+  // Antes esta pagina solo CONFIRMABA que el codigo era valido; para que
+  // el uso se descontara, el guardia tenia que ir a otra pantalla. Eso
+  // hacia imposible llevar la cuenta de una fiesta ("12 de 40 ingresaron"):
+  // un mismo QR de evento se escanea muchas veces y cada entrada debe
+  // descontar un cupo. Ahora, con un codigo valido, aparece el boton
+  // "Registrar ingreso" (POST /accesos con invitacion_id, que es lo que
+  // descuenta el uso en el servidor).
+  let puntos=null;
+  async function cargarPuntos(){
+    if(puntos)return puntos;
+    try{const r=await VigiaAPI.request('/puntos-acceso?limit=100');puntos=r.data||[]}catch(e){puntos=[]}
+    return puntos;
+  }
+
+  async function registrarIngreso(data,btn,selectPunto){
+    const punto=Number(selectPunto?selectPunto.value:(puntos&&puntos[0]&&puntos[0].id));
+    if(!punto){showToast('No hay un punto de acceso configurado.','bi-exclamation-triangle-fill');return}
+    btn.disabled=true;
+    try{
+      await VigiaAPI.request('/accesos',{method:'POST',body:JSON.stringify({
+        punto_acceso_id:punto,invitacion_id:data.id,tipo_movimiento:'entrada',modo_registro:'qr',
+        observaciones:(data.nombre_evento||'Visita').slice(0,200)
+      })});
+      showToast('Ingreso registrado');
+      await verificarCodigo(data.codigo_qr);
+    }catch(err){
+      showToast(err.message,'bi-exclamation-triangle-fill');
+      btn.disabled=false;
+    }
+  }
+
+  async function mostrarResultado(valido,motivo,data){
     resultBox.className='qr-result show '+(valido?'valido':'invalido');
     if(valido&&data){
+      const usos=data.usos_actuales||0,max=data.max_usos||1;
+      const esEvento=data.tipo==='evento';
+      const pct=Math.min(100,Math.round(usos/max*100));
       resultBox.innerHTML=`
         <h4><i class="bi bi-check-circle-fill"></i> Código válido</h4>
-        <p><b>${escapeHtml(data.nombre_evento||'Visita')}</b></p>
+        <p><b>${escapeHtml(data.nombre_evento||'Visita')}</b>${esEvento?' · <span class="badge info">Evento</span>':''}</p>
         <p>Este código fue generado por VIGIA y sigue vigente.</p>
-        <p>Usos: ${data.usos_actuales||0} de ${data.max_usos}</p>
-        ${data.notas?`<p>${escapeHtml(data.notas)}</p>`:''}
+        <p>${esEvento?'Ya ingresaron':'Usos'}: <b>${usos} de ${max}</b>${esEvento?' · quedan '+(max-usos)+' cupos':''}</p>
+        ${esEvento?`<div class="event-progress"><span style="width:${pct}%"></span></div>`:''}
+        ${data.notas&&!esEvento?`<p>${escapeHtml(data.notas)}</p>`:''}
+        <div class="qr-result-actions" id="qrResultActions"></div>
       `;
+      const lista=await cargarPuntos();
+      const cont=document.getElementById('qrResultActions');
+      if(!cont)return;
+      let sel=null;
+      if(lista.length>1){
+        sel=document.createElement('select');sel.className='form-control';sel.setAttribute('aria-label','Punto de acceso');
+        sel.innerHTML=lista.map(p=>`<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
+        cont.appendChild(sel);
+      }
+      const btn=document.createElement('button');
+      btn.type='button';btn.className='btn btn-solid';
+      btn.innerHTML='<i class="bi bi-box-arrow-in-right"></i> Registrar ingreso'+(esEvento?' (+1)':'');
+      btn.addEventListener('click',()=>registrarIngreso(data,btn,sel));
+      cont.appendChild(btn);
     }else{
       resultBox.innerHTML=`
         <h4><i class="bi bi-x-circle-fill"></i> Código no válido</h4>
