@@ -2044,3 +2044,81 @@ body.has-panic-fab .assistant-panel{
 @media(max-width:1180px){.guard-quick-actions{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:860px){.guard-quick-actions{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:620px){.guard-quick-actions{grid-template-columns:1fr}.guard-inside-actions{grid-column:1/-1}.guard-inside-actions .guard-exit-btn{flex:1}}
+
+
+/* ============ LOGO DE VIGIA (escudo con ojo) ============
+   Imagen real (public/img/logo.png, fondo transparente) en lugar del
+   icono generico de escudo + esquinas. Se deja sin caja ni borde para
+   que el escudo sea el protagonista, con un halo suave verde. */
+.mark.logo-img{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;}
+.mark.logo-img img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(18,232,160,.28));}
+.sidebar-logo .mark.logo-img{width:42px;height:42px;}
+.sidebar.collapsed .sidebar-logo .mark.logo-img{width:36px;height:36px;}
+.auth-logo .mark.logo-img{width:46px;height:46px;}
+.topnav-logo .mark.logo-img{width:34px;height:34px;}
+.vg-logo .mark.logo-img{width:40px;height:40px;}
+
+/* ============ FIX: iconos sobrepuestos en el menú móvil ============
+   Causa: .sidebar-drawer era el <nav> y se volvía position:fixed (cajón de
+   pantalla completa) en móvil, pero .sidebar-footer (reloj, campana, avatar,
+   salir) era HERMANO del nav, así que se quedaba en el flujo normal del
+   .sidebar y se pintaba ENCIMA de los enlaces del cajón. Ahora el cajón
+   envuelve nav + pie, y el pie es el último elemento dentro de él. */
+.sidebar-drawer > .sidebar-nav{flex:1 0 auto;}
+.sidebar-drawer > .sidebar-footer{margin-top:auto;}
+@media (max-width:860px){
+  .sidebar-drawer > .sidebar-nav{flex:0 0 auto;}
+  .sidebar-drawer > .sidebar-footer{margin-top:1rem;padding-bottom:.4rem;}
+  .sidebar-actions{flex-wrap:nowrap;}
+  .sidebar-actions .topnav-user .av{flex-shrink:0;}
+}
+
+
+/* ============ NUEVA VISITA: acceso rápido, contador, evento ============ */
+.quick-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;}
+.quick-chip{display:flex;align-items:center;justify-content:center;gap:.45rem;padding:.55rem .7rem;border-radius:10px;border:1px solid var(--line-strong);background:transparent;color:var(--bone);font-family:var(--f-body);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .18s ease;min-width:0;}
+.quick-chip i{color:var(--accent);font-size:.95rem;flex-shrink:0;}
+.quick-chip:hover{border-color:var(--accent-dim);background:rgba(237,231,214,.05);}
+.quick-chip.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+.quick-hint{margin:.55rem 0 0!important;font-size:.72rem!important;line-height:1.45!important;color:var(--mist)!important;text-align:left!important;}
+.quick-recent{margin-top:.7rem;}
+.quick-recent-label{display:block;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mist);margin-bottom:.4rem;}
+.quick-recent-list{display:flex;flex-wrap:wrap;gap:.4rem;}
+.quick-recent-chip{display:inline-flex;align-items:center;gap:.35rem;max-width:100%;padding:.32rem .65rem;border-radius:99px;border:1px dashed var(--line-strong);background:transparent;color:var(--bone-dim);font-size:.74rem;cursor:pointer;transition:all .18s ease;}
+.quick-recent-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;}
+.quick-recent-chip:hover{border-style:solid;border-color:var(--accent-dim);color:var(--accent);}
+.char-counter{margin-top:.3rem;text-align:right;font-family:var(--f-mono);font-size:.64rem;color:var(--mist);letter-spacing:.04em;}
+.char-counter.near{color:var(--warn);}
+.char-counter.max{color:var(--alert);}
+.guest-stepper{display:flex;align-items:center;gap:.5rem;}
+.guest-stepper .form-control{text-align:center;font-family:var(--f-mono);font-size:1rem;-moz-appearance:textfield;}
+.guest-stepper .form-control::-webkit-outer-spin-button,.guest-stepper .form-control::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.guest-stepper .icon-btn{flex-shrink:0;}
+.guest-presets{display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap;}
+.guest-presets button{padding:.28rem .7rem;border-radius:99px;border:1px solid var(--line-strong);background:transparent;color:var(--bone-dim);font-family:var(--f-mono);font-size:.72rem;cursor:pointer;}
+.guest-presets button:hover{border-color:var(--accent-dim);color:var(--accent);}
+.event-note{display:flex;gap:.65rem;align-items:flex-start;padding:.75rem .85rem;border-radius:12px;border:1px solid rgba(185,138,255,.35);background:rgba(185,138,255,.08);font-size:.76rem;line-height:1.5;color:var(--bone-dim);margin-bottom:1.1rem;text-align:left;}
+.event-note i{color:#B98AFF;font-size:1.1rem;margin-top:.1rem;flex-shrink:0;}
+.event-note b{color:var(--bone);}
+.badge.info{background:rgba(87,154,255,.14);color:#579AFF;}
+.event-progress{height:6px;border-radius:99px;background:rgba(237,231,214,.1);overflow:hidden;margin:.15rem 0 .6rem;}
+.event-progress span{display:block;height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--accent));border-radius:99px;}
+.qr-code-text{font-size:.62rem;color:var(--mist);word-break:break-all;margin-top:.5rem;user-select:all;}
+.qr-modal .qr-modal-actions + .qr-modal-actions{margin-top:.5rem;}
+@media (max-width:420px){.quick-presets{grid-template-columns:1fr 1fr;}}
+
+.qr-result-actions{display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap;}
+.qr-result-actions .form-control{flex:1;min-width:140px;}
+.qr-result-actions .btn{flex:1;justify-content:center;white-space:nowrap;}
+
+/* ============ MIS ACCESOS ============ */
+.acc-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}
+.acc-toolbar{gap:.8rem;flex-wrap:wrap;}
+.acc-filters{display:flex;gap:.6rem;flex-wrap:wrap;flex:1;justify-content:flex-end;min-width:0;}
+.acc-filters .form-control{width:auto;min-width:150px;flex:0 1 220px;}
+.acc-event{padding:.85rem 0;border-bottom:1px solid var(--line);}
+.acc-event:last-child{border-bottom:0;padding-bottom:0;}
+.acc-event-head{display:flex;justify-content:space-between;align-items:center;gap:.8rem;margin-bottom:.5rem;}
+.acc-event-head b{color:var(--bone);font-size:.92rem;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.acc-event p{margin:.1rem 0 0;font-size:.7rem;color:var(--mist);}
+@media (max-width:640px){.acc-metrics{grid-template-columns:1fr;}.acc-filters{justify-content:stretch;}.acc-filters .form-control{flex:1 1 100%;width:100%;}}
