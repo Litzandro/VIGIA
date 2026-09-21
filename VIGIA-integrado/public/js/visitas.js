@@ -23,7 +23,6 @@
   const form = document.getElementById('newVisitForm');
 
   const nameInput = document.getElementById('visitName');
-  attachSoloLetras(nameInput, 150);
   const dateInput = document.getElementById('visitDate');
   const timeInput = document.getElementById('visitTime');
   const reasonInput = document.getElementById('visitReason');
@@ -37,6 +36,56 @@
   const weekdayGroup = document.getElementById('visitWeekdayGroup');
   const monthDayGroup = document.getElementById('visitMonthDayGroup');
   const monthDayInput = document.getElementById('visitMonthDay');
+
+
+  // ---- Nombre: límite de caracteres + contador en vivo ----
+  // Antes el tope era 150 (el de la columna de la base) y nada lo hacía
+  // visible: la persona podía pegar un párrafo entero como "nombre". 60 es
+  // más que suficiente para un nombre completo o el nombre de una fiesta, y
+  // el contador (0/60) deja claro cuánto queda.
+  const NOMBRE_MAX = 60;
+  const EVENTO_MAX_INVITADOS = 300;
+  const nameCount = document.getElementById('visitNameCount');
+  const nameLabel = document.getElementById('visitNameLabel');
+  const eventCheckbox = document.getElementById('visitEvent');
+  const eventGroup = document.getElementById('visitEventGroup');
+  const guestsInput = document.getElementById('visitGuests');
+  const durationInput = document.getElementById('visitDuration');
+  const reasonGroup = document.getElementById('visitReasonGroup');
+  const RE_NOMBRE_PERSONA = /[^A-Za-zÀ-ÖØ-öø-ÿÑñ'.\- ]/g;
+  const RE_NOMBRE_EVENTO = /[^A-Za-zÀ-ÖØ-öø-ÿÑñ0-9'.,&\- ]/g;
+
+  function esModoEvento() {
+    return Boolean(eventCheckbox && eventCheckbox.checked);
+  }
+
+  function actualizarContadorNombre() {
+    if (!nameInput || !nameCount) return;
+    const n = nameInput.value.length;
+    nameCount.textContent = `${n}/${NOMBRE_MAX}`;
+    nameCount.classList.toggle('near', n >= NOMBRE_MAX * 0.85 && n < NOMBRE_MAX);
+    nameCount.classList.toggle('max', n >= NOMBRE_MAX);
+  }
+
+  if (nameInput) {
+    nameInput.setAttribute('maxlength', String(NOMBRE_MAX));
+    nameInput.addEventListener('input', () => {
+      const re = esModoEvento() ? RE_NOMBRE_EVENTO : RE_NOMBRE_PERSONA;
+      const cursor = nameInput.selectionStart;
+      let limpio = nameInput.value.replace(re, '').replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+      if (limpio.length > NOMBRE_MAX) limpio = limpio.slice(0, NOMBRE_MAX);
+      if (limpio !== nameInput.value) {
+        const quitados = nameInput.value.length - limpio.length;
+        nameInput.value = limpio;
+        if (cursor != null) {
+          const pos = Math.max(0, cursor - quitados);
+          nameInput.setSelectionRange(pos, pos);
+        }
+      }
+      actualizarContadorNombre();
+    });
+    actualizarContadorNombre();
+  }
 
   // Antes una visita "recurrente" simplemente tomaba el dia de HOY (el
   // momento en que se llena el formulario) como el dia de la semana o
@@ -538,6 +587,11 @@
           ? 'Utilizada'
           : 'Finalizada';
 
+    } else if (invitacion.tipo === 'evento') {
+
+      badgeClass = 'info';
+      badgeText = 'Evento';
+
     }
 
 
@@ -554,6 +608,17 @@
       detalle =
         invitacion.notas ||
         'Visita recurrente';
+
+    } else if (invitacion.tipo === 'evento') {
+
+      detalle =
+        `${formatTime(
+          invitacion.fecha_valida_desde
+        )} · Evento · ${
+          invitacion.usos_actuales || 0
+        } de ${
+          invitacion.max_usos
+        } ingresaron`;
 
     } else {
 
@@ -674,6 +739,8 @@
 
       invitacionesCache = invitaciones;
 
+      renderRecientes();
+
       if (typeof renderMonthCalendar === 'function') {
         renderMonthCalendar();
       }
@@ -723,6 +790,9 @@
     if (nowCheckbox) {
       nowCheckbox.disabled = false;
     }
+
+    resetEvento();
+    actualizarContadorNombre();
 
   }
 
@@ -915,32 +985,221 @@
 
 
   // ==============================
-  // MOTIVOS RÁPIDOS
+  // FIESTA / EVENTO (un solo QR para varios invitados)
   // ==============================
+  // Antes, para una fiesta había que crear una visita por cada invitado.
+  // El backend ya soportaba invitaciones tipo "evento" con max_usos > 1
+  // (cada ingreso en garita descuenta un cupo), pero la pantalla nunca lo
+  // exponía. Ahora se crea UNA invitación con cupo para N personas.
 
-  document
-    .querySelectorAll('.quick-reason')
-    .forEach(button => {
+  function fijarFechaHoraSugerida() {
+    if (!dateInput || !timeInput) return;
+    if (dateInput.value && timeInput.value) return;
+    const t = new Date(Date.now() + 30 * 60000);
+    t.setMinutes(Math.ceil(t.getMinutes() / 15) * 15, 0, 0);
+    if (!dateInput.value) {
+      dateInput.value = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
+    }
+    if (!timeInput.value) {
+      timeInput.value = `${pad(t.getHours())}:${pad(t.getMinutes())}`;
+    }
+  }
 
-      button.addEventListener(
-        'click',
-        () => {
+  function limitarInvitados(valor) {
+    let n = parseInt(valor, 10);
+    if (Number.isNaN(n)) n = 20;
+    return Math.min(EVENTO_MAX_INVITADOS, Math.max(2, n));
+  }
 
-          if (reasonInput) {
+  function setEventMode(activo) {
+    if (!eventCheckbox) return;
+    eventCheckbox.checked = activo;
+    if (eventGroup) eventGroup.style.display = activo ? '' : 'none';
+    if (reasonGroup) reasonGroup.style.display = activo ? 'none' : '';
+    const recientesBox = document.getElementById('quickRecent');
+    if (recientesBox) recientesBox.style.display = activo ? 'none' : '';
+    if (nameLabel) nameLabel.textContent = activo ? 'Nombre del evento' : 'Nombre del visitante';
+    if (nameInput) nameInput.placeholder = activo ? 'Ej. Cumpleaños de Sofía' : 'Ej. Ana Martínez';
 
-            reasonInput.value =
-              button.dataset.reason || '';
+    if (activo) {
+      // Evento y recurrente/inmediato son excluyentes.
+      if (recurringCheckbox) { recurringCheckbox.checked = false; recurringCheckbox.disabled = true; }
+      if (frequencyGroup) frequencyGroup.style.display = 'none';
+      actualizarSelectorDeDia();
+      if (nowCheckbox) { nowCheckbox.checked = false; nowCheckbox.disabled = true; }
+      if (dateTimeGroup) dateTimeGroup.style.display = 'flex';
+      fijarFechaHoraSugerida();
+    } else {
+      if (recurringCheckbox) recurringCheckbox.disabled = false;
+      if (nowCheckbox && !(recurringCheckbox && recurringCheckbox.checked)) nowCheckbox.disabled = false;
+    }
+    // Vuelve a filtrar el nombre con el juego de caracteres del modo nuevo
+    // (el de evento permite números: "Fiesta de 15 años").
+    if (nameInput) nameInput.dispatchEvent(new Event('input'));
+  }
 
-          }
+  function resetEvento() {
+    if (!eventCheckbox) return;
+    setEventMode(false);
+    if (guestsInput) guestsInput.value = '20';
+    marcarPresetActivo(null);
+    mostrarHintRapido('');
+  }
 
-          if (nameInput) {
-            nameInput.focus();
-          }
-
-        }
-      );
-
+  if (eventCheckbox) {
+    eventCheckbox.addEventListener('change', () => {
+      setEventMode(eventCheckbox.checked);
+      marcarPresetActivo(eventCheckbox.checked ? 'fiesta' : null);
     });
+  }
+
+  if (guestsInput) {
+    guestsInput.addEventListener('blur', () => { guestsInput.value = String(limitarInvitados(guestsInput.value)); });
+  }
+  const guestsMinus = document.getElementById('guestsMinus');
+  const guestsPlus = document.getElementById('guestsPlus');
+  if (guestsMinus) guestsMinus.addEventListener('click', () => { guestsInput.value = String(limitarInvitados((parseInt(guestsInput.value, 10) || 20) - 1)); });
+  if (guestsPlus) guestsPlus.addEventListener('click', () => { guestsInput.value = String(limitarInvitados((parseInt(guestsInput.value, 10) || 20) + 1)); });
+  document.querySelectorAll('#guestPresets button').forEach(b => {
+    b.addEventListener('click', () => { guestsInput.value = String(limitarInvitados(b.dataset.n)); });
+  });
+
+
+  // ==============================
+  // ACCESO RÁPIDO
+  // ==============================
+  // Antes estos botones solo cambiaban el <select> de motivo (algo que el
+  // propio select ya hace en un clic) -- no aportaban nada. Ahora cada uno
+  // es un atajo real: fija motivo, color del calendario, tipo de ingreso y
+  // una fecha/hora sugerida, de modo que solo falta escribir el nombre.
+  // Debajo aparecen "Recientes": a quién invitaste antes, para repetir la
+  // visita con un toque.
+
+  const quickHint = document.getElementById('quickHint');
+  const HINT_POR_DEFECTO = 'Un toque llena el motivo, el color y la hora por ti. Solo falta el nombre.';
+
+  function mostrarHintRapido(texto) {
+    if (quickHint) quickHint.textContent = texto || HINT_POR_DEFECTO;
+  }
+
+  function marcarPresetActivo(clave) {
+    document.querySelectorAll('#quickPresets .quick-chip').forEach(b => {
+      b.classList.toggle('active', Boolean(clave) && b.dataset.preset === clave);
+    });
+  }
+
+  function aplicarColorVisita(color) {
+    colorSeleccionado = color;
+    if (colorSwatches) {
+      colorSwatches.querySelectorAll('.color-swatch').forEach(b => b.classList.toggle('active', (b.dataset.color || '').toLowerCase() === color.toLowerCase()));
+    }
+    if (colorCustomInput) colorCustomInput.value = color;
+  }
+
+  function salirDeRecurrente() {
+    if (recurringCheckbox && recurringCheckbox.checked) {
+      recurringCheckbox.checked = false;
+      recurringCheckbox.dispatchEvent(new Event('change'));
+    }
+  }
+
+  const PRESETS_RAPIDOS = {
+    familiar: { motivo: 'Visita familiar', color: '#12E8A0', hint: 'Familiar: válida 6 horas desde la hora que elijas.' },
+    entrega: { motivo: 'Entrega', color: '#579AFF', ahora: true, hint: 'Delivery: ingreso inmediato, válido 6 horas.' },
+    servicio: { motivo: 'Mantenimiento', color: '#F0B43C', hint: 'Servicio técnico: te sugerimos la próxima media hora.' },
+    fiesta: { evento: true, color: '#B98AFF', hint: 'Fiesta: un solo QR para todos tus invitados.' }
+  };
+
+  function aplicarPreset(clave) {
+    const p = PRESETS_RAPIDOS[clave];
+    if (!p) return;
+
+    // Tocar "Fiesta" estando activa la apaga.
+    if (p.evento && esModoEvento()) {
+      setEventMode(false);
+      marcarPresetActivo(null);
+      mostrarHintRapido('');
+      return;
+    }
+
+    if (p.evento) {
+      setEventMode(true);
+    } else {
+      if (esModoEvento()) setEventMode(false);
+      salirDeRecurrente();
+      if (reasonInput) reasonInput.value = p.motivo;
+      if (nowCheckbox) {
+        if (p.ahora && !nowCheckbox.checked) {
+          nowCheckbox.checked = true;
+          nowCheckbox.dispatchEvent(new Event('change'));
+        } else if (!p.ahora && nowCheckbox.checked) {
+          nowCheckbox.checked = false;
+          nowCheckbox.dispatchEvent(new Event('change'));
+        }
+      }
+      if (!p.ahora) fijarFechaHoraSugerida();
+    }
+
+    aplicarColorVisita(p.color);
+    marcarPresetActivo(clave);
+    mostrarHintRapido(p.hint);
+    if (nameInput) nameInput.focus();
+  }
+
+  document.querySelectorAll('#quickPresets .quick-chip').forEach(boton => {
+    boton.addEventListener('click', () => aplicarPreset(boton.dataset.preset));
+  });
+
+  const MOTIVO_POR_CATEGORIA = {
+    familiar: 'Visita familiar',
+    entrega: 'Entrega',
+    mantenimiento: 'Mantenimiento',
+    otro: 'Otro'
+  };
+
+  function renderRecientes() {
+    const cont = document.getElementById('quickRecent');
+    const lista = document.getElementById('quickRecentList');
+    if (!cont || !lista) return;
+
+    const vistos = new Set();
+    const recientes = (invitacionesCache || [])
+      .filter(inv => inv.nombre_evento && inv.tipo !== 'evento' && !esRecurrente(inv))
+      .sort((a, b) => Number(b.id) - Number(a.id))
+      .filter(inv => {
+        const k = inv.nombre_evento.trim().toLowerCase();
+        if (vistos.has(k)) return false;
+        vistos.add(k);
+        return true;
+      })
+      .slice(0, 5);
+
+    lista.innerHTML = '';
+    recientes.forEach(inv => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'quick-recent-chip';
+      chip.title = 'Repetir esta visita';
+      chip.innerHTML = '<i class="bi bi-arrow-repeat"></i><span></span>';
+      chip.querySelector('span').textContent = inv.nombre_evento;
+      chip.addEventListener('click', () => {
+        if (esModoEvento()) setEventMode(false);
+        salirDeRecurrente();
+        const cat = categoriaVisita(inv.notas);
+        if (nameInput) {
+          nameInput.value = inv.nombre_evento;
+          nameInput.dispatchEvent(new Event('input'));
+        }
+        if (reasonInput) reasonInput.value = MOTIVO_POR_CATEGORIA[cat] || 'Otro';
+        aplicarColorVisita(coloresVisita[inv.id] || COLOR_POR_CATEGORIA[cat] || '#12E8A0');
+        fijarFechaHoraSugerida();
+        marcarPresetActivo(null);
+        mostrarHintRapido(`Repitiendo la visita de ${inv.nombre_evento}. Revisa la fecha y la hora.`);
+      });
+      lista.appendChild(chip);
+    });
+    cont.hidden = recientes.length === 0;
+  }
 
 
   // ==============================
@@ -968,13 +1227,34 @@
             : 'Visita';
 
 
+        const esEvento = esModoEvento();
+
         if (!nombre) {
 
           mostrarError(
-            'Escribe el nombre del visitante.'
+            esEvento
+              ? 'Escribe el nombre del evento.'
+              : 'Escribe el nombre del visitante.'
           );
 
           return;
+        }
+
+        if (nombre.length < 2) {
+          mostrarError('El nombre debe tener al menos 2 caracteres.');
+          return;
+        }
+
+        let invitados = 0;
+        let horasValidez = 6;
+
+        if (esEvento) {
+          invitados = parseInt(guestsInput ? guestsInput.value : '', 10);
+          if (Number.isNaN(invitados) || invitados < 2 || invitados > EVENTO_MAX_INVITADOS) {
+            mostrarError(`Indica entre 2 y ${EVENTO_MAX_INVITADOS} invitados.`);
+            return;
+          }
+          horasValidez = Number(durationInput ? durationInput.value : 6) || 6;
         }
 
 
@@ -1120,11 +1400,12 @@
               return;
             }
 
-            // La invitación será válida durante 6 horas.
+            // La invitación será válida durante 6 horas (o la duración
+            // elegida, si es un evento).
             const fin =
               new Date(
                 inicio.getTime() +
-                6 * 60 * 60 * 1000
+                horasValidez * 60 * 60 * 1000
               );
 
 
@@ -1152,6 +1433,12 @@
                 motivo
 
             };
+
+            if (esEvento) {
+              payload.tipo = 'evento';
+              payload.max_usos = invitados;
+              payload.notas = `Evento · ${invitados} invitados`;
+            }
 
           }
 
@@ -1197,7 +1484,10 @@
           // también se puede volver a ver después desde el detalle de
           // la visita (abrirPopoverVisita).
           if (respuesta.qr) {
-            mostrarQR(respuesta.qr, respuesta.data.nombre_evento || nombre);
+            mostrarQR(respuesta.qr, respuesta.data.nombre_evento || nombre, {
+              codigo: respuesta.data.codigo_qr,
+              invitados: esEvento ? invitados : 0
+            });
           }
 
 
@@ -1211,7 +1501,9 @@
 
                 ? `${nombre} fue autorizado como visitante recurrente`
 
-                : 'Visita agendada correctamente'
+                : esEvento
+                  ? `Evento creado: un QR para hasta ${invitados} invitados`
+                  : 'Visita agendada correctamente'
             );
 
           }
@@ -1621,24 +1913,58 @@
     if (existente) existente.remove();
   }
 
-  function mostrarQR(dataUrl, titulo) {
+  // opciones: { codigo, invitados } -- "codigo" habilita Copiar/WhatsApp;
+  // "invitados" (>0) cambia el texto para un evento con varios cupos.
+  function mostrarQR(dataUrl, titulo, opciones) {
+    const opts = opciones || {};
     cerrarModalQr();
     const backdrop = document.createElement('div');
     backdrop.className = 'qr-modal-backdrop';
     backdrop.id = 'qrModal';
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cerrarModalQr(); });
+    const esEventoQr = Number(opts.invitados) > 0;
+    const explicacion = esEventoQr
+      ? `Un solo QR para hasta ${opts.invitados} invitados. Envíalo a todos: cada entrada descuenta un cupo.`
+      : 'Muéstraselo a tu invitado para que lo enseñe en garita, o descárgalo y envíaselo.';
     backdrop.innerHTML = `
       <div class="qr-modal">
         <h4>${escapeHTML(titulo || 'Código de acceso')}</h4>
-        <p>Muéstraselo a tu invitado para que lo enseñe en garita, o descárgalo y envíaselo.</p>
+        <p>${escapeHTML(explicacion)}</p>
         <img src="${dataUrl}" alt="Código QR de acceso">
+        ${opts.codigo ? `<div class="qr-code-text mono" id="qrCodeText" title="Código para escribir a mano en garita">${escapeHTML(opts.codigo)}</div>` : ''}
         <div class="qr-modal-actions">
           <a class="btn btn-ghost" href="${dataUrl}" download="vigia-qr.png"><i class="bi bi-download"></i> Descargar</a>
+          ${opts.codigo ? '<button type="button" class="btn btn-ghost" id="qrModalCopiar"><i class="bi bi-clipboard"></i> Copiar</button>' : ''}
+        </div>
+        <div class="qr-modal-actions">
+          ${opts.codigo ? '<button type="button" class="btn btn-ghost" id="qrModalWhats"><i class="bi bi-whatsapp"></i> WhatsApp</button>' : ''}
           <button type="button" class="btn btn-solid" id="qrModalCerrar"><i class="bi bi-check-lg"></i> Listo</button>
         </div>
       </div>`;
     document.body.appendChild(backdrop);
     document.getElementById('qrModalCerrar').addEventListener('click', cerrarModalQr);
+
+    const copiar = document.getElementById('qrModalCopiar');
+    if (copiar) {
+      copiar.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(opts.codigo);
+          showToast('Código copiado');
+        } catch (e) {
+          showToast('No se pudo copiar. Selecciona el código y cópialo a mano.', 'bi-exclamation-triangle-fill');
+        }
+      });
+    }
+    const whats = document.getElementById('qrModalWhats');
+    if (whats) {
+      whats.addEventListener('click', () => {
+        const nombre = titulo || 'la visita';
+        const texto = esEventoQr
+          ? `Estás invitado a ${nombre}. Muestra este código en la garita del residencial: ${opts.codigo}`
+          : `Te autorizaron el ingreso (${nombre}). Muestra este código en la garita del residencial: ${opts.codigo}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+      });
+    }
   }
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarModalQr(); });
 
@@ -1668,6 +1994,7 @@
       <h4>${escapeHTML(inv.nombre_evento || 'Visitante')}</h4>
       <div class="vp-row"><i class="bi bi-clock"></i> ${esRecurrente(inv) ? 'Visita recurrente' : formatTime(inv.fecha_valida_desde)}</div>
       <div class="vp-row"><i class="bi bi-chat-left-text"></i> ${escapeHTML(inv.notas || 'Sin motivo indicado')}</div>
+      ${inv.tipo === 'evento' ? `<div class="vp-row vp-event"><i class="bi bi-people-fill"></i> ${inv.usos_actuales || 0} de ${inv.max_usos} invitados ingresaron</div><div class="event-progress"><span style="width:${Math.min(100, Math.round(((inv.usos_actuales || 0) / (inv.max_usos || 1)) * 100))}%"></span></div>` : ''}
       <div class="vp-row"><span class="badge ${estadoBadge}">${estadoLabel}</span></div>
       <div class="vp-row vp-color-row color-swatch-row">${swatchesHTML}</div>
       <div class="vp-actions">
@@ -1683,7 +2010,10 @@
         vpVerQr.disabled = true;
         try {
           const r = await VigiaAPI.request(`/invitaciones/${inv.id}/qr`);
-          mostrarQR(r.qr, inv.nombre_evento || 'Código de acceso');
+          mostrarQR(r.qr, inv.nombre_evento || 'Código de acceso', {
+            codigo: inv.codigo_qr,
+            invitados: inv.tipo === 'evento' ? inv.max_usos : 0
+          });
         } catch (err) {
           showToast(err.message, 'bi-exclamation-triangle-fill');
         } finally {
