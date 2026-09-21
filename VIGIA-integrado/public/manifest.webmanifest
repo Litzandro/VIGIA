@@ -7,5 +7,19 @@
   "display": "standalone",
   "background_color": "#0d1712",
   "theme_color": "#12e8a0",
-  "lang": "es-HN"
+  "lang": "es-HN",
+  "icons": [
+    {
+      "src": "img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
