@@ -1,5 +1,5 @@
-const CACHE='vigia-ui-v6';
-const CORE=['/','/index.html','/login.html','/css/style.css','/js/common.js','/manifest.webmanifest'];
+const CACHE='vigia-ui-v7';
+const CORE=['/','/index.html','/login.html','/css/style.css','/js/common.js','/manifest.webmanifest','/img/logo.png','/img/favicon-32.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
