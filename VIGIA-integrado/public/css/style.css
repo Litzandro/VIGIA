@@ -2122,3 +2122,104 @@ body.has-panic-fab .assistant-panel{
 .acc-event-head b{color:var(--bone);font-size:.92rem;min-width:0;overflow:hidden;text-overflow:ellipsis;}
 .acc-event p{margin:.1rem 0 0;font-size:.7rem;color:var(--mist);}
 @media (max-width:640px){.acc-metrics{grid-template-columns:1fr;}.acc-filters{justify-content:stretch;}.acc-filters .form-control{flex:1 1 100%;width:100%;}}
+
+/* ============ COLORES SEMÁNTICOS DE BOTONES ============
+   Verde = confirmar / aprobar / iniciar   (.btn-solid, .btn-ok)
+   Rojo  = peligro / rechazar / detener    (.btn-alert, .btn-danger)
+   Ámbar = precaución / salida / suspender (.btn-warn, .btn-caution)
+   Azul  = consultar / probar / informar   (.btn-info)
+   Gris  = secundario / cancelar / cerrar  (.btn-ghost)
+   Las variantes "suaves" (.btn-ok, .btn-danger, .btn-caution, .btn-info) van
+   junto a un botón sólido para no competir con la acción principal. */
+.btn-danger{border:1px solid rgba(229,84,74,.42);}
+.btn-danger:hover{background:var(--alert);color:#fff;}
+.btn-ok{background:var(--accent-soft);border:1px solid rgba(18,232,160,.38);color:var(--accent);}
+.btn-ok:hover{background:var(--accent);color:var(--ink);}
+.btn-caution{background:var(--warn-soft);border:1px solid rgba(224,178,60,.42);color:var(--warn);}
+.btn-caution:hover{background:var(--warn);color:var(--ink);}
+.btn-info{background:rgba(87,154,255,.14);border:1px solid rgba(87,154,255,.42);color:#7DB2FF;}
+.btn-info:hover{background:#579AFF;color:#08111f;}
+.btn-sm{padding:.4rem .8rem;font-size:.76rem;}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+
+/* Paneles pegados en "Vetos y conflictos" (faltaba separación vertical) */
+.split-layout + .panel,.split-layout + .split-layout{margin-top:1.1rem;}
+
+/* ============ GESTIÓN DE INCIDENCIAS (guardia / admin) ============ */
+.ig-head-actions{display:flex;gap:.6rem;flex-wrap:wrap;}
+.ig-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem;margin-bottom:1.2rem;}
+.ig-stat{display:flex;flex-direction:column;gap:.15rem;text-align:left;padding:.9rem 1rem;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--bone);cursor:pointer;transition:border-color .2s,transform .2s;font-family:var(--f-body);}
+.ig-stat:hover{transform:translateY(-2px);}
+.ig-stat-value{font-family:var(--f-display);font-size:1.7rem;line-height:1;}
+.ig-stat-label{font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--mist);}
+.ig-stat.warn{border-color:rgba(224,178,60,.35);} .ig-stat.warn .ig-stat-value{color:var(--warn);}
+.ig-stat.info{border-color:rgba(87,154,255,.35);} .ig-stat.info .ig-stat-value{color:#7DB2FF;}
+.ig-stat.ok{border-color:rgba(18,232,160,.3);} .ig-stat.ok .ig-stat-value{color:var(--accent);}
+.ig-stat.alert{border-color:rgba(229,84,74,.4);} .ig-stat.alert .ig-stat-value{color:var(--alert);}
+.ig-stat.pulse{animation:igPulse 1.6s ease-in-out infinite;}
+@keyframes igPulse{0%,100%{box-shadow:0 0 0 0 rgba(224,178,60,.0)}50%{box-shadow:0 0 0 4px rgba(224,178,60,.18)}}
+.ig-toolbar{display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem;}
+.ig-toolbar .agenda-tabs{flex-wrap:wrap;}
+.ig-toolbar .agenda-tabs button .n{margin-left:.35rem;font-family:var(--f-mono);font-size:.68rem;opacity:.8;}
+.ig-filters{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;flex:1;justify-content:flex-end;min-width:0;}
+.ig-filters .form-control{width:auto;min-width:140px;}
+.ig-mine{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--bone-dim);cursor:pointer;white-space:nowrap;}
+.ig-mine input{accent-color:var(--accent);}
+.ig-list{display:flex;flex-direction:column;gap:.7rem;}
+.ig-card{display:grid;grid-template-columns:5px minmax(0,1fr) auto;gap:1rem;align-items:center;padding:.95rem 1rem .95rem .8rem;border:1px solid var(--line);border-radius:14px;background:var(--card);cursor:pointer;transition:border-color .2s,transform .2s;}
+.ig-card:hover{border-color:var(--line-strong);transform:translateY(-1px);}
+.ig-card .bar{align-self:stretch;border-radius:99px;background:var(--mist);}
+.ig-card[data-prio="urgente"] .bar{background:var(--alert);}
+.ig-card[data-prio="alta"] .bar{background:var(--warn);}
+.ig-card[data-prio="media"] .bar{background:#579AFF;}
+.ig-card[data-prio="baja"] .bar{background:var(--accent-dim);}
+.ig-card.pending{border-color:rgba(224,178,60,.4);background:linear-gradient(100deg,rgba(224,178,60,.07),var(--card) 40%);}
+.ig-card-main{min-width:0;}
+.ig-card-title{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.ig-card-title b{font-size:.95rem;color:var(--bone);}
+.ig-card-meta{margin-top:.3rem;font-size:.74rem;color:var(--mist);line-height:1.5;}
+.ig-card-side{display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;}
+.ig-card-actions{display:flex;gap:.4rem;}
+.ig-badges{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem;}
+.ig-empty{padding:2.5rem 1rem;text-align:center;color:var(--mist);border:1px dashed var(--line-strong);border-radius:14px;}
+.ig-wide{max-width:740px!important;width:94%;max-height:92vh;overflow-y:auto;text-align:left;}
+.ig-wide>h3,.ig-wide>p{text-align:center;}
+.ig-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1rem;}
+.ig-detail-head h3{margin:0 0 .3rem!important;text-align:left;}
+.ig-meta{margin:0!important;font-size:.76rem!important;color:var(--mist)!important;text-align:left;}
+.ig-grid,.ig-two{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.ig-block{margin-bottom:1.1rem;}
+.ig-block>label{display:block;font-family:var(--f-mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mist);margin-bottom:.4rem;}
+.ig-block p{margin:0;font-size:.86rem;color:var(--bone-dim);line-height:1.55;}
+.ig-desc{white-space:pre-wrap;}
+.ig-person{display:flex;flex-direction:column;gap:.15rem;font-size:.86rem;color:var(--bone);}
+.ig-person small{color:var(--mist);font-size:.74rem;}
+.ig-person-actions{display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap;}
+.ig-evid{display:flex;gap:.6rem;flex-wrap:wrap;}
+.ig-evid img{width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;}
+.ig-photo-preview{width:100%;max-height:170px;object-fit:cover;border-radius:10px;border:1px solid var(--line);}
+.ig-actions{margin:0 0 1.2rem;padding:1rem;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025);}
+.ig-actions .ig-actions-title{font-family:var(--f-mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mist);margin-bottom:.6rem;display:block;}
+.ig-actions .ig-row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;}
+.ig-actions textarea,.ig-actions select{margin-bottom:.7rem;}
+.ig-check{display:flex;gap:.5rem;align-items:flex-start;font-size:.78rem;color:var(--bone-dim);margin:0 0 .7rem;cursor:pointer;}
+.ig-check input{margin-top:.2rem;accent-color:var(--accent);}
+.ig-timeline{display:flex;flex-direction:column;gap:.55rem;margin-bottom:.8rem;}
+.ig-tl{padding:.55rem .75rem;border-left:2px solid var(--line-strong);background:rgba(255,255,255,.02);border-radius:0 10px 10px 0;font-size:.8rem;color:var(--bone-dim);}
+.ig-tl b{color:var(--bone);}
+.ig-tl small{display:block;color:var(--mist);font-size:.68rem;margin-top:.15rem;}
+.ig-note{display:flex;gap:.5rem;align-items:flex-start;}
+.ig-note textarea{flex:1;}
+@media (max-width:760px){.ig-summary{grid-template-columns:repeat(2,minmax(0,1fr));}.ig-grid,.ig-two{grid-template-columns:1fr;}.ig-card{grid-template-columns:5px minmax(0,1fr);}.ig-card-side{grid-column:2;align-items:flex-start;flex-direction:row;flex-wrap:wrap;}.ig-note{flex-direction:column;}.ig-note .btn{width:100%;justify-content:center;}}
+
+/* ============ SOS del guardia: agrupadas / antiguas ============ */
+.guard-sos-count{font-family:var(--f-mono);font-size:.78rem;color:var(--alert);margin-left:.2rem;}
+.guard-sos-card.stale{border-color:rgba(224,178,60,.4);background:linear-gradient(100deg,rgba(224,178,60,.07),rgba(255,255,255,.02) 50%);}
+.guard-sos-stale-list{display:none;flex-direction:column;gap:.6rem;margin-top:.9rem;padding-top:.9rem;border-top:1px dashed var(--line-strong);}
+.guard-sos-card.stale.open .guard-sos-stale-list{display:flex;}
+.guard-sos-banner.stale-only{border-color:rgba(224,178,60,.5);background:linear-gradient(100deg,rgba(120,90,20,.42),rgba(50,40,12,.2));}
+.guard-compact-link{text-decoration:none;color:inherit;transition:background .18s;border-radius:10px;}
+.guard-compact-link:hover{background:rgba(237,231,214,.05);}
+.auth-chips{margin:0 0 1rem;display:flex;gap:.4rem;flex-wrap:wrap;}
+.auth-chips .filter-chip .n{margin-left:.3rem;font-family:var(--f-mono);font-size:.68rem;opacity:.75;}
+.modal-box.ig-wide .ig-detail-head h3,.modal-box.ig-wide .ig-detail-head .ig-meta{text-align:left!important;}
