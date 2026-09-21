@@ -3,7 +3,7 @@
 const db = require('../../models');
 const { normalizarTelefonoHN } = require('../../utils/telefonoHN');
 const { Op } = require('sequelize');
-const { primaryKeyWhere, applyOwnershipScope, applyOwnershipOnCreate } = require('../../utils/crudFactory');
+const { primaryKeyWhere, applyOwnershipScope, applyOwnershipOnCreate, parsePagination, parseSort, buildFilters } = require('../../utils/crudFactory');
 const { validarCampos } = require('../../config/resourceValidation');
 const { validarImagenBase64 } = require('../../utils/imagenValidator');
 
@@ -55,7 +55,40 @@ async function countTodayAccesses(residencialId, personaAutorizadaId) {
 }
 
 module.exports = function personasAutorizadasOverride({ router, model, handlers, pkPath }) {
-  router.get('/', handlers.list);
+  // Listado con el nombre y la vivienda del residente que registro cada
+  // autorizacion. Antes el frontend los buscaba en /api/usuarios, que un
+  // guardia no puede leer (requiere "usuarios.gestionar"): por eso el
+  // guardia veia la lista vacia. Aqui se resuelven en el servidor, solo
+  // para las filas que devuelve la consulta.
+  router.get('/', async (req, res, next) => {
+    try {
+      const { page, limit, offset } = parsePagination(req.query);
+      const order = parseSort(req.query, model) || [['fecha_creacion', 'DESC']];
+      let where = buildFilters(req.query, model);
+      where = applyOwnershipScope(model, req.user, where);
+      const { rows, count } = await model.findAndCountAll({ where, limit, offset, order });
+      const ids = [...new Set(rows.map((r) => r.residente_id).filter(Boolean))];
+      const [usuarios, residentes] = ids.length
+        ? await Promise.all([
+          db.Usuarios.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'nombre', 'apellido'] }),
+          db.Residentes.findAll({ where: { usuario_id: { [Op.in]: ids } } }),
+        ])
+        : [[], []];
+      const viviendaIds = [...new Set(residentes.map((r) => r.vivienda_id).filter(Boolean))];
+      const viviendas = viviendaIds.length
+        ? await db.Viviendas.findAll({ where: { id: { [Op.in]: viviendaIds } }, attributes: ['id', 'numero', 'bloque_torre'] })
+        : [];
+      const nombre = new Map(usuarios.map((u) => [String(u.id), `${u.nombre} ${u.apellido}`.trim()]));
+      const vivMap = new Map(viviendas.map((v) => [String(v.id), `${v.bloque_torre ? v.bloque_torre + ' · ' : ''}Vivienda ${v.numero}`]));
+      const vivDe = new Map(residentes.map((r) => [String(r.usuario_id), vivMap.get(String(r.vivienda_id)) || null]));
+      const data = rows.map((r) => ({
+        ...r.toJSON(),
+        residente_nombre: nombre.get(String(r.residente_id)) || `Residente #${r.residente_id}`,
+        vivienda: vivDe.get(String(r.residente_id)) || null,
+      }));
+      res.json({ data, meta: { page, limit, total: count, totalPages: Math.max(1, Math.ceil(count / limit)) } });
+    } catch (err) { next(err); }
+  });
   router.get(`/${pkPath}`, handlers.getOne);
 
   // Consulta para garita: dado un documento y/o placa, dice si hay una

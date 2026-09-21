@@ -26,6 +26,37 @@ function normalizePriority(value) {
   return map[String(value || '').toLowerCase()] || 'media';
 }
 
+const ESTADOS_GESTIONABLES = ['reportada', 'en_revision', 'resuelta', 'cerrada'];
+const PRIORIDADES = ['baja', 'media', 'alta', 'urgente'];
+// Flujo permitido desde el portal de guardia/admin. "pendiente_aprobacion"
+// solo se abandona con /revisar; "rechazada" es final.
+const TRANSICIONES = {
+  reportada: ['en_revision', 'resuelta', 'cerrada'],
+  en_revision: ['reportada', 'resuelta', 'cerrada'],
+  resuelta: ['en_revision', 'cerrada'],
+  cerrada: ['en_revision'],
+};
+
+// Nombre + vivienda de los reportantes, para que el personal sepa a quien
+// contactar sin tener acceso al listado completo de usuarios.
+async function resolverReportantes(ids) {
+  const unicos = [...new Set(ids.filter(Boolean))];
+  if (!unicos.length) return new Map();
+  const [usuarios, residentes] = await Promise.all([
+    db.Usuarios.findAll({ where: { id: { [Op.in]: unicos } }, attributes: ['id', 'nombre', 'apellido', 'telefono'] }),
+    db.Residentes.findAll({ where: { usuario_id: { [Op.in]: unicos } } }),
+  ]);
+  const viviendaIds = [...new Set(residentes.map((r) => r.vivienda_id).filter(Boolean))];
+  const viviendas = viviendaIds.length
+    ? await db.Viviendas.findAll({ where: { id: { [Op.in]: viviendaIds } }, attributes: ['id', 'numero', 'bloque_torre'] })
+    : [];
+  const vivMap = new Map(viviendas.map((v) => [String(v.id), `${v.bloque_torre ? v.bloque_torre + ' · ' : ''}Vivienda ${v.numero}`]));
+  const vivDe = new Map(residentes.map((r) => [String(r.usuario_id), vivMap.get(String(r.vivienda_id)) || null]));
+  return new Map(usuarios.map((u) => [String(u.id), {
+    id: u.id, nombre: u.nombre, apellido: u.apellido, telefono: u.telefono || null, vivienda: vivDe.get(String(u.id)) || null,
+  }]));
+}
+
 module.exports = function incidenciasOverride({ router, model, handlers, pkPath }) {
   router.get('/', async (req, res, next) => {
     try {
@@ -58,6 +89,7 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       }
       if (req.query.estado && model.rawAttributes.estado) where.estado = req.query.estado;
       if (req.query.prioridad && model.rawAttributes.prioridad) where.prioridad = req.query.prioridad;
+      if (req.query.asignado_a === 'me') where.asignado_a = req.user.id;
       if (req.query.q) {
         andConditions.push({
           [Op.or]: [
@@ -80,10 +112,30 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         include: [
           { model: db.TiposIncidencia, as: 'tipoIncidencia', attributes: ['id', 'nombre', 'nivel_urgencia'] },
           { model: db.Usuarios, as: 'reportadoPor', attributes: ['id', 'nombre', 'apellido'] },
+          { model: db.Usuarios, as: 'asignadoA', attributes: ['id', 'nombre', 'apellido'] },
         ],
         order: [['fecha_hora', 'DESC']],
-        limit: 200,
+        limit: 300,
       });
+      // Personal: vivienda del reportante y cuantas evidencias tiene cada
+      // caso (sin mandar las fotos en base64 en el listado).
+      const esPersonalListado = ['guardia', 'admin', 'superadmin'].includes(req.user.rol_codigo);
+      if (esPersonalListado && rows.length) {
+        const [reportantes, evs] = await Promise.all([
+          resolverReportantes(rows.map((r) => r.reportado_por)),
+          db.IncidenciasEvidencias.findAll({
+            where: { incidencia_id: { [Op.in]: rows.map((r) => r.id) } },
+            attributes: ['incidencia_id'],
+          }),
+        ]);
+        const conteo = new Map();
+        evs.forEach((e) => conteo.set(String(e.incidencia_id), (conteo.get(String(e.incidencia_id)) || 0) + 1));
+        const data = rows.map((r) => {
+          const rep = reportantes.get(String(r.reportado_por));
+          return { ...r.toJSON(), reportante_vivienda: rep ? rep.vivienda : null, evidencias_count: conteo.get(String(r.id)) || 0 };
+        });
+        return res.json({ data, meta: { total: data.length } });
+      }
       res.json({ data: rows, meta: { total: rows.length } });
     } catch (err) { next(err); }
   });
@@ -324,7 +376,11 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
           order: [['fecha_hora', 'ASC']],
         }),
       ]);
-      res.json({ data: row, evidencias, seguimiento });
+      let reportante = null;
+      if (['guardia', 'admin', 'superadmin'].includes(req.user.rol_codigo)) {
+        reportante = (await resolverReportantes([row.reportado_por])).get(String(row.reportado_por)) || null;
+      }
+      res.json({ data: row, evidencias, seguimiento, reportante });
     } catch (err) { next(err); }
   });
 
@@ -446,9 +502,39 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       ['estado', 'prioridad', 'asignado_a', 'ubicacion'].forEach((k) => {
         if (req.body[k] !== undefined) allowed[k] = req.body[k];
       });
+      // Antes cualquier texto en "estado" o "prioridad" llegaba directo a
+      // la base (un valor fuera del enum terminaba en error 500) y se
+      // podia saltar de "reportada" a cualquier estado sin orden.
+      if (allowed.prioridad !== undefined && !PRIORIDADES.includes(allowed.prioridad)) {
+        return res.status(400).json({ error: 'Prioridad invalida.' });
+      }
+      if (allowed.estado !== undefined && allowed.estado !== row.estado) {
+        if (!ESTADOS_GESTIONABLES.includes(allowed.estado)) {
+          return res.status(400).json({ error: 'Estado invalido.' });
+        }
+        if (!(TRANSICIONES[row.estado] || []).includes(allowed.estado)) {
+          return res.status(400).json({ error: `No se puede pasar una incidencia de "${row.estado}" a "${allowed.estado}".` });
+        }
+      } else if (allowed.estado === row.estado) {
+        delete allowed.estado;
+      }
+      if (allowed.asignado_a !== undefined && allowed.asignado_a !== null) {
+        const asignado = await db.Usuarios.findOne({ where: { id: allowed.asignado_a, residencial_id: row.residencial_id } });
+        if (!asignado) return res.status(400).json({ error: 'La persona asignada no pertenece a esta residencial.' });
+      }
+      // Al tomar el caso queda a nombre de quien lo tomo (si nadie lo tenia).
+      if (allowed.estado === 'en_revision' && allowed.asignado_a === undefined && !row.asignado_a) {
+        allowed.asignado_a = req.user.id;
+      }
+      if (allowed.estado === 'resuelta' || allowed.estado === 'cerrada') {
+        allowed.fecha_resolucion = new Date();
+      }
       if (allowed.estado === 'cerrada') {
         allowed.cerrada_por = req.user.id;
-        allowed.fecha_resolucion = new Date();
+      }
+      if (allowed.estado === 'en_revision' && ['resuelta', 'cerrada'].includes(row.estado)) {
+        allowed.fecha_resolucion = null;
+        allowed.cerrada_por = null;
       }
       const anterior = row.estado;
       await row.update(allowed);
@@ -490,6 +576,32 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
         }
       }
       res.json({ data: row });
+    } catch (err) { next(err); }
+  });
+
+  // Nota de seguimiento SIN cambiar el estado (p. ej. "llame al residente",
+  // "se aviso a mantenimiento"). Antes el historial solo se escribia al
+  // cambiar de estado, asi que no habia donde dejar constancia del avance.
+  router.post(`/${pkPath}/nota`, async (req, res, next) => {
+    try {
+      if (!['guardia', 'admin', 'superadmin'].includes(req.user.rol_codigo)) {
+        return res.status(403).json({ error: 'Solo el personal puede agregar notas de seguimiento.' });
+      }
+      const comentario = String(req.body.comentario || '').trim();
+      if (comentario.length < 3) return res.status(400).json({ error: 'Escribe la nota (minimo 3 caracteres).' });
+      if (comentario.length > 500) return res.status(400).json({ error: 'La nota admite hasta 500 caracteres.' });
+      const where = primaryKeyWhere(model, req.params);
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const row = await model.findOne({ where });
+      if (!row) return res.status(404).json({ error: 'Incidencia no encontrada.' });
+      const nota = await db.IncidenciasSeguimiento.create({
+        incidencia_id: row.id,
+        usuario_id: req.user.id,
+        comentario,
+        estado_anterior: row.estado,
+        estado_nuevo: row.estado,
+      });
+      res.status(201).json({ data: nota });
     } catch (err) { next(err); }
   });
 

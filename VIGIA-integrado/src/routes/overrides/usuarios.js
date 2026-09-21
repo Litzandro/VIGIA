@@ -160,12 +160,33 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
       res.json({ data: row });
     } catch (err) { next(err); }
   });
+  // Reglas para actuar sobre la cuenta de OTRA persona: nunca la propia, y
+  // un admin solo gestiona guardias y residentes (no otros admins ni
+  // superadmins). superadmin puede con cualquiera excepto consigo mismo.
+  async function bloqueoSobreCuenta(req, objetivo) {
+    if (String(objetivo.id) === String(req.user.id)) {
+      return 'No puedes suspender, cambiar el rol ni eliminar tu propia cuenta.';
+    }
+    if (req.user.rol_codigo !== 'superadmin') {
+      const rol = await db.Roles.findByPk(objetivo.rol_id);
+      if (rol && ['admin', 'superadmin'].includes(rol.codigo)) {
+        return 'Solo un superadministrador puede gestionar cuentas de administración.';
+      }
+    }
+    return null;
+  }
   const adminUpdate = async (req, res, next) => {
     try {
       const where = { id: req.params.id };
       if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
       const row = await model.findOne({ where });
       if (!row) return res.status(404).json({ error: 'Usuario no encontrado.' });
+      const bloqueo = await bloqueoSobreCuenta(req, row);
+      // Suspender/activar o cambiar rol de una cuenta ajena esta sujeto a
+      // las mismas reglas que eliminar; editar datos basicos propios no.
+      if (bloqueo && (req.body.estado !== undefined || req.body.rol_id !== undefined)) {
+        return res.status(403).json({ error: bloqueo });
+      }
       const allowed = {};
       ['nombre','apellido','email','telefono','foto_url','estado','debe_cambiar_clave'].forEach(k=>{ if(req.body[k]!==undefined) allowed[k]=req.body[k]; });
       if (req.user.rol_codigo === 'superadmin') {
@@ -179,5 +200,23 @@ module.exports = function usuariosOverride({ router, model, handlers, pkPath }) 
   };
   router.put(`/${pkPath}`, adminUpdate);
   router.patch(`/${pkPath}`, adminUpdate);
-  router.delete(`/${pkPath}`, handlers.remove);
+  // Antes DELETE usaba el borrado generico: como "usuarios" no tiene
+  // columna "activo", hacia un DELETE fisico -- se pierde el historial de
+  // accesos/incidencias de esa persona (o falla por llaves foraneas) y
+  // cualquier admin podia borrarse a si mismo. Ahora es un borrado logico
+  // (estado "inactivo": ya no puede iniciar sesion ni sale en la lista) y
+  // se cierran sus sesiones abiertas.
+  router.delete(`/${pkPath}`, async (req, res, next) => {
+    try {
+      const where = { id: req.params.id };
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const row = await model.findOne({ where });
+      if (!row) return res.status(404).json({ error: 'Usuario no encontrado.' });
+      const bloqueo = await bloqueoSobreCuenta(req, row);
+      if (bloqueo) return res.status(403).json({ error: bloqueo });
+      await row.update({ estado: 'inactivo', fecha_eliminacion: new Date() });
+      await db.Sesiones.update({ activa: false }, { where: { usuario_id: row.id } });
+      res.json({ mensaje: 'Cuenta desactivada. Se conserva su historial.' });
+    } catch (err) { next(err); }
+  });
 };
