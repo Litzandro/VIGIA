@@ -99,7 +99,8 @@ const REGLAS = {
     motivo: { tipo: 'texto', min: 3, max: 255 },
   },
   invitaciones: {
-    nombre_evento: { tipo: 'texto', min: 2, max: 150 },
+    // 60: mismo tope que el formulario "Nueva visita" (contador 0/60).
+    nombre_evento: { tipo: 'texto', min: 2, max: 60 },
     max_usos: { tipo: 'entero', min: 1, max: 1000 },
     notas: { tipo: 'texto', max: 255 },
   },
