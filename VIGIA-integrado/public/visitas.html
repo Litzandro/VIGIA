@@ -10,6 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="css/style.css">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 </head>
 <body>
 <div class="bg-photo"></div>
@@ -99,15 +101,22 @@
     <form id="newVisitForm" novalidate>
       <div class="form-group">
         <label>Acceso rápido</label>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-          <button type="button" class="btn btn-ghost quick-reason" data-reason="Visita familiar" style="padding:.4rem .8rem;font-size:.78rem;">Familiar</button>
-          <button type="button" class="btn btn-ghost quick-reason" data-reason="Entrega" style="padding:.4rem .8rem;font-size:.78rem;">Delivery</button>
-          <button type="button" class="btn btn-ghost quick-reason" data-reason="Mantenimiento" style="padding:.4rem .8rem;font-size:.78rem;">Servicio técnico</button>
+        <div class="quick-presets" id="quickPresets">
+          <button type="button" class="quick-chip" data-preset="familiar"><i class="bi bi-people-fill"></i> Familiar</button>
+          <button type="button" class="quick-chip" data-preset="entrega"><i class="bi bi-box-seam-fill"></i> Delivery</button>
+          <button type="button" class="quick-chip" data-preset="servicio"><i class="bi bi-tools"></i> Servicio técnico</button>
+          <button type="button" class="quick-chip" data-preset="fiesta"><i class="bi bi-balloon-heart-fill"></i> Fiesta / evento</button>
+        </div>
+        <p class="quick-hint" id="quickHint">Un toque llena el motivo, el color y la hora por ti. Solo falta el nombre.</p>
+        <div class="quick-recent" id="quickRecent" hidden>
+          <span class="quick-recent-label">Recientes</span>
+          <div class="quick-recent-list" id="quickRecentList"></div>
         </div>
       </div>
       <div class="form-group">
-        <label for="visitName">Nombre del visitante</label>
-        <input type="text" class="form-control" id="visitName" placeholder="Ej. Ana Martínez" required>
+        <label for="visitName" id="visitNameLabel">Nombre del visitante</label>
+        <input type="text" class="form-control" id="visitName" placeholder="Ej. Ana Martínez" maxlength="60" autocomplete="off" required>
+        <div class="char-counter" id="visitNameCount" aria-live="polite">0/60</div>
       </div>
       <div class="form-group">
         <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;text-transform:none;font-family:var(--f-body);font-size:.83rem;color:var(--bone);">
@@ -120,6 +129,36 @@
           <input type="checkbox" id="visitRecurring" style="width:auto;accent-color:var(--accent);">
           Es una visita recurrente (ej. bus escolar, servicio de limpieza)
         </label>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;text-transform:none;font-family:var(--f-body);font-size:.83rem;color:var(--bone);">
+          <input type="checkbox" id="visitEvent" style="width:auto;accent-color:var(--accent);">
+          Es una fiesta o evento con varios invitados
+        </label>
+      </div>
+      <div id="visitEventGroup" style="display:none;">
+        <div class="form-group">
+          <label for="visitGuests">¿Cuántas personas invitas?</label>
+          <div class="guest-stepper">
+            <button type="button" class="icon-btn" id="guestsMinus" aria-label="Menos invitados"><i class="bi bi-dash-lg"></i></button>
+            <input type="number" class="form-control" id="visitGuests" min="2" max="300" value="20" inputmode="numeric">
+            <button type="button" class="icon-btn" id="guestsPlus" aria-label="Más invitados"><i class="bi bi-plus-lg"></i></button>
+          </div>
+          <div class="guest-presets" id="guestPresets">
+            <button type="button" data-n="10">10</button><button type="button" data-n="20">20</button><button type="button" data-n="30">30</button><button type="button" data-n="50">50</button><button type="button" data-n="100">100</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="visitDuration">Duración del acceso</label>
+          <select class="form-control" id="visitDuration">
+            <option value="3">3 horas</option>
+            <option value="6" selected>6 horas</option>
+            <option value="8">8 horas</option>
+            <option value="12">12 horas</option>
+            <option value="24">Todo el día (24 h)</option>
+          </select>
+        </div>
+        <div class="event-note"><i class="bi bi-qr-code"></i><span>Se genera <b>un solo código QR</b> para toda la fiesta. Compártelo con tus invitados: cada entrada descuenta un cupo y, al llegar al límite, el código deja de funcionar. No tienes que registrar a nadie uno por uno.</span></div>
       </div>
       <div class="form-group" id="visitFrequencyGroup" style="display:none;">
         <label for="visitFrequency">Frecuencia</label>
@@ -155,7 +194,7 @@
           <input type="time" class="form-control" id="visitTime" required>
         </div>
       </div>
-      <div class="form-group">
+      <div class="form-group" id="visitReasonGroup">
         <label for="visitReason">Motivo</label>
         <select class="form-control" id="visitReason">
           <option value="Visita familiar">Visita familiar</option>
