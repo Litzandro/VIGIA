@@ -2223,3 +2223,40 @@ body.has-panic-fab .assistant-panel{
 .auth-chips{margin:0 0 1rem;display:flex;gap:.4rem;flex-wrap:wrap;}
 .auth-chips .filter-chip .n{margin-left:.3rem;font-family:var(--f-mono);font-size:.68rem;opacity:.75;}
 .modal-box.ig-wide .ig-detail-head h3,.modal-box.ig-wide .ig-detail-head .ig-meta{text-align:left!important;}
+
+/* ============ BITÁCORA DE TURNO (operaciones.html) ============ */
+.op-bitacora-list{display:flex;flex-direction:column;gap:.6rem;max-height:340px;overflow-y:auto;margin-bottom:1rem;padding-right:.2rem;}
+.op-bit-entry{padding:.65rem .8rem;border-left:2px solid var(--accent-dim);background:rgba(255,255,255,.02);border-radius:0 10px 10px 0;}
+.op-bit-entry p{margin:0 0 .25rem;font-size:.84rem;color:var(--bone-dim);white-space:pre-wrap;}
+.op-bit-entry span{font-size:.68rem;color:var(--mist);}
+.op-bitacora-form{display:flex;gap:.6rem;align-items:flex-start;}
+.op-bitacora-form textarea{flex:1;}
+@media (max-width:640px){.op-bitacora-form{flex-direction:column;}.op-bitacora-form .btn{width:100%;justify-content:center;}}
+
+/* ============ RESUMEN OPERATIVO (portal admin) ============ */
+.split-layout.single-col{grid-template-columns:1fr;}
+.split-layout.single-col>section{max-width:640px;}
+.ao-panel{margin-bottom:1.2rem;}
+.ao-alerts{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;}
+.ao-alert{display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:12px;font-size:.82rem;border:1px solid transparent;}
+.ao-alert i{flex-shrink:0;}
+.ao-alert.alert{background:var(--alert-soft);color:var(--alert);border-color:rgba(229,84,74,.3);}
+.ao-alert.warn{background:var(--warn-soft);color:var(--warn);border-color:rgba(224,178,60,.3);}
+.ao-alert.info{background:rgba(87,154,255,.1);color:#7DB2FF;border-color:rgba(87,154,255,.28);}
+.ao-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.7rem;}
+.ao-stat{display:flex;flex-direction:column;gap:.15rem;padding:.85rem .8rem;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--bone);text-decoration:none;transition:border-color .2s,transform .2s;}
+.ao-stat:not(.static):hover{border-color:var(--accent-dim);transform:translateY(-2px);}
+.ao-stat.static{cursor:default;}
+.ao-val{font-family:var(--f-display);font-size:1.45rem;line-height:1;}
+.ao-label{font-size:.66rem;letter-spacing:.03em;color:var(--mist);margin-top:.15rem;line-height:1.3;}
+.ao-stat.alert.has-value .ao-val{color:var(--alert);}
+.ao-stat.has-value:not(.alert) .ao-val{color:var(--accent);}
+@media (max-width:980px){.ao-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media (max-width:560px){.ao-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* ============ Selector de rango dentro de la tarjeta "Accesos" ============ */
+.ao-stat-range{gap:.4rem;}
+.ao-range{display:flex;gap:.25rem;margin-top:.35rem;flex-wrap:wrap;}
+.ao-range button{background:transparent;border:1px solid var(--line);color:var(--mist);font-family:var(--f-mono);font-size:.6rem;letter-spacing:.03em;padding:.18rem .45rem;border-radius:6px;cursor:pointer;transition:all .15s;}
+.ao-range button:hover{border-color:var(--accent-dim);color:var(--bone);}
+.ao-range button.active{background:var(--accent-soft);border-color:var(--accent-dim);color:var(--accent);}
