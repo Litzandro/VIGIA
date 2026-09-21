@@ -13,6 +13,7 @@
 // El resto de verbos (list/getOne/update/remove) se dejan igual que el
 // CRUD generico, reusando los handlers que ya trae la fabrica.
 
+const db = require('../../models');
 const qrService = require('../../services/qrService');
 const envioService = require('../../services/envioService');
 const invitacionesService = require('../../services/invitacionesService');
@@ -138,6 +139,33 @@ module.exports = function invitacionesOverride({ router, model, handlers, pkPath
     } catch (err) {
       next(err);
     }
+  });
+
+  // Antes Verificar QR solo confirmaba que el codigo era valido para
+  // ENTRAR -- no habia forma de registrar la SALIDA desde ahi, ni de
+  // saber si a esa invitacion (un visitante normal o los invitados de un
+  // evento) le quedaba alguien adentro. El guardia tenia que ir a "Quien
+  // esta dentro ahora" en el panel y buscar a la persona a mano.
+  router.get(`/${pkPath}/en-sitio`, async (req, res, next) => {
+    try {
+      const where = { id: req.params.id };
+      if (req.user.rol_codigo !== 'superadmin') where.residencial_id = req.user.residencial_id;
+      const invitacion = await model.findOne({ where });
+      if (!invitacion) return res.status(404).json({ error: 'Invitación no encontrada.' });
+      const movimientos = await db.Accesos.findAll({
+        where: { residencial_id: invitacion.residencial_id, invitacion_id: invitacion.id, visitante_id: null },
+        order: [['fecha_hora', 'DESC']],
+        attributes: ['id', 'tipo_movimiento', 'fecha_hora'],
+      });
+      if (invitacion.tipo === 'evento') {
+        const dentro = movimientos.reduce((n, m) => n + (m.tipo_movimiento === 'entrada' ? 1 : -1), 0);
+        const cualquierEntrada = movimientos.find((m) => m.tipo_movimiento === 'entrada');
+        return res.json({ data: { dentro: Math.max(0, dentro), entrada_id: cualquierEntrada ? cualquierEntrada.id : null } });
+      }
+      const ultimo = movimientos[0];
+      const dentro = ultimo && ultimo.tipo_movimiento === 'entrada' ? 1 : 0;
+      res.json({ data: { dentro, entrada_id: dentro ? ultimo.id : null } });
+    } catch (err) { next(err); }
   });
 
   router.get('/', handlers.list);

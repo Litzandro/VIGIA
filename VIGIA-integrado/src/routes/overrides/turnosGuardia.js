@@ -68,6 +68,29 @@ const ACCIONES_TURNO = {
   },
 };
 
+// Bitacora de turno (novedades y relevo). No se agrega una tabla nueva:
+// se reusa "bitacora" (ya existe para el registro general de acciones,
+// ver src/middlewares/bitacoraLogger.js) con modulo='turnos' y
+// accion='novedad_turno', filtrando por entidad_afectada='turnos_guardia'
+// + entidad_id=<id del turno>. Antes el guardia no tenia ningun lugar
+// donde dejar constancia de novedades durante su turno o al entregarlo:
+// "observaciones" del turno es un solo texto que solo administracion
+// llena al programarlo, nunca durante el servicio.
+async function decorateNovedades(rows) {
+  const ids = [...new Set(rows.map((r) => r.usuario_id).filter(Boolean))];
+  const usuarios = ids.length
+    ? await db.Usuarios.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'nombre', 'apellido'] })
+    : [];
+  const nombre = new Map(usuarios.map((u) => [String(u.id), `${u.nombre} ${u.apellido}`.trim()]));
+  return rows.map((r) => ({
+    id: r.id,
+    comentario: (r.detalles_json && r.detalles_json.comentario) || '',
+    usuario_id: r.usuario_id,
+    usuario_nombre: nombre.get(String(r.usuario_id)) || 'VIGIA',
+    fecha_hora: r.fecha_hora,
+  }));
+}
+
 module.exports = function turnosGuardiaOverride({ router, model, handlers, pkPath }) {
   router.get('/', async (req, res, next) => {
     try {
@@ -109,6 +132,54 @@ module.exports = function turnosGuardiaOverride({ router, model, handlers, pkPat
         observaciones: req.body.observaciones || null,
       });
       res.status(201).json({ data: (await decorate([row]))[0] });
+    } catch (err) { next(err); }
+  });
+
+  // Historial de novedades de un turno especifico: lo que el guardia fue
+  // anotando durante su jornada (rondas, visitas atendidas, algo que el
+  // siguiente turno deba saber) mas cualquier nota de relevo.
+  router.get(`/${pkPath}/bitacora`, async (req, res, next) => {
+    try {
+      const where = { id: req.params.id };
+      if (!esSuperadmin(req.user)) where.residencial_id = req.user.residencial_id;
+      const turno = await model.findOne({ where });
+      if (!turno) return res.status(404).json({ error: 'Turno no encontrado.' });
+      const notas = await db.Bitacora.findAll({
+        where: { entidad_afectada: 'turnos_guardia', entidad_id: turno.id, accion: 'novedad_turno' },
+        order: [['fecha_hora', 'ASC']],
+      });
+      res.json({ data: await decorateNovedades(notas) });
+    } catch (err) { next(err); }
+  });
+
+  // Agregar una novedad. PATCH (no POST) a proposito: en
+  // resourcePermissions.js "create" en turnos_guardia exige el permiso
+  // administrativo "turnos.gestionar" (que el guardia no tiene), mientras
+  // que "update" es AUTH_ONLY -- cualquier autenticado, y aqui se valida a
+  // mano que sea el guardia dueño del turno o administracion, igual que ya
+  // hace /accion mas abajo.
+  router.patch(`/${pkPath}/nota`, async (req, res, next) => {
+    try {
+      const comentario = String(req.body.comentario || '').trim();
+      if (comentario.length < 3) return res.status(400).json({ error: 'Escribe la novedad (mínimo 3 caracteres).' });
+      if (comentario.length > 500) return res.status(400).json({ error: 'La novedad admite hasta 500 caracteres.' });
+      const where = { id: req.params.id };
+      if (!esSuperadmin(req.user)) where.residencial_id = req.user.residencial_id;
+      const turno = await model.findOne({ where });
+      if (!turno) return res.status(404).json({ error: 'Turno no encontrado.' });
+      if (req.user.rol_codigo === 'guardia' && !esGuardiaDueñoDelTurno(req.user, turno)) {
+        return res.status(403).json({ error: 'Este turno no te corresponde.' });
+      }
+      const fila = await db.Bitacora.create({
+        residencial_id: turno.residencial_id,
+        usuario_id: req.user.id,
+        accion: 'novedad_turno',
+        modulo: 'turnos',
+        entidad_afectada: 'turnos_guardia',
+        entidad_id: turno.id,
+        detalles_json: { comentario },
+      });
+      res.status(201).json({ data: (await decorateNovedades([fila]))[0] });
     } catch (err) { next(err); }
   });
 
