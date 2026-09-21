@@ -1,4 +1,4 @@
-const CACHE='vigia-ui-v7';
+const CACHE='vigia-ui-v8';
 const CORE=['/','/index.html','/login.html','/css/style.css','/js/common.js','/manifest.webmanifest','/img/logo.png','/img/favicon-32.png'];
 
 self.addEventListener('install',event=>{
