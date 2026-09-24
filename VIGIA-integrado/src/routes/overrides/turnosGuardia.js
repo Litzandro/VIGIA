@@ -4,16 +4,134 @@ const db = require('../../models');
 const { Op } = require('sequelize');
 const { TURNO_ESTADO, TURNO_ACCION, esAdmin, esSuperadmin, resolverResidencialId } = require('../../config/estados');
 
+// Cuanto se le perdona a un guardia entre la hora programada de inicio
+// y el momento en que pulsa "Iniciar" antes de considerarlo tarde en la
+// UI (no cambia el estado, solo lo resalta -- ver AUSENTE_GRACIA_MIN mas
+// abajo para cuando SI pasa a "ausente").
+const TARDE_UMBRAL_MIN = 15;
+
 async function decorate(rows) {
   const ids = [...new Set(rows.flatMap((r) => [r.guardia_original_id, r.guardia_relevo_id]).filter(Boolean))];
   const users = ids.length ? await db.Usuarios.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'nombre', 'apellido'] }) : [];
   const names = new Map(users.map((u) => [String(u.id), `${u.nombre} ${u.apellido}`.trim()]));
+  const plantillaIds = [...new Set(rows.map((r) => r.plantilla_id).filter(Boolean))];
+  const plantillas = plantillaIds.length
+    ? await db.PlantillasTurno.findAll({ where: { id: { [Op.in]: plantillaIds } }, attributes: ['id', 'nombre'] })
+    : [];
+  const nombrePlantilla = new Map(plantillas.map((p) => [String(p.id), p.nombre]));
   return rows.map((r) => {
     const data = r.toJSON();
     data.guardia_original_nombre = names.get(String(r.guardia_original_id)) || `Guardia #${r.guardia_original_id}`;
     data.guardia_relevo_nombre = r.guardia_relevo_id ? (names.get(String(r.guardia_relevo_id)) || `Guardia #${r.guardia_relevo_id}`) : null;
+    data.plantilla_nombre = r.plantilla_id ? (nombrePlantilla.get(String(r.plantilla_id)) || null) : null;
+    data.llego_tarde = Boolean(
+      r.inicio_real && (new Date(r.inicio_real).getTime() - new Date(r.inicio_programado).getTime()) > TARDE_UMBRAL_MIN * 60 * 1000
+    );
     return data;
   });
+}
+
+// Cuanto tiempo despues de la hora programada se espera antes de dar por
+// ausente a un guardia que nunca pulso "Iniciar". Se aplica solo a
+// turnos en estado "programado" -- uno que ya se inicio, releva o
+// finalizo nunca se toca aca.
+const AUSENTE_GRACIA_MIN = 30;
+
+// No hay cron en el servidor (ver nota en database/vigia_schema.sql
+// junto a CREATE TABLE plantillas_turno): esta funcion corre "al vuelo"
+// cada vez que se pide GET /turnos-guardia de una residencial, y hace
+// dos cosas antes de responder:
+//   1) Genera las filas de turnos_guardia que falten desde las
+//      plantillas activas (hoy y cualquier dia atrasado, hasta 7 dias
+//      atras, por si nadie abrio esta pantalla en unos dias). Con mas de
+//      un guardia en la plantilla, rota entre ellos en orden round-robin
+//      mirando a quien le toco la ultima vez.
+//   2) Marca como "ausente" cualquier turno programado cuya hora de
+//      inicio ya paso hace mas de AUSENTE_GRACIA_MIN minutos sin que el
+//      guardia pulsara "Iniciar".
+const BACKFILL_DIAS = 7;
+
+async function sincronizarTurnosDesdePlantillas(residencialId) {
+  if (!residencialId) return;
+
+  const plantillas = await db.PlantillasTurno.findAll({ where: { residencial_id: residencialId, activa: true } });
+  if (plantillas.length) {
+    const plantillaIds = plantillas.map((p) => p.id);
+    const links = await db.PlantillaTurnoGuardias.findAll({
+      where: { plantilla_id: { [Op.in]: plantillaIds } },
+      order: [['orden', 'ASC']],
+    });
+    const guardiasPorPlantilla = new Map();
+    links.forEach((g) => {
+      const key = String(g.plantilla_id);
+      if (!guardiasPorPlantilla.has(key)) guardiasPorPlantilla.set(key, []);
+      guardiasPorPlantilla.get(key).push(g.guardia_id);
+    });
+
+    const hoy = new Date();
+    const hoySoloFecha = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    for (const plantilla of plantillas) {
+      const guardiaIds = guardiasPorPlantilla.get(String(plantilla.id)) || [];
+      if (!guardiaIds.length) continue;
+      const dias = String(plantilla.dias_semana || '')
+        .split(',')
+        .map((d) => Number(d.trim()))
+        .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+      if (!dias.length) continue;
+
+      const ultimo = await db.TurnosGuardia.findOne({
+        where: { plantilla_id: plantilla.id },
+        order: [['inicio_programado', 'DESC']],
+      });
+
+      let cursor = new Date(hoySoloFecha);
+      cursor.setDate(cursor.getDate() - BACKFILL_DIAS);
+      if (ultimo) {
+        const desdeUltimo = new Date(ultimo.inicio_programado);
+        const desdeUltimoSoloFecha = new Date(desdeUltimo.getFullYear(), desdeUltimo.getMonth(), desdeUltimo.getDate() + 1);
+        if (desdeUltimoSoloFecha > cursor) cursor = desdeUltimoSoloFecha;
+      }
+
+      let indiceRotacion = 0;
+      if (ultimo) {
+        const idxUltimo = guardiaIds.indexOf(ultimo.guardia_original_id);
+        indiceRotacion = idxUltimo >= 0 ? (idxUltimo + 1) % guardiaIds.length : 0;
+      }
+
+      const [hIniH, hIniM] = String(plantilla.hora_inicio).split(':').map(Number);
+      const [hFinH, hFinM] = String(plantilla.hora_fin).split(':').map(Number);
+
+      while (cursor <= hoySoloFecha) {
+        if (dias.includes(cursor.getDay())) {
+          const inicio = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), hIniH, hIniM, 0, 0);
+          const yaExiste = await db.TurnosGuardia.findOne({ where: { plantilla_id: plantilla.id, inicio_programado: inicio } });
+          if (!yaExiste) {
+            let fin = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), hFinH, hFinM, 0, 0);
+            if (fin <= inicio) fin.setDate(fin.getDate() + 1); // turno nocturno que cruza medianoche
+            await db.TurnosGuardia.create({
+              residencial_id: plantilla.residencial_id,
+              punto_acceso_id: plantilla.punto_acceso_id,
+              plantilla_id: plantilla.id,
+              guardia_original_id: guardiaIds[indiceRotacion],
+              inicio_programado: inicio,
+              fin_programado: fin,
+              estado: TURNO_ESTADO.PROGRAMADO,
+              observaciones: `Generado por plantilla: ${plantilla.nombre}`,
+            });
+            indiceRotacion = (indiceRotacion + 1) % guardiaIds.length;
+          }
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    }
+  }
+
+  const limiteAusente = new Date(Date.now() - AUSENTE_GRACIA_MIN * 60 * 1000);
+  await db.TurnosGuardia.update(
+    { estado: TURNO_ESTADO.AUSENTE },
+    { where: { residencial_id: residencialId, estado: TURNO_ESTADO.PROGRAMADO, inicio_programado: { [Op.lt]: limiteAusente } } }
+  );
 }
 
 // Regla de negocio: un guardia solo puede iniciar/finalizar un turno que
@@ -95,7 +213,10 @@ module.exports = function turnosGuardiaOverride({ router, model, handlers, pkPat
   router.get('/', async (req, res, next) => {
     try {
       const where = {};
-      if (!esSuperadmin(req.user)) where.residencial_id = req.user.residencial_id;
+      if (!esSuperadmin(req.user)) {
+        where.residencial_id = req.user.residencial_id;
+        await sincronizarTurnosDesdePlantillas(req.user.residencial_id);
+      }
       if (req.user.rol_codigo === 'guardia') {
         where[Op.or] = [{ guardia_original_id: req.user.id }, { guardia_relevo_id: req.user.id }];
       }

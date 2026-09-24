@@ -8,6 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false, primaryKey: true, autoIncrement: true },
     residencial_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     punto_acceso_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    plantilla_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
     guardia_original_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     guardia_relevo_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
     inicio_programado: { type: DataTypes.DATE, allowNull: false },

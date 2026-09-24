@@ -35,7 +35,14 @@ const NON_MODEL_KEYS = new Set(['sequelize', 'Sequelize']);
 // que se apaga hasta que exista al menos un adaptador real de un
 // proveedor. eventos_integracion se apaga junto con ella porque solo
 // existe para registrar la bitacora de esos conectores.
-const RECURSOS_DESACTIVADOS = new Set(['paquetes', 'llegadas_seguras', 'integraciones', 'eventos_integracion']);
+const RECURSOS_DESACTIVADOS = new Set([
+  'paquetes', 'llegadas_seguras', 'integraciones', 'eventos_integracion',
+  // plantilla_turno_guardias es una tabla puramente interna (la lista
+  // ordenada de guardias de una plantilla de turno): se administra por
+  // completo dentro del override de plantillas_turno (POST/PATCH con
+  // "guardia_ids"), nunca directamente por su propio endpoint.
+  'plantilla_turno_guardias',
+]);
 
 const overrides = {
   residenciales: require('./overrides/residenciales'),
@@ -55,6 +62,7 @@ const overrides = {
   publicaciones_reportes: require('./overrides/publicacionesReportes'),
   integraciones: require('./overrides/integraciones'),
   turnos_guardia: require('./overrides/turnosGuardia'),
+  plantillas_turno: require('./overrides/plantillasTurno'),
   mensajes: require('./overrides/mensajes'),
   incidencias_evidencias: require('./overrides/incidenciasEvidencias'),
   sanciones_usuarios: require('./overrides/sancionesUsuarios'),

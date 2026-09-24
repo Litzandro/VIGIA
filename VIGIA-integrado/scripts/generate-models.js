@@ -40,7 +40,7 @@ function splitTopLevel(str, sep = ',') {
 }
 
 const TYPE_RE =
-  /^(BIGINT\s+UNSIGNED|BIGINT|INT\s+UNSIGNED|INT|TINYINT\s+UNSIGNED|TINYINT|VARCHAR\(\d+\)|CHAR\(\d+\)|MEDIUMTEXT|LONGTEXT|TEXT|DATETIME|DATE|BOOLEAN|DECIMAL\(\d+,\d+\)|JSON|ENUM\([^)]*\))/i;
+  /^(BIGINT\s+UNSIGNED|BIGINT|INT\s+UNSIGNED|INT|TINYINT\s+UNSIGNED|TINYINT|VARCHAR\(\d+\)|CHAR\(\d+\)|MEDIUMTEXT|LONGTEXT|TEXT|DATETIME|DATE|TIME|BOOLEAN|DECIMAL\(\d+,\d+\)|JSON|ENUM\([^)]*\))/i;
 
 function typeToSequelize(rawType) {
   const t = rawType.trim();
@@ -61,6 +61,7 @@ function typeToSequelize(rawType) {
   if (up === 'TEXT') return 'DataTypes.TEXT';
   if (up === 'DATETIME') return 'DataTypes.DATE';
   if (up === 'DATE') return 'DataTypes.DATEONLY';
+  if (up === 'TIME') return 'DataTypes.TIME';
   if (up === 'BOOLEAN' || up === 'BOOL') return 'DataTypes.BOOLEAN';
   if ((m = t.match(/^DECIMAL\((\d+),(\d+)\)/i))) return `DataTypes.DECIMAL(${m[1]}, ${m[2]})`;
   if (up === 'JSON') return 'DataTypes.JSON';

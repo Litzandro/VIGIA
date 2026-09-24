@@ -81,6 +81,7 @@ module.exports = {
   vetos_acceso: { create: { permission: 'vetos.solicitar' }, read: AUTH_ONLY, update: { permission: 'vetos.gestionar' }, remove: { permission: 'vetos.gestionar' } },
   conflictos_permisos: { create: { permission: 'vetos.consultar' }, read: { permission: 'vetos.consultar' }, update: { permission: 'vetos.gestionar' }, remove: { permission: 'vetos.gestionar' } },
   turnos_guardia: { create: { permission: 'turnos.gestionar' }, read: { permission: 'turnos.consultar' }, update: AUTH_ONLY, remove: { permission: 'turnos.gestionar' } },
+  plantillas_turno: { create: { permission: 'turnos.gestionar' }, read: { permission: 'turnos.consultar' }, update: { permission: 'turnos.gestionar' }, remove: { permission: 'turnos.gestionar' } },
   cola_acceso: { create: { permission: 'cola.gestionar' }, read: { permission: 'cola.gestionar' }, update: { permission: 'cola.gestionar' }, remove: ADMIN },
   evidencias_acceso: { create: { permission: 'cola.gestionar' }, read: { permission: 'accesos.consultar' }, update: ADMIN, remove: ADMIN },
   integraciones: { create: { permission: 'integraciones.gestionar' }, read: ADMIN, update: { permission: 'integraciones.gestionar' }, remove: { permission: 'integraciones.gestionar' } },

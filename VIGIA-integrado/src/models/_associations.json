@@ -474,6 +474,36 @@
     "onDelete": "SET NULL"
   },
   {
+    "table": "plantillas_turno",
+    "column": "residencial_id",
+    "refTable": "residenciales",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "plantillas_turno",
+    "column": "punto_acceso_id",
+    "refTable": "puntos_acceso",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "plantillas_turno",
+    "column": "creado_por",
+    "refTable": "usuarios",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "plantilla_turno_guardias",
+    "column": "plantilla_id",
+    "refTable": "plantillas_turno",
+    "onDelete": "CASCADE"
+  },
+  {
+    "table": "plantilla_turno_guardias",
+    "column": "guardia_id",
+    "refTable": "usuarios",
+    "onDelete": "CASCADE"
+  },
+  {
     "table": "turnos_guardia",
     "column": "residencial_id",
     "refTable": "residenciales",
@@ -483,6 +513,12 @@
     "table": "turnos_guardia",
     "column": "punto_acceso_id",
     "refTable": "puntos_acceso",
+    "onDelete": "SET NULL"
+  },
+  {
+    "table": "turnos_guardia",
+    "column": "plantilla_id",
+    "refTable": "plantillas_turno",
     "onDelete": "SET NULL"
   },
   {

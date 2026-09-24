@@ -2332,3 +2332,13 @@ body.visitas-calendar-active .agenda-tabs{display:none!important;}
   .messaging-layout>.chat-panel:not(body.staff-thread-open *){min-height:520px}
   .chat-input-row{position:sticky;bottom:0;background:var(--panel-solid,#102016);z-index:3}
 }
+
+
+/* Plantillas de turno: chip de guardia en la rotacion (con numero de orden y boton quitar) */
+.op-plantilla-chip{display:flex;align-items:center;gap:.5rem;padding:.5rem .7rem;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);}
+.op-plantilla-chip .op-pl-orden{width:20px;height:20px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:700 .65rem var(--f-mono);display:grid;place-items:center;flex-shrink:0;}
+.op-plantilla-chip .op-pl-nombre{flex:1;font-size:.8rem;color:var(--bone-dim);}
+.op-plantilla-chip button{border:0;background:transparent;color:var(--mist);cursor:pointer;padding:.2rem;display:grid;place-items:center;}
+.op-plantilla-chip button:hover{color:var(--alert);}
+.op-plantilla-chip .op-pl-move{color:var(--mist);}
+.op-plantilla-chip .op-pl-move:hover{color:var(--accent);}

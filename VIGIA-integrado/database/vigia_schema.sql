@@ -770,12 +770,54 @@ CREATE TABLE conflictos_permisos (
 ) ENGINE=InnoDB;
 CREATE INDEX idx_conflicto_estado ON conflictos_permisos(residencial_id, estado);
 
+-- Plantillas de turno: un patron reutilizable ("Jorge, Garita principal,
+-- 6am-2pm, todos los dias") que evita tener que volver a llenar
+-- "Programar jornada" desde cero cada vez. Cada plantilla tiene una
+-- lista ordenada de guardias (plantilla_turno_guardias): con un solo
+-- guardia en la lista, el turno se repite siempre con la misma persona;
+-- con varios, el sistema los va rotando en ese orden cada vez que
+-- genera un turno nuevo (ver sincronizarTurnosDesdePlantillas() en
+-- src/routes/overrides/turnosGuardia.js). No hay un cron en el
+-- servidor -- los turnos de hoy (y cualquier dia atrasado, hasta 7 dias)
+-- se generan "al vuelo" la primera vez que alguien consulta
+-- GET /turnos-guardia despues de esa fecha, igual que el resto de
+-- logica "temporal" de este proyecto (ver expiracion de QR/suscripciones).
+CREATE TABLE plantillas_turno (
+    id                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    residencial_id        BIGINT UNSIGNED NOT NULL,
+    punto_acceso_id       BIGINT UNSIGNED NULL,
+    nombre                VARCHAR(120) NOT NULL,
+    hora_inicio           TIME NOT NULL,
+    hora_fin              TIME NOT NULL,
+    dias_semana           VARCHAR(20) NOT NULL,
+    activa                TINYINT(1) NOT NULL DEFAULT 1,
+    creado_por            BIGINT UNSIGNED NULL,
+    fecha_creacion        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_plantilla_residencial FOREIGN KEY (residencial_id) REFERENCES residenciales(id) ON DELETE CASCADE,
+    CONSTRAINT fk_plantilla_punto FOREIGN KEY (punto_acceso_id) REFERENCES puntos_acceso(id) ON DELETE SET NULL,
+    CONSTRAINT fk_plantilla_creador FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+CREATE INDEX idx_plantilla_activa ON plantillas_turno(residencial_id, activa);
+
+-- Lista ordenada de guardias de una plantilla. orden=0,1,2... define el
+-- turno de rotacion (con un solo guardia, siempre le toca a el).
+CREATE TABLE plantilla_turno_guardias (
+    id                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    plantilla_id          BIGINT UNSIGNED NOT NULL,
+    guardia_id            BIGINT UNSIGNED NOT NULL,
+    orden                 TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    CONSTRAINT fk_ptg_plantilla FOREIGN KEY (plantilla_id) REFERENCES plantillas_turno(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ptg_guardia FOREIGN KEY (guardia_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_plantilla_guardia (plantilla_id, guardia_id)
+) ENGINE=InnoDB;
+
 -- Jornadas y relevos. Se conserva el guardia original aun cuando otro
 -- guardia termine el proceso después de un cambio de turno.
 CREATE TABLE turnos_guardia (
     id                    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     residencial_id        BIGINT UNSIGNED NOT NULL,
     punto_acceso_id       BIGINT UNSIGNED NULL,
+    plantilla_id          BIGINT UNSIGNED NULL,
     guardia_original_id   BIGINT UNSIGNED NOT NULL,
     guardia_relevo_id     BIGINT UNSIGNED NULL,
     inicio_programado     DATETIME NOT NULL,
@@ -787,10 +829,12 @@ CREATE TABLE turnos_guardia (
     fecha_creacion        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_turno_residencial FOREIGN KEY (residencial_id) REFERENCES residenciales(id) ON DELETE CASCADE,
     CONSTRAINT fk_turno_punto FOREIGN KEY (punto_acceso_id) REFERENCES puntos_acceso(id) ON DELETE SET NULL,
+    CONSTRAINT fk_turno_plantilla FOREIGN KEY (plantilla_id) REFERENCES plantillas_turno(id) ON DELETE SET NULL,
     CONSTRAINT fk_turno_original FOREIGN KEY (guardia_original_id) REFERENCES usuarios(id) ON DELETE RESTRICT,
     CONSTRAINT fk_turno_relevo FOREIGN KEY (guardia_relevo_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 CREATE INDEX idx_turno_activo ON turnos_guardia(residencial_id, estado, inicio_programado);
+CREATE INDEX idx_turno_plantilla ON turnos_guardia(plantilla_id, inicio_programado);
 
 -- Cola de garita y registro rápido. Se mide llegada, inicio y fin para
 -- conocer el tiempo real y alertar cuando se supera el objetivo.
