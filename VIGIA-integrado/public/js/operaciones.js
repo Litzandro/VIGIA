@@ -63,6 +63,32 @@
     if(isSuper&&rid){VigiaAPI.request(`/cola-acceso/metricas?residencial_id=${rid}`).then(r=>{const m=r.data||{};document.getElementById('waitingQueue').textContent=m.esperando||0;document.getElementById('avgAccess').textContent=`${m.tiempo_promedio_seg||0} s`}).catch(()=>{})}
   }
 
+  // Antes "Relevar" abria DOS prompt() nativos del navegador seguidos --
+  // una caja gris generica y fuera de lugar (no se parece en nada al
+  // resto de la app), que ademas pedia escribir a mano el ID numerico
+  // del guardia de relevo (nadie se sabe el ID de memoria). Ahora abre
+  // un modal propio de VIGIA con un selector real (mismos guardias ya
+  // cargados para el formulario de arriba, filtrados por residencial) y
+  // un campo de texto para el motivo.
+  const relevoModal=document.getElementById('opRelevoModal'),relevoForm=document.getElementById('opRelevoForm'),relevoGuardSelect=document.getElementById('opRelevoGuard');
+  function abrirModalRelevo(){
+    relevoGuardSelect.innerHTML=document.getElementById('opRelief').innerHTML.replace('Sin relevo','Selecciona un guardia');
+    document.getElementById('opRelevoMotivo').value='';
+    relevoModal.classList.add('open');
+    return new Promise(resolve=>{
+      let settled=false;
+      const finish=value=>{if(settled)return;settled=true;relevoModal.classList.remove('open');resolve(value)};
+      relevoForm.onsubmit=e=>{
+        e.preventDefault();
+        const guardiaId=relevoGuardSelect.value;
+        if(!guardiaId){showToast('Selecciona quién toma el relevo.','bi-exclamation-triangle-fill');return}
+        finish({guardia_relevo_id:Number(guardiaId),motivo:document.getElementById('opRelevoMotivo').value.trim()||'Relevo de jornada'});
+      };
+      document.getElementById('opRelevoCancel').onclick=()=>finish(null);
+      relevoModal.onclick=e=>{if(e.target===relevoModal)finish(null)};
+    });
+  }
+
   function renderShifts(){
     const rid=selectedResidential();
     const rows=allShifts.filter(x=>!rid||Number(x.residencial_id)===rid);
@@ -86,9 +112,8 @@
       el.querySelectorAll('[data-a]').forEach(b=>b.onclick=async()=>{
         const body={accion:b.dataset.a};
         if(b.dataset.a==='relevar'){
-          const relief=document.getElementById('opRelief').value||prompt('ID del guardia de relevo:');if(!relief)return;
-          const motivoRelevo=prompt('Motivo del relevo:')||'Relevo de jornada';
-          body.guardia_relevo_id=Number(relief);body.observaciones=motivoRelevo;
+          const datos=await abrirModalRelevo();if(!datos)return;
+          body.guardia_relevo_id=datos.guardia_relevo_id;body.observaciones=datos.motivo;
         }
         try{
           await VigiaAPI.request(`/turnos-guardia/${x.id}/accion`,{method:'PATCH',body:JSON.stringify(body)});
