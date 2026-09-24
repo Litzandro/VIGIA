@@ -116,6 +116,21 @@
       const take=document.createElement('button');take.type='button';take.className='btn btn-info btn-sm';take.innerHTML='<i class="bi bi-hand-index-thumb"></i> Tomar caso';
       take.onclick=(e)=>{e.stopPropagation();cambiarEstado(x.id,'en_revision','',take)};
       side.appendChild(take);
+    }else if(x.estado==='en_revision'&&x.prioridad!=='urgente'){
+      // Antes, para cerrar un caso sin nada de urgencia habia que entrar al
+      // detalle DOS VECES por separado (una para "Marcar resuelta", otra
+      // para "Cerrar") -- el mismo camino largo sin importar si era un
+      // robo o un "se me perdio el gato". Ahora las que no son urgentes
+      // tienen un boton rapido aqui mismo, sin abrir nada; las urgentes
+      // siguen exigiendo entrar al detalle a proposito (para dejar
+      // registrado como se resolvio antes de cerrarlas).
+      const resolver=document.createElement('button');resolver.type='button';resolver.className='btn btn-solid btn-sm';resolver.innerHTML='<i class="bi bi-check2-circle"></i> Marcar resuelta';
+      resolver.onclick=(e)=>{e.stopPropagation();cambiarEstado(x.id,'resuelta','',resolver)};
+      side.appendChild(resolver);
+    }else if(x.estado==='resuelta'&&x.prioridad!=='urgente'){
+      const cerrar=document.createElement('button');cerrar.type='button';cerrar.className='btn btn-solid btn-sm';cerrar.innerHTML='<i class="bi bi-archive"></i> Cerrar';
+      cerrar.onclick=(e)=>{e.stopPropagation();cambiarEstado(x.id,'cerrada','',cerrar)};
+      side.appendChild(cerrar);
     }
     el.onclick=()=>abrirDetalle(x.id);
     return el;
