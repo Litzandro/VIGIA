@@ -1,41 +1,51 @@
-# VIGIA — Botones rápidos para atender incidencias (sin base de datos)
+# VIGIA — Aumento de precio de planes (+45%)
+
+## ⚠️ Paso en la base de datos (obligatorio)
+
+Suban el código a GitHub y luego corran, contra la base de datos de
+Railway, el archivo:
+
+**`database/11_subir_precios_planes_45.sql`**
+
+Es seguro correrlo más de una vez.
 
 ## Qué cambió
 
-Antes, para pasar un caso de "En progreso" a resuelto y después a cerrado
-había que entrar al detalle dos veces por separado — un clic para abrir,
-otro para "Marcar resuelta"; luego otra vez entrar, otro clic para "Cerrar
-incidencia". Lo mismo para cada uno de los 55 casos de la lista, sin
-importar qué tan urgente fuera.
+Se subió un 45% el precio de lista de los 3 planes:
 
-Ahora, para las incidencias que **no son urgentes**, aparecen botones
-directos en la propia tarjeta de la lista (igual que ya existía el botón
-"Tomar caso" para las recién reportadas):
+| Plan | Precio anterior | Precio nuevo |
+|---|---|---|
+| VIGIA Esencial | L 2,500.00 | **L 3,625.00** |
+| VIGIA Seguro | L 5,500.00 | **L 7,975.00** |
+| VIGIA Integral | L 9,500.00 | **L 13,775.00** |
 
-- **En progreso** → botón "Marcar resuelta" ahí mismo, un clic.
-- **Resuelta** → botón "Cerrar" ahí mismo, un clic.
+Todos los precios que se muestran en la app (Suscripciones, Mi
+suscripción) salen en vivo de la base de datos — no hay ningún precio
+escrito a mano en el código, así que no hace falta tocar ninguna
+pantalla. Con solo correr la migración, el precio nuevo aparece en todos
+lados automáticamente.
 
-Las incidencias **urgentes siguen exactamente igual que antes** — hay que
-entrar al detalle para resolverlas y cerrarlas. Fue intencional: en esas sí
-tiene sentido dejar una nota de cómo se resolvió antes de cerrarlas, y así
-lo diste a entender ("en las urgentes te lo entiendo").
+## Importante: esto NO les sube el precio a los clientes que ya están activos
 
-No hace falta ningún paso en la base de datos — el comentario/nota siempre
-fue opcional en el servidor, solo hacía falta un lugar más corto para
-usarlo sin escribir nada.
-
-## Archivo modificado
-
-- `public/js/incidencias-gestion.js`
+El precio nuevo aplica automáticamente a cualquier residencial que se
+suscriba de ahora en adelante. Pero los que ya están pagando hoy tienen
+su propio precio guardado aparte (`precio_acordado`, fijado el día que se
+suscribieron) — ese no cambia solo. Si también quieren subírselo a los
+clientes actuales, dejé el `UPDATE` listo (comentado) al final del mismo
+archivo SQL, para correrlo aparte cuando lo decidan — normalmente
+conviene avisarles antes con tiempo.
 
 ## Verificación hecha antes de entregar
 
-- `node --check`: sin errores.
-- Clon limpio del repo de GitHub + este archivo encima (igual a como lo
-  suben ustedes) + `npm install` + arranque completo del servidor: sin
-  errores.
+- Clon limpio del repo de GitHub + estos archivos encima (igual a como
+  los suben ustedes) + `npm install` + arranque completo del servidor:
+  sin errores.
 
-## Cómo subir esto
+## Archivos
 
-Sube `public/js/incidencias-gestion.js` a GitHub, sobrescribiendo el que ya
-existe en esa misma ruta. Nada más.
+- `database/vigia_schema.sql` — precio de fábrica actualizado (para
+  instalaciones nuevas desde cero).
+- `database/02_retroalimentacion_vigia.sql` — mismo ajuste, en el
+  segundo script que también define los planes.
+- `database/11_subir_precios_planes_45.sql` (nuevo) — la migración para
+  aplicar el cambio a la base de datos que ya está corriendo en Railway.

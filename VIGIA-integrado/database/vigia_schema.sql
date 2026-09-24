@@ -1188,9 +1188,9 @@ INSERT INTO tipos_incidencia (nombre, nivel_urgencia) VALUES
     ('Otro',                    'medio');
 
 INSERT INTO planes_servicio (codigo, nombre, descripcion, precio_mensual, max_viviendas, max_guardias, incluye_camaras, incluye_trancas) VALUES
-    ('esencial', 'VIGIA Esencial', 'Visitas, accesos, incidencias y comunidad', 2500.00, 100, 5, FALSE, FALSE),
-    ('seguro',   'VIGIA Seguro',   'Incluye control de garita, vetos, turnos e integraciones basicas', 5500.00, 300, 15, TRUE, FALSE),
-    ('integral', 'VIGIA Integral', 'Operacion multiacceso, camaras, trancas y soporte prioritario', 9500.00, NULL, NULL, TRUE, TRUE);
+    ('esencial', 'VIGIA Esencial', 'Visitas, accesos, incidencias y comunidad', 3625.00, 100, 5, FALSE, FALSE),
+    ('seguro',   'VIGIA Seguro',   'Incluye control de garita, vetos, turnos e integraciones basicas', 7975.00, 300, 15, TRUE, FALSE),
+    ('integral', 'VIGIA Integral', 'Operacion multiacceso, camaras, trancas y soporte prioritario', 13775.00, NULL, NULL, TRUE, TRUE);
 
 INSERT INTO configuraciones_residencial (residencial_id, zona_horaria)
 SELECT id, COALESCE(zona_horaria, 'America/Tegucigalpa') FROM residenciales;

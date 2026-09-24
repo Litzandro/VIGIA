@@ -405,9 +405,9 @@ WHERE r.codigo='residente' AND p.codigo IN
 ('autorizados.gestionar','vetos.solicitar','emergencias.consultar','comunidad.publicar','offline.sincronizar');
 
 INSERT IGNORE INTO planes_servicio (codigo, nombre, descripcion, precio_mensual, max_viviendas, max_guardias, incluye_camaras, incluye_trancas) VALUES
-    ('esencial', 'VIGIA Esencial', 'Visitas, accesos, incidencias y comunidad', 2500.00, 100, 5, FALSE, FALSE),
-    ('seguro',   'VIGIA Seguro',   'Control de garita, vetos, turnos e integraciones básicas', 5500.00, 300, 15, TRUE, FALSE),
-    ('integral', 'VIGIA Integral', 'Operación multiacceso, cámaras, trancas y soporte prioritario', 9500.00, NULL, NULL, TRUE, TRUE);
+    ('esencial', 'VIGIA Esencial', 'Visitas, accesos, incidencias y comunidad', 3625.00, 100, 5, FALSE, FALSE),
+    ('seguro',   'VIGIA Seguro',   'Control de garita, vetos, turnos e integraciones básicas', 7975.00, 300, 15, TRUE, FALSE),
+    ('integral', 'VIGIA Integral', 'Operación multiacceso, cámaras, trancas y soporte prioritario', 13775.00, NULL, NULL, TRUE, TRUE);
 
 INSERT IGNORE INTO configuraciones_residencial (residencial_id, zona_horaria)
 SELECT id, COALESCE(zona_horaria, 'America/Tegucigalpa') FROM residenciales;
