@@ -8,6 +8,44 @@
   if(!canManage)form.closest('.panel').style.display='none';
   let allShifts=[],guards=[],users=[],points=[],configs=[],residentials=[];
 
+  // Antes habia que escribir/elegir a mano CADA fecha y hora, las dos --
+  // "Inicio" arrancaba vacio (el navegador mostraba el placeholder
+  // "aaaa-mm-ddT-:-" ) y "Fin" habia que calcularlo uno mismo sumando
+  // las horas del turno. Ahora "Inicio" arranca en el momento actual
+  // (redondeado a los 5 min mas cercanos) y los botones de duracion
+  // calculan "Fin" solos a partir de "Inicio" -- lo unico que hay que
+  // tocar a mano sigue siendo posible (los campos no quedan bloqueados),
+  // pero ya no es obligatorio.
+  function aValorLocal(d){
+    const pad=n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function ahoraRedondeado(){
+    const d=new Date();d.setSeconds(0,0);
+    d.setMinutes(Math.ceil(d.getMinutes()/5)*5);
+    return d;
+  }
+  function prellenarInicio(){
+    const startEl=document.getElementById('opStart');
+    if(!startEl.value)startEl.value=aValorLocal(ahoraRedondeado());
+  }
+  document.getElementById('opDurationRow').addEventListener('click',e=>{
+    const btn=e.target.closest('[data-hours]');if(!btn)return;
+    prellenarInicio();
+    const startEl=document.getElementById('opStart'),endEl=document.getElementById('opEnd');
+    const inicio=new Date(startEl.value);
+    if(Number.isNaN(inicio.getTime()))return;
+    endEl.value=aValorLocal(new Date(inicio.getTime()+Number(btn.dataset.hours)*3600000));
+    document.querySelectorAll('#opDurationRow [data-hours]').forEach(b=>b.classList.toggle('active',b===btn));
+  });
+  // Elegir la hora de fin a mano (en vez de con un boton de duracion) ya
+  // no tiene por que coincidir con ningun preset -- se quita el
+  // resaltado para no mostrar una duracion que ya no es la real.
+  document.getElementById('opEnd').addEventListener('input',()=>{
+    document.querySelectorAll('#opDurationRow [data-hours]').forEach(b=>b.classList.remove('active'));
+  });
+  prellenarInicio();
+
   function selectedResidential(){return isSuper?Number(document.getElementById('opResidential').value):Number(session.residencial_id)}
   function refreshSelectors(){
     const rid=selectedResidential();
@@ -132,6 +170,6 @@
   }
 
   
-  form.onsubmit=async e=>{e.preventDefault();const payload={guardia_original_id:Number(document.getElementById('opGuard').value),guardia_relevo_id:Number(document.getElementById('opRelief').value)||null,punto_acceso_id:Number(document.getElementById('opPoint').value)||null,inicio_programado:document.getElementById('opStart').value,fin_programado:document.getElementById('opEnd').value,observaciones:document.getElementById('opNotes').value.trim()||null};if(isSuper)payload.residencial_id=selectedResidential();try{await VigiaAPI.request('/turnos-guardia',{method:'POST',body:JSON.stringify(payload)});form.reset();showToast('Turno programado');await load()}catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}};
+  form.onsubmit=async e=>{e.preventDefault();const payload={guardia_original_id:Number(document.getElementById('opGuard').value),guardia_relevo_id:Number(document.getElementById('opRelief').value)||null,punto_acceso_id:Number(document.getElementById('opPoint').value)||null,inicio_programado:document.getElementById('opStart').value,fin_programado:document.getElementById('opEnd').value,observaciones:document.getElementById('opNotes').value.trim()||null};if(isSuper)payload.residencial_id=selectedResidential();try{await VigiaAPI.request('/turnos-guardia',{method:'POST',body:JSON.stringify(payload)});form.reset();document.querySelectorAll('#opDurationRow [data-hours]').forEach(b=>b.classList.remove('active'));prellenarInicio();showToast('Turno programado');await load()}catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}};
   document.getElementById('reloadOps').onclick=load;load();
 })();
