@@ -3,6 +3,43 @@
   const point=document.getElementById('qaPoint'),photo=document.getElementById('qaPhoto'),preview=document.getElementById('qaPreview'),message=document.getElementById('qaMessage'),authHint=document.getElementById('qaAuthHint');
   const docInput=document.getElementById('qaDocument'),plateInput=document.getElementById('qaPlate');
   let photoData='';
+  // Bug real reportado (Hilary, visitas.html): una visita que el
+  // residente ya invito desde la app no aparecia por ningun lado en
+  // Control de acceso rapido -- el guardia solo se enteraba si la
+  // persona le mostraba el QR y el guardia iba a "Verificar QR"
+  // (pantalla aparte). Si llegaba sin el QR a mano, el guardia no tenia
+  // forma de saber que esa visita ya estaba autorizada; tenia que
+  // registrarla desde cero como si fuera un desconocido. Este panel
+  // trae las invitaciones pendientes de HOY (GET /invitaciones, que ya
+  // el backend filtra por residencial) para que el guardia las vea sin
+  // tener que escanear nada, y al usarlas manda invitacion_id junto con
+  // el registro -- el backend (colaAcceso.js) ya sabia consumir ese
+  // campo, solo nadie se lo estaba mandando desde aqui.
+  let invitacionSeleccionada=null;
+  function clearInvitacion(){invitacionSeleccionada=null}
+  async function loadExpected(){
+    const list=document.getElementById('expectedList');
+    try{
+      const r=await VigiaAPI.request('/invitaciones?limit=100&sort=fecha_valida_desde:asc');
+      const ahora=Date.now();
+      const rows=(r.data||[]).filter(x=>x.estado==='pendiente'&&new Date(x.fecha_valida_hasta).getTime()>=ahora);
+      document.getElementById('expectedCount').textContent=`${rows.length} esperada${rows.length===1?'':'s'}`;
+      list.innerHTML=rows.length?'':'<div class="empty-state">No hay invitaciones pendientes por ahora.</div>';
+      rows.forEach(x=>{
+        const el=document.createElement('div');el.className='queue-item';
+        const desde=new Date(x.fecha_valida_desde).toLocaleString('es-HN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});
+        el.innerHTML=`<div class="queue-number"><i class="bi bi-qr-code"></i></div><div class="queue-copy"><b>${escapeHtml(x.nombre_evento||'Visita')}</b><span>${escapeHtml(x.tipo||'')} · desde ${escapeHtml(desde)}</span></div><div class="queue-actions"><button class="btn btn-ghost" data-use="1">Usar estos datos</button></div>`;
+        el.querySelector('[data-use]').onclick=()=>{
+          invitacionSeleccionada=x;
+          document.getElementById('qaName').value=x.nombre_evento||'';
+          document.getElementById('qaOrigin').value='qr';
+          form.scrollIntoView({behavior:'smooth',block:'start'});
+          setMsg(`Datos de "${x.nombre_evento||'la visita'}" cargados. Falta la fotografía para completar el registro.`);
+        };
+        list.appendChild(el);
+      });
+    }catch(e){list.innerHTML=`<div class="empty-state">${escapeHtml(e.message)}</div>`}
+  }
   const setMsg=(text,type='')=>{message.style.display='flex';message.className='status-line '+type;message.textContent=text};
 
   // Consulta en vivo (con pequeño retraso) si el documento o la placa que
@@ -90,7 +127,7 @@
   }
   form.addEventListener('submit',async e=>{
     e.preventDefault();message.style.display='none';
-    const payload={punto_acceso_id:Number(point.value),nombre_persona:document.getElementById('qaName').value.trim(),numero_documento:document.getElementById('qaDocument').value.trim()||null,vivienda_destino:document.getElementById('qaHome').value.trim()||null,placa_vehiculo:document.getElementById('qaPlate').value.trim()||null,motivo:document.getElementById('qaReason').value.trim()||null,origen_registro:document.getElementById('qaOrigin').value,prioridad:document.getElementById('qaPriority').value,foto_url:photoData||null};
+    const payload={punto_acceso_id:Number(point.value),nombre_persona:document.getElementById('qaName').value.trim(),numero_documento:document.getElementById('qaDocument').value.trim()||null,vivienda_destino:document.getElementById('qaHome').value.trim()||null,placa_vehiculo:document.getElementById('qaPlate').value.trim()||null,motivo:document.getElementById('qaReason').value.trim()||null,origen_registro:document.getElementById('qaOrigin').value,prioridad:document.getElementById('qaPriority').value,foto_url:photoData||null,invitacion_id:invitacionSeleccionada?invitacionSeleccionada.id:null};
     if(!payload.nombre_persona){setMsg('Escribe el nombre de la persona.','alert');return}
     if(!payload.foto_url){setMsg('Toma una fotografía: es la evidencia obligatoria del guardia.','alert');return}
     try{
@@ -100,8 +137,8 @@
       else if(auth&&auth.cupo_agotado)setMsg(`Agregado a la cola. Ojo: ${auth.nombre_completo} ya alcanzó su límite de accesos hoy.`,'warn');
       else if(auth)setMsg(`Agregado a la cola. Coincide con la autorización de ${auth.nombre_completo}.`,'');
       else setMsg(r.offline?'Registro guardado sin conexión. Se sincronizará automáticamente.':'Persona agregada a la cola.');
-      form.reset();photoData='';preview.classList.remove('show');hideAuthHint();await loadQueue();
+      form.reset();photoData='';preview.classList.remove('show');hideAuthHint();clearInvitacion();await Promise.all([loadQueue(),loadExpected()]);
     }catch(err){setMsg(err.message,'alert');await loadQueue()}
   });
-  document.getElementById('refreshQueue').onclick=loadQueue;loadPoints();loadQueue();setInterval(loadQueue,30000);
+  document.getElementById('refreshQueue').onclick=()=>{loadQueue();loadExpected()};loadPoints();loadQueue();loadExpected();setInterval(()=>{loadQueue();loadExpected()},30000);
 })();

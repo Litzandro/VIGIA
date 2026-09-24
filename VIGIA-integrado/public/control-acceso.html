@@ -11,6 +11,7 @@
 <div class="app">
 <aside class="sidebar" id="vigiaSidebar" aria-label="Navegación de VIGIA"></aside><div class="main"><div class="content"><div class="page">
 <div class="page-head"><div><span class="mono-tag">REGISTRO EN MENOS PASOS</span><h1>Control de acceso rápido</h1><p>Fotografía, documento o QR. La cola mide el tiempo de atención y bloquea vetos automáticamente.</p></div><button class="btn btn-ghost" id="refreshQueue"><i class="bi bi-arrow-clockwise"></i> Actualizar</button></div>
+<div class="panel" style="margin-bottom:1rem"><div class="panel-head"><div><h3>Visitas esperadas hoy</h3><p class="config-section-note">Invitaciones que los residentes ya crearon desde la app. Si la persona llega sin enseñar el QR, igual puedes registrarla desde aquí sin volver a escribir todo.</p></div><span class="mono" id="expectedCount">0</span></div><div id="expectedList" class="queue-list"><div class="empty-state">Cargando...</div></div></div>
 <div class="metric-grid">
 <div class="metric-card"><span class="metric-value" id="mWaiting">0</span><span class="metric-label">En espera</span></div>
 <div class="metric-card"><span class="metric-value" id="mValidating">0</span><span class="metric-label">En validación</span></div>
