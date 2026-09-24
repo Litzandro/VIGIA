@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     nombre: { type: DataTypes.STRING(100), allowNull: false },
     descripcion: { type: DataTypes.STRING(255), allowNull: true },
     precio_mensual: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
+    nivel: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false, defaultValue: 1 },
     max_viviendas: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     max_guardias: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     incluye_camaras: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

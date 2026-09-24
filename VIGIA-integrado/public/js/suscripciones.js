@@ -191,7 +191,6 @@
 
   if(cancelEditBtn)cancelEditBtn.onclick=salirModoEdicion;
   document.getElementById('reloadSubs').onclick=load;
-  document.getElementById('newSubscription').onclick=()=>{ salirModoEdicion(); document.getElementById('suResidential').focus(); };
   document.getElementById('suStart').value=new Date().toISOString().slice(0,10);
   load();
 })();

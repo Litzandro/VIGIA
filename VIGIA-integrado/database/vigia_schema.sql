@@ -934,6 +934,12 @@ CREATE TABLE planes_servicio (
     nombre                VARCHAR(100) NOT NULL,
     descripcion           VARCHAR(255) NULL,
     precio_mensual        DECIMAL(12,2) NOT NULL DEFAULT 0,
+    -- Rango del plan (1=Esencial, 2=Seguro, 3=Integral): permite
+    -- preguntar "este residencial tiene AL MENOS el plan Seguro?" con
+    -- una sola comparacion numerica, en vez de ir agregando una
+    -- columna booleana nueva ("incluye_vetos", "incluye_turnos"...)
+    -- cada vez que una funcion mas se vuelve exclusiva de un plan.
+    nivel                 TINYINT UNSIGNED NOT NULL DEFAULT 1,
     max_viviendas         INT UNSIGNED NULL,
     max_guardias          INT UNSIGNED NULL,
     incluye_camaras       BOOLEAN NOT NULL DEFAULT FALSE,
@@ -1231,10 +1237,10 @@ INSERT INTO tipos_incidencia (nombre, nivel_urgencia) VALUES
     ('Disturbio / ruido',       'bajo'),
     ('Otro',                    'medio');
 
-INSERT INTO planes_servicio (codigo, nombre, descripcion, precio_mensual, max_viviendas, max_guardias, incluye_camaras, incluye_trancas) VALUES
-    ('esencial', 'VIGIA Esencial', 'Visitas, accesos, incidencias y comunidad', 3625.00, 100, 5, FALSE, FALSE),
-    ('seguro',   'VIGIA Seguro',   'Incluye control de garita, vetos, turnos e integraciones basicas', 7975.00, 300, 15, TRUE, FALSE),
-    ('integral', 'VIGIA Integral', 'Operacion multiacceso, camaras, trancas y soporte prioritario', 13775.00, NULL, NULL, TRUE, TRUE);
+INSERT INTO planes_servicio (codigo, nombre, descripcion, precio_mensual, nivel, max_viviendas, max_guardias, incluye_camaras, incluye_trancas) VALUES
+    ('esencial', 'VIGIA Esencial', 'Visitas, accesos, incidencias y comunidad', 3625.00, 1, 100, 5, FALSE, FALSE),
+    ('seguro',   'VIGIA Seguro',   'Incluye control de garita, vetos, turnos e integraciones basicas', 7975.00, 2, 300, 15, FALSE, FALSE),
+    ('integral', 'VIGIA Integral', 'Operacion multiacceso, camaras, trancas y soporte prioritario', 13775.00, 3, NULL, NULL, TRUE, TRUE);
 
 INSERT INTO configuraciones_residencial (residencial_id, zona_horaria)
 SELECT id, COALESCE(zona_horaria, 'America/Tegucigalpa') FROM residenciales;

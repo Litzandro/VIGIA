@@ -18,6 +18,7 @@
 // aca, manteniendo el estilo ya usado en el resto del proyecto.
 
 const { CONFLICTO_ESTADO, esAdmin, esSuperadmin } = require('../../config/estados');
+const { requiereNivelPlan } = require('../../utils/planAcceso');
 
 const ESTADOS_RESOLUCION = [
   CONFLICTO_ESTADO.RESUELTO_AUTORIZAR,
@@ -55,6 +56,10 @@ function evaluarResolucion(row, body, resolutorId) {
 }
 
 module.exports = function conflictosPermisosOverride({ router, model, handlers, pkPath }) {
+  // Misma pantalla que vetos_acceso ("Conflictos y vetos" en el menu) --
+  // mismo requisito de plan (ver src/utils/planAcceso.js).
+  router.use(requiereNivelPlan(2));
+
   router.get('/', handlers.list);
   router.post('/', handlers.create);
   router.get(`/${pkPath}`, handlers.getOne);

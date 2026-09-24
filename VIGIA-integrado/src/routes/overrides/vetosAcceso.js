@@ -7,6 +7,7 @@ const { primaryKeyWhere } = require('../../utils/crudFactory');
 const { VETO_ESTADO, VETO_ALCANCE, esAdmin, esSuperadmin } = require('../../config/estados');
 const { validarCampos } = require('../../config/resourceValidation');
 const { validarImagenBase64 } = require('../../utils/imagenValidator');
+const { requiereNivelPlan } = require('../../utils/planAcceso');
 
 // Regla de negocio (Requisito de conflictos): si al activar un veto la
 // persona vetada tiene tambien una autorizacion recurrente vigente,
@@ -42,6 +43,10 @@ async function detectarConflictoPorVetoActivo(vetoActivado, user, transaction) {
 }
 
 module.exports = function vetosAccesoOverride({ router, model, handlers, pkPath }) {
+  // Vetos y conflictos son parte de "Conflictos y vetos" en el menu --
+  // requiere plan Seguro o superior (ver src/utils/planAcceso.js).
+  router.use(requiereNivelPlan(2));
+
   router.get('/', async (req, res, next) => {
     try {
       const where = {};

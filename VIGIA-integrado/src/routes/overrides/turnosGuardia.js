@@ -3,6 +3,7 @@
 const db = require('../../models');
 const { Op } = require('sequelize');
 const { TURNO_ESTADO, TURNO_ACCION, esAdmin, esSuperadmin, resolverResidencialId } = require('../../config/estados');
+const { requiereNivelPlan } = require('../../utils/planAcceso');
 
 // Cuanto se le perdona a un guardia entre la hora programada de inicio
 // y el momento en que pulsa "Iniciar" antes de considerarlo tarde en la
@@ -210,6 +211,9 @@ async function decorateNovedades(rows) {
 }
 
 module.exports = function turnosGuardiaOverride({ router, model, handlers, pkPath }) {
+  // "Operación" (turnos de garita) requiere plan Seguro o superior.
+  router.use(requiereNivelPlan(2));
+
   router.get('/', async (req, res, next) => {
     try {
       const where = {};

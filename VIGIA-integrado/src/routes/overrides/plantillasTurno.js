@@ -3,6 +3,7 @@
 const db = require('../../models');
 const { Op } = require('sequelize');
 const { esAdmin, esSuperadmin, resolverResidencialId } = require('../../config/estados');
+const { requiereNivelPlan } = require('../../utils/planAcceso');
 
 const DIA_VALIDO = new Set([0, 1, 2, 3, 4, 5, 6]);
 
@@ -59,6 +60,9 @@ async function reemplazarGuardias(plantillaId, guardiaIds) {
 }
 
 module.exports = function plantillasTurnoOverride({ router, model, handlers, pkPath }) {
+  // Parte de "Operación" -- mismo requisito de plan que turnos_guardia.
+  router.use(requiereNivelPlan(2));
+
   router.get('/', async (req, res, next) => {
     try {
       const where = {};

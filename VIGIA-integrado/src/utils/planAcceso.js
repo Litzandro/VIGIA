@@ -27,6 +27,7 @@ const CACHE_TTL_MS = 60 * 1000;
 const PLAN_COMPLETO_POR_DEFECTO = {
   plan_id: null,
   plan_nombre: null,
+  nivel: 3,
   incluye_camaras: true,
   incluye_trancas: true,
   incluye_soporte: true,
@@ -48,7 +49,7 @@ async function cargarInfoMasRecientePorResidencial() {
     include: [{
       model: db.PlanesServicio,
       as: 'plan',
-      attributes: ['id', 'nombre', 'precio_mensual', 'incluye_camaras', 'incluye_trancas', 'incluye_soporte', 'max_viviendas', 'max_guardias'],
+      attributes: ['id', 'nombre', 'nivel', 'precio_mensual', 'incluye_camaras', 'incluye_trancas', 'incluye_soporte', 'max_viviendas', 'max_guardias'],
     }],
   });
 
@@ -60,6 +61,7 @@ async function cargarInfoMasRecientePorResidencial() {
     masReciente.set(id, {
       plan_id: f.plan_id,
       plan_nombre: plan.nombre || null,
+      nivel: plan.nivel != null ? Number(plan.nivel) : 1,
       incluye_camaras: Boolean(plan.incluye_camaras),
       incluye_trancas: Boolean(plan.incluye_trancas),
       incluye_soporte: plan.incluye_soporte !== false,
@@ -94,8 +96,44 @@ async function residencialIncluyeFuncion(residencialId, campo) {
   return Boolean(info[campo]);
 }
 
+// Nivel: 1=Esencial, 2=Seguro, 3=Integral. "Cumple" quiere decir tiene
+// ESE nivel o uno mas alto (un plan Integral tambien puede usar todo
+// lo que trae Seguro). NOMBRES_NIVEL sirve para armar mensajes de
+// error legibles sin tener que repetir el texto en cada override.
+const NOMBRES_NIVEL = { 1: 'Esencial', 2: 'Seguro', 3: 'Integral' };
+async function residencialCumpleNivel(residencialId, nivelMinimo) {
+  const info = await obtenerInfoPlan(residencialId);
+  return info.nivel >= nivelMinimo;
+}
+
+// Middleware listo para usar en cualquier override: "esta ruta entera
+// (lectura y escritura) requiere que la residencial tenga AL MENOS este
+// nivel de plan". El superadmin nunca pertenece a una residencial (ve
+// TODOS los clientes desde /suscripciones), asi que nunca se le aplica
+// este candado -- de lo contrario ni siquiera podria revisar/soportar
+// una residencial con un plan bajo.
+function requiereNivelPlan(nivelMinimo) {
+  return async function nivelPlanMiddleware(req, res, next) {
+    try {
+      if (!req.user || req.user.rol_codigo === 'superadmin') return next();
+      const cumple = await residencialCumpleNivel(req.user.residencial_id, nivelMinimo);
+      if (!cumple) {
+        return res.status(403).json({
+          error: `Esta función requiere el plan ${NOMBRES_NIVEL[nivelMinimo] || nivelMinimo} o superior. Contacta a administración para actualizar tu plan.`,
+          plan_insuficiente: true,
+          nivel_requerido: nivelMinimo,
+        });
+      }
+      return next();
+    } catch (err) { return next(err); }
+  };
+}
+
 module.exports = {
   obtenerInfoPlan,
   residencialIncluyeFuncion,
+  residencialCumpleNivel,
+  requiereNivelPlan,
+  NOMBRES_NIVEL,
   _invalidateCache: () => { cache.infoPorResidencial = null; },
 };

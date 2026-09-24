@@ -541,6 +541,44 @@ function prepararSidebarUnico(sidebar,current){
     div.hidden=!roles.includes(session.rol_codigo);
   });
 
+  // Candado por plan: algunas secciones del menu (ver data-plan-nivel en
+  // sidebar.html) requieren un plan mas alto que el que tiene contratado
+  // la residencial. Antes esto no se mostraba en ningun lado -- si
+  // alguien entraba igual, se topaba con un error generico del servidor
+  // sin ninguna explicacion. Ahora el enlace se queda VISIBLE (para que
+  // la persona sepa que la funcion existe) pero con un candado: no
+  // navega, y explica que plan hace falta. El superadmin nunca tiene
+  // candado (no pertenece a una residencial, ve todo).
+  const enlacesConPlan=[...sidebar.querySelectorAll('.nav-item[data-plan-nivel]')].filter(a=>!a.hidden);
+  if(session&&session.rol_codigo!=='superadmin'&&enlacesConPlan.length){
+    (async()=>{
+      try{
+        const r=await VigiaAPI.request('/mi-plan');
+        const nivel=(r.data&&r.data.nivel)||1;
+        const NOMBRE_NIVEL={2:'Seguro',3:'Integral'};
+        enlacesConPlan.forEach(link=>{
+          const requerido=Number(link.getAttribute('data-plan-nivel'));
+          if(nivel>=requerido)return;
+          link.classList.add('plan-locked');
+          const badge=document.createElement('i');
+          badge.className='bi bi-lock-fill plan-lock-badge';
+          link.appendChild(badge);
+          link.addEventListener('click',e=>{
+            e.preventDefault();
+            const nombrePlan=NOMBRE_NIVEL[requerido]||`nivel ${requerido}`;
+            const puedeActualizar=['admin'].includes(session.rol_codigo);
+            showToast(
+              puedeActualizar
+                ? `Esta función requiere el plan ${nombrePlan}. Ve a "Mi suscripción" para actualizarlo.`
+                : `Esta función requiere el plan ${nombrePlan}. Pídeselo a tu administrador.`,
+              'bi-lock-fill'
+            );
+          });
+        });
+      }catch(e){/* si falla la consulta, se deja el menu sin candados -- mejor mostrar de mas que trabar el menu por un error de red */}
+    })();
+  }
+
   if(session){
     const displayName=session.name||session.nombre_completo||[session.nombre,session.apellido].filter(Boolean).join(' ')||'Usuario';
     const initials=displayName.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0)).join('').toUpperCase()||'VG';
