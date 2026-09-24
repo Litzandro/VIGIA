@@ -197,7 +197,31 @@
     $('guardSosTitle').textContent=fresh.length?(fresh.length===1?'1 alerta SOS activa':`${fresh.length} alertas SOS activas`):`${stale.length} alerta${stale.length===1?'':'s'} SOS antigua${stale.length===1?'':'s'} sin cerrar`;
     $('guardSosText').textContent=fresh.length?'Atención inmediata requerida en la residencial.':'Ciérralas o atiéndelas para que no tapen una emergencia nueva.';
   }
-  async function loadAlerts(){try{const r=await VigiaAPI.request('/alertas-panico?limit=100&sort=fecha_hora:desc',{offline:false});state.alerts=r.data||[];const active=state.alerts.filter(a=>a.estado==='activa');if(state.knownActiveIds!==null)active.filter(a=>!state.knownActiveIds.has(a.id)).forEach(notifyNew);state.knownActiveIds=new Set(active.map(a=>a.id));renderAlerts();}catch(e){empty($('guardPanicList'),e.message)}}
+  // Bug real (encontrado comparando el resumen del superadmin contra este
+  // panel): el resumen (/centro-seguridad/resumen) cuenta TODAS las
+  // alertas activas sin limite, pero este panel pedia solo las 100 mas
+  // RECIENTES sin filtrar por estado -- en una residencial con mucho
+  // historial de pruebas, 100 alertas ya cerradas mas nuevas podian
+  // desplazar fuera de esa ventana a una activa mas vieja, y esta
+  // pantalla la mostraba como si no existiera ("0 SOS activos") mientras
+  // el resumen si la contaba. Ahora se piden las activas aparte, sin
+  // depender de que quepan dentro de las ultimas 100 en general -- el
+  // segundo pedido (las mas recientes de cualquier estado) sigue
+  // existiendo solo para mostrar las "cerradas hoy".
+  async function loadAlerts(){
+    try{
+      const [activasR,recientesR]=await Promise.all([
+        VigiaAPI.request('/alertas-panico?estado=activa&limit=100&sort=fecha_hora:desc',{offline:false}),
+        VigiaAPI.request('/alertas-panico?limit=30&sort=fecha_hora:desc',{offline:false}),
+      ]);
+      const activas=activasR.data||[],recientes=recientesR.data||[];
+      const vistos=new Set(activas.map(a=>a.id));
+      state.alerts=[...activas,...recientes.filter(a=>!vistos.has(a.id))];
+      if(state.knownActiveIds!==null)activas.filter(a=>!state.knownActiveIds.has(a.id)).forEach(notifyNew);
+      state.knownActiveIds=new Set(activas.map(a=>a.id));
+      renderAlerts();
+    }catch(e){empty($('guardPanicList'),e.message)}
+  }
 
   async function loadSummary(){try{const r=await VigiaAPI.request('/centro-seguridad/resumen',{offline:false});state.summary=r.data||{};renderKPIs(state.summary);renderShift(state.summary.turno_actual);renderInside();renderQueue(state.summary);renderIncidents(state.summary);}catch(e){showToast(e.message,'bi-exclamation-triangle-fill')}}
   async function refreshAll(){if(state.loading)return;state.loading=true;$('guardRefresh').disabled=true;try{await Promise.all([loadSummary(),loadAlerts(),checkConnection()]);}finally{state.loading=false;$('guardRefresh').disabled=false}}
