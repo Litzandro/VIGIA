@@ -24,16 +24,14 @@ const invitacionesService = require('../../services/invitacionesService');
 // forma de identificarse de nuevo, asi que no aparecera ahi -- pero SI
 // se cuenta en los totales del dia y queda su nombre en observaciones.
 async function crearAccesoDesdeCola(row, req, transaction) {
-  let vehiculoId = null;
-  if (row.placa_vehiculo) {
-    const placa = String(row.placa_vehiculo).trim().toUpperCase();
-    let vehiculo = await db.Vehiculos.findOne({ where: { residencial_id: row.residencial_id, placa }, transaction });
-    if (!vehiculo) {
-      vehiculo = await db.Vehiculos.create({ residencial_id: row.residencial_id, placa }, { transaction });
-    }
-    vehiculoId = vehiculo.id;
-  }
-
+  // El visitante se resuelve ANTES que el vehiculo a proposito: la
+  // tabla vehiculos tiene un CHECK (chk_veh_propietario) que exige que
+  // cada fila tenga exactamente un dueno, residente_id O visitante_id,
+  // nunca ninguno de los dos. Antes esto creaba el vehiculo primero,
+  // sin dueno todavia, y la insercion tronaba con "Check constraint
+  // 'chk_veh_propietario' is violated" en cuanto entraba una placa que
+  // esta garita no habia visto antes -- bug real reportado desde
+  // Control de acceso rapido (Nuevo ingreso con placa).
   let visitanteId = row.visitante_id || null;
   if (!visitanteId && row.numero_documento) {
     let visitante = await db.Visitantes.findOne({ where: { numero_documento: row.numero_documento }, transaction });
@@ -49,6 +47,26 @@ async function crearAccesoDesdeCola(row, req, transaction) {
       }, { transaction });
     }
     visitanteId = visitante.id;
+  }
+
+  // Resuelve vehiculo_id por placa cuando ya sabemos a quien
+  // atribuirselo (el visitante). Sin un visitante identificado no hay
+  // dueno valido que ponerle a la fila -- en ese caso se deja sin
+  // vincular (vehiculoId=null), pero la placa se agrega igual a
+  // "observaciones" mas abajo para no perder el dato.
+  let vehiculoId = null;
+  if (row.placa_vehiculo && visitanteId) {
+    const placa = String(row.placa_vehiculo).trim().toUpperCase();
+    let vehiculo = await db.Vehiculos.findOne({ where: { residencial_id: row.residencial_id, placa }, transaction });
+    if (!vehiculo) {
+      vehiculo = await db.Vehiculos.create({ residencial_id: row.residencial_id, placa, visitante_id: visitanteId }, { transaction });
+    } else if (!vehiculo.residente_id && !vehiculo.visitante_id) {
+      // Fila preexistente de datos viejos, de antes de que existiera
+      // este CHECK, sin dueno -- se le asigna ahora en vez de dejarla
+      // huerfana para siempre.
+      await vehiculo.update({ visitante_id: visitanteId }, { transaction });
+    }
+    vehiculoId = vehiculo.id;
   }
 
   let invitacionId = null;
@@ -71,8 +89,12 @@ async function crearAccesoDesdeCola(row, req, transaction) {
     }
   }
 
-  const detalle = [row.nombre_persona || 'Visitante', row.vivienda_destino ? `-> ${row.vivienda_destino}` : '', row.motivo ? `(${row.motivo})` : '']
-    .filter(Boolean).join(' ').slice(0, 255);
+  const detalle = [
+    row.nombre_persona || 'Visitante',
+    row.vivienda_destino ? `-> ${row.vivienda_destino}` : '',
+    row.motivo ? `(${row.motivo})` : '',
+    (row.placa_vehiculo && !vehiculoId) ? `[placa ${String(row.placa_vehiculo).trim().toUpperCase()}]` : '',
+  ].filter(Boolean).join(' ').slice(0, 255);
 
   return db.Accesos.create({
     residencial_id: row.residencial_id,
