@@ -28,7 +28,14 @@ const NON_MODEL_KEYS = new Set(['sequelize', 'Sequelize']);
 // ruta que no existe), pero el cambio es minimo y facil de revertir si
 // alguna vez hiciera falta -- no se toca database/vigia_schema.sql ni
 // se corre ninguna migracion.
-const RECURSOS_DESACTIVADOS = new Set(['paquetes', 'llegadas_seguras']);
+//
+// Integraciones se oculta con el mismo criterio: hoy no conecta nada
+// real (ver el override -- /probar nunca llama a un endpoint externo,
+// solo registra un evento simulado o "pendiente de configurar"), asi
+// que se apaga hasta que exista al menos un adaptador real de un
+// proveedor. eventos_integracion se apaga junto con ella porque solo
+// existe para registrar la bitacora de esos conectores.
+const RECURSOS_DESACTIVADOS = new Set(['paquetes', 'llegadas_seguras', 'integraciones', 'eventos_integracion']);
 
 const overrides = {
   residenciales: require('./overrides/residenciales'),
