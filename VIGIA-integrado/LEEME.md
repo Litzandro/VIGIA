@@ -1,5 +1,20 @@
 # VIGIA — Plantillas de turno (recurrentes y rotativos) + historial
 
+## 🐛 v2: se corrigió "la página no responde" al abrir cualquier modal
+
+Reportaste que la app se trababa al presionar "Nueva plantilla" — y al
+confirmarme que "Relevar" (que ya existía antes de este paquete) también
+se trababa, quedó claro que era un bug de la app en general, no algo que
+rompiera mi entrega de hoy. Lo encontré y corregí en `public/js/common.js`
+(el asistente flotante "VIGIA" de la esquina inferior derecha vigilaba
+*toda* la página entera para saber cuándo ocultarse mientras hay un modal
+abierto — cualquier cambio de clase en cualquier botón, insignia o filtro
+de toda la app volvía a disparar esa vigilancia, y bajo cierta combinación
+de acciones eso podía trabar la pestaña de forma indefinida). Ya solo
+vigila los propios modales, no toda la página; el comportamiento visual
+no cambia. **`common.js` va incluido en este paquete v2** — solo hace
+falta volver a subir ese archivo (aunque ya hayas subido el resto).
+
 ## ⚠️ Paso obligatorio en la base de datos
 
 Después de subir el código a GitHub, corran **una sola vez** contra la
@@ -101,12 +116,16 @@ turno correctamente.
   plantillas, modal de creación/edición con rotación de guardias, y
   tarjetas de jornada mejoradas.
 - `public/css/style.css` — estilos del modal de plantilla.
+- `public/js/common.js` (v2) — corrige el "página no responde" al abrir
+  cualquier modal (ver arriba). Este archivo es compartido por *toda* la
+  app (todas las páginas lo cargan), así que arregla el problema en
+  todos lados, no solo en Operación de garita.
 
-**Nota:** `public/operaciones.html`, `public/js/operaciones.js` y
-`public/css/style.css` de este paquete ya incluyen los cambios de la
-revisión de Hilary de esta mañana (`vigia-revision-hilary-2.zip`) — no
-importa en qué orden suban los dos paquetes, el resultado final es el
-mismo.
+**Nota:** `public/operaciones.html`, `public/js/operaciones.js`,
+`public/css/style.css` y `public/js/common.js` de este paquete ya
+incluyen los cambios de la revisión de Hilary de esta mañana
+(`vigia-revision-hilary-2.zip`) — no importa en qué orden suban los dos
+paquetes, el resultado final es el mismo.
 
 ## Verificación hecha antes de entregar
 
@@ -126,7 +145,9 @@ mismo.
 
 ## Cómo subir esto
 
-1. Sube los 14 archivos listados arriba a GitHub (mismas rutas,
-   sobrescriben donde ya existen).
+1. Sube los 15 archivos listados arriba a GitHub (mismas rutas,
+   sobrescriben donde ya existen — no te olvides de `public/js/common.js`).
 2. Corre `database/12_plantillas_turno.sql` contra la base de datos de
    Railway (paso ⚠️ de arriba).
+3. Prueba de nuevo el botón "Nueva plantilla" y "Relevar" para confirmar
+   que ya no se traban.

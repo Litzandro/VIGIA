@@ -1010,8 +1010,21 @@ document.addEventListener('contextmenu',e=>{if(document.body.dataset.protectDemo
 
   panel.append(head,messages,suggestions,form);
   document.body.append(btn,panel);
-  const syncFabWithModal=()=>{const open=Boolean(document.querySelector('.modal-overlay.open'));btn.style.display=open?'none':'';if(open)panel.classList.remove('open');};
-  new MutationObserver(syncFabWithModal).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});syncFabWithModal();
+  // Antes esto observaba TODO document.body (subtree:true) por cualquier
+  // cambio de clase en cualquier elemento de la pagina -- cada vez que
+  // CUALQUIER boton, badge o filtro cambiaba de clase en toda la app,
+  // se disparaba este callback (que ademas hacia un querySelector de
+  // documento completo). Ocultar el boton flotante cuando hay un modal
+  // abierto ya lo hace puro CSS (".assistant-fab" con
+  // "body:has(.modal-overlay.open)" en style.css) -- lo unico que hacia
+  // falta de verdad en JS es cerrar el panel del asistente si estaba
+  // abierto, asi que ahora se observa nada mas los .modal-overlay que
+  // existen en la pagina (unos pocos elementos, sin subtree), en vez de
+  // absolutamente todo.
+  document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+    new MutationObserver(()=>{if(overlay.classList.contains('open'))panel.classList.remove('open')})
+      .observe(overlay,{attributes:true,attributeFilter:['class']});
+  });
 
   function answer(q){
     const t=q.toLowerCase();
