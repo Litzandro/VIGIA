@@ -273,7 +273,7 @@ CREATE TABLE visitantes (
     numero_documento  VARCHAR(50)  NULL,
     telefono          VARCHAR(30)  NULL,
     email             VARCHAR(150) NULL,
-    foto_url          VARCHAR(255) NULL,
+    foto_url          MEDIUMTEXT NULL,
     fecha_registro    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_visitante_documento (tipo_documento, numero_documento)
 ) ENGINE=InnoDB;
