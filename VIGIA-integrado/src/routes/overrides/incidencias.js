@@ -199,6 +199,17 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
       }
 
       const residencialId = req.user.residencial_id || body.residencial_id;
+      // Un superadmin no pertenece a ninguna residencial en particular
+      // (req.user.residencial_id es null para esa cuenta) -- sin esto,
+      // si el formulario tampoco manda un residencial_id explicito,
+      // "residencialId" queda undefined y Sequelize revienta con un
+      // 500 crudo ("WHERE parameter residencial_id has invalid
+      // undefined value") en vez de un error claro. Mismo patron que
+      // ya se usa en camaras.js para el mismo caso.
+      if (!residencialId) {
+        await transaction.rollback();
+        return res.status(400).json({ error: 'Selecciona a que residencial pertenece esta incidencia.' });
+      }
 
       // El tipo elegido debe pertenecer a la misma residencial (o venir
       // sin residencial_id, para catalogos compartidos/globales) -- si

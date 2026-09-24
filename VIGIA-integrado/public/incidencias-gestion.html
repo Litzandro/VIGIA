@@ -125,6 +125,13 @@
     <h3>Reportar incidencia</h3>
     <p>Registra lo que ocurrió en la residencial. Un reporte del personal queda oficial de inmediato.</p>
     <form id="igReportForm" novalidate>
+      <div class="form-group" id="igRResidencialGroup" hidden>
+        <label for="igRResidencial">Residencial</label>
+        <select class="form-control" id="igRResidencial">
+          <option value="">Selecciona una residencial</option>
+        </select>
+        <span class="field-help"><span>Como superadmin, tu cuenta no pertenece a una sola residencial -- indica a cual va este reporte.</span></span>
+      </div>
       <div class="form-group">
         <label for="igRTitle">Título</label>
         <input type="text" class="form-control" id="igRTitle" maxlength="80" placeholder="Ej. Portón vehicular atascado" required>

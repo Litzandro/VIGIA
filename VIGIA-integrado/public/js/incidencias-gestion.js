@@ -14,6 +14,7 @@
     location.replace(session?VigiaAPI.destinationForRole(session.rol_codigo):'guardia-login.html');return;
   }
   const esGuardia=session.rol_codigo==='guardia';
+  const isSuper=session.rol_codigo==='superadmin';
   const puedeSancionar=['admin','superadmin'].includes(session.rol_codigo);
   const $=(id)=>document.getElementById(id);
 
@@ -292,7 +293,19 @@
     c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
     return c.toDataURL('image/jpeg',.72);
   }
+  const residencialSelect=$('igRResidencial'),residencialGroup=$('igRResidencialGroup');
+  if(isSuper&&residencialGroup)residencialGroup.hidden=false;
+  let residencialesCargadas=false;
+  async function cargarResidencialesSuper(){
+    if(!isSuper||!residencialSelect||residencialesCargadas)return;
+    residencialesCargadas=true;
+    try{
+      const r=await VigiaAPI.request('/residenciales?limit=300');
+      (r.data||[]).forEach(x=>{const opt=document.createElement('option');opt.value=x.id;opt.textContent=x.nombre;residencialSelect.appendChild(opt)});
+    }catch(e){/* si falla, el select se queda solo con "Selecciona una residencial" */}
+  }
   function abrirReporte(pre){
+    if(isSuper)cargarResidencialesSuper();
     $('igRType').innerHTML=types.map(t=>`<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('');
     const otro=types.find(t=>t.nombre==='Otro');if(otro)$('igRType').value=otro.id;
     const ahora=new Date();ahora.setSeconds(0,0);
@@ -318,8 +331,10 @@
     if(!ub){showToast('Escribe la ubicación exacta.','bi-exclamation-triangle-fill');return}
     if(!cuandoV){showToast('Indica cuándo ocurrió.','bi-exclamation-triangle-fill');return}
     if(esGuardia&&!photoData){showToast('Adjunta una fotografía como evidencia.','bi-exclamation-triangle-fill');return}
+    if(isSuper&&residencialSelect&&!residencialSelect.value){showToast('Selecciona a qué residencial pertenece este reporte.','bi-exclamation-triangle-fill');return}
     const body={tipo_incidencia_id:Number($('igRType').value)||null,titulo,descripcion:d,ubicacion:ub,fecha_hora_hecho:new Date(cuandoV).toISOString(),visibilidad:$('igRVis').value,evidencia_url:photoData||null,evidencia_tipo:'imagen'};
     if($('igRPriority').value)body.prioridad=$('igRPriority').value;
+    if(isSuper&&residencialSelect&&residencialSelect.value)body.residencial_id=Number(residencialSelect.value);
     await withSubmitLock(form.querySelector('button[type=submit]'),async()=>{
       try{await VigiaAPI.request('/incidencias',{method:'POST',body:JSON.stringify(body)});showToast('Incidencia registrada');cerrarReporte();await cargar()}
       catch(err){showToast(err.message,'bi-exclamation-triangle-fill')}
