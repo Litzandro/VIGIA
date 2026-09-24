@@ -113,6 +113,12 @@ module.exports = function incidenciasOverride({ router, model, handlers, pkPath 
           { model: db.TiposIncidencia, as: 'tipoIncidencia', attributes: ['id', 'nombre', 'nivel_urgencia'] },
           { model: db.Usuarios, as: 'reportadoPor', attributes: ['id', 'nombre', 'apellido'] },
           { model: db.Usuarios, as: 'asignadoA', attributes: ['id', 'nombre', 'apellido'] },
+          // Solo superadmin ve incidencias de VARIAS residenciales a la
+          // vez en este mismo listado (guardia/admin ya estan acotados a
+          // la suya via el filtro de arriba) -- sin el nombre de la
+          // residencial no hay forma de distinguir a cual pertenece cada
+          // tarjeta, ni de buscarla por nombre.
+          { model: db.Residenciales, as: 'residencial', attributes: ['id', 'nombre'] },
         ],
         order: [['fecha_hora', 'DESC']],
         limit: 300,

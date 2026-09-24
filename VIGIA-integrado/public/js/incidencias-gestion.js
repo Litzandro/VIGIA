@@ -58,7 +58,8 @@
       if(prio&&x.prioridad!==prio)return false;
       if(mine&&String(x.asignado_a)!==String(session.id))return false;
       if(q){
-        const txt=`${x.titulo} ${nombreDe(x.reportadoPor)} ${x.reportante_vivienda||''} ${x.ubicacion||''} ${fol(x.id)}`.toLowerCase();
+        const nombreResidencial=(x.residencial&&x.residencial.nombre)||'';
+        const txt=`${x.titulo} ${nombreDe(x.reportadoPor)} ${x.reportante_vivienda||''} ${x.ubicacion||''} ${fol(x.id)} ${nombreResidencial}`.toLowerCase();
         if(!txt.includes(q))return false;
       }
       return true;
@@ -92,10 +93,15 @@
     const autor=nombreDe(x.reportadoPor)||'Residente';
     const asignada=x.asignadoA?` · Asignada a ${nombreDe(x.asignadoA)}`:'';
     const tipo=(x.tipoIncidencia&&x.tipoIncidencia.nombre)||'Sin tipo';
+    // El nombre de la residencial solo se muestra para superadmin: es el
+    // unico rol que ve incidencias de varias residenciales mezcladas en
+    // el mismo listado, asi que es el unico al que le hace falta saber
+    // de cual es cada tarjeta.
+    const residencialTag=isSuper&&x.residencial?` · ${escapeHtml(x.residencial.nombre)}`:'';
     el.innerHTML=`<span class="bar"></span>
       <div class="ig-card-main">
         <div class="ig-card-title"><b>${escapeHtml(x.titulo)}</b>${badge(pr.label,pr.cls)}${badge(est.label,est.cls)}${x.evidencias_count?`<span class="badge neutral"><i class="bi bi-camera-fill"></i> ${x.evidencias_count}</span>`:''}</div>
-        <div class="ig-card-meta">${fol(x.id)} · ${escapeHtml(tipo)} · ${escapeHtml(autor)}${x.reportante_vivienda?' · '+escapeHtml(x.reportante_vivienda):''}<br>${escapeHtml(x.ubicacion||'Sin ubicación')} · ${hace(x.fecha_hora)}${escapeHtml(asignada)}</div>
+        <div class="ig-card-meta">${fol(x.id)} · ${escapeHtml(tipo)} · ${escapeHtml(autor)}${x.reportante_vivienda?' · '+escapeHtml(x.reportante_vivienda):''}${residencialTag}<br>${escapeHtml(x.ubicacion||'Sin ubicación')} · ${hace(x.fecha_hora)}${escapeHtml(asignada)}</div>
       </div>
       <div class="ig-card-side"></div>`;
     const side=el.querySelector('.ig-card-side');
@@ -295,6 +301,7 @@
   }
   const residencialSelect=$('igRResidencial'),residencialGroup=$('igRResidencialGroup');
   if(isSuper&&residencialGroup)residencialGroup.hidden=false;
+  if(isSuper&&$('igSearch'))$('igSearch').placeholder='Buscar título, residente, vivienda o residencial';
   let residencialesCargadas=false;
   async function cargarResidencialesSuper(){
     if(!isSuper||!residencialSelect||residencialesCargadas)return;
