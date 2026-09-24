@@ -70,6 +70,18 @@ module.exports = function accesosOverride({ router, model, handlers, pkPath }) {
         }
       }
 
+      // La tabla accesos tiene un CHECK (chk_acc_persona) que exige
+      // exactamente UNO de usuario_id / visitante_id. El boton "Registrar
+      // ingreso" de Verificar QR solo manda invitacion_id, asi que MySQL
+      // rechazaba la fila con "Check constraint 'chk_acc_persona' is
+      // violated". Si el acceso viene de una invitacion y no trae
+      // persona, se atribuye al residente anfitrion (visitante_id queda
+      // NULL, que es lo que esperan /invitaciones/:id/en-sitio y la
+      // salida de eventos en centroSeguridad.js).
+      if (invitacion && !body.usuario_id && !body.visitante_id) {
+        body.usuario_id = invitacion.residente_id;
+      }
+
       const acceso = await model.create(body, { transaction });
 
       if (invitacion) {
