@@ -14,7 +14,7 @@
 | Falta de luz o internet | PWA, caché de interfaz, cola offline e idempotencia. | `sw.js`, `common.js`, `acciones_offline` |
 | Robo de dispositivo | JWT expirable, sesiones revocables y dispositivos confiables. | `sesiones`, `dispositivos_usuario`, `seguridad.html` |
 | Huella o rostro | Detección WebAuthn y preferencia preparada; autenticación biométrica completa documentada como siguiente integración. | `seguridad.js`, `dispositivos_usuario` |
-| Trancas y cámaras | Adaptadores configurables y simulador; conexión real depende del proveedor. | `integraciones.html`, `integraciones.js` |
+| Cámaras | Adaptadores configurables y simulador; conexión real depende del proveedor. | `integraciones.html`, `integraciones.js` |
 | Sistemas similares | Benchmark de Verkada Guest, ButterflyMX y Kisi. | `benchmark.html` |
 | Accesibilidad | Escala de grises, filtros de daltonismo, contraste, texto grande, modo simple, voz y menos movimiento. | `config.html`, `config.js` |
 | Usuarios y roles | RBAC, permisos, creación segura y perfiles por rol. | `roles`, `permisos`, `usuarios.js`, `superadmin.html` |

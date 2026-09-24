@@ -172,13 +172,12 @@ La interfaz puede abrir desde caché, pero el primer inicio de sesión siempre r
 
 En `integraciones.html` puedes registrar:
 
-- Tranca o portón.
 - Cámara.
 - Sistema existente de la colonia.
 - Webhook.
 - Proveedor futuro de IA.
 
-El botón de prueba crea un evento simulado. No abre una tranca ni consulta una cámara real hasta conectar el proveedor correspondiente.
+El botón de prueba crea un evento simulado. No consulta una cámara real hasta conectar el proveedor correspondiente.
 
 ## Errores comunes
 

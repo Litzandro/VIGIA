@@ -56,8 +56,6 @@
 
       const camBadge=document.getElementById('miPlanBadgeCamaras');
       camBadge.className='badge '+(info.incluye_camaras?'ok':'neutral');
-      const trBadge=document.getElementById('miPlanBadgeTrancas');
-      trBadge.className='badge '+(info.incluye_trancas?'ok':'neutral');
       const soBadge=document.getElementById('miPlanBadgeSoporte');
       soBadge.className='badge '+(info.incluye_soporte?'ok':'neutral');
     }catch(e){

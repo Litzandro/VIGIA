@@ -53,7 +53,7 @@ VIGIA es una aplicación web para residenciales y colonias privadas. Esta versi�
 - Superadministrador para crear residenciales, administradores, guardias y residentes.
 - Planes, precios, ciclos de cobro, pruebas, suspensión y renovación de suscripciones.
 - Configuración por residencial: tiempo objetivo, límite de cola, zona horaria, evidencia y modo offline.
-- Catálogo de integraciones para trancas, cámaras, sistemas existentes, webhooks e IA externa.
+- Catálogo de integraciones para cámaras, sistemas existentes, webhooks e IA externa.
 - Simulador de integraciones y bitácora de eventos de prueba.
 - Página de benchmark con referencias funcionales del mercado.
 
@@ -123,7 +123,7 @@ Cambia estas contraseñas antes de publicar el sistema.
 | `mensajeria.html` | Bandeja de mensajes del personal. |
 | `conflictos.html` | Vetos y conflictos de permisos. |
 | `operaciones.html` | Turnos, relevos y métricas. |
-| `integraciones.html` | Cámaras, trancas y sistemas externos. |
+| `integraciones.html` | Cámaras y sistemas externos. |
 | `superadmin.html` | Usuarios, roles y residenciales. |
 | `suscripciones.html` | Planes y clientes. |
 | `benchmark.html` | Comparación funcional de mercado. |
@@ -153,7 +153,7 @@ Estas referencias sirven como benchmark. VIGIA no contiene código ni interfaces
 
 ## Limitaciones honestas de esta versión
 
-- **Trancas y cámaras:** existe el catálogo, simulador, configuración y bitácora; todavía se necesita el SDK/API y el hardware específico de cada proveedor para operar equipos reales.
+- **Cámaras:** existe el catálogo, simulador, configuración y bitácora; todavía se necesita el SDK/API y el hardware específico de cada proveedor para operar equipos reales.
 - **Biometría:** se detecta soporte de WebAuthn y se administran dispositivos confiables, pero falta implementar el desafío criptográfico completo y almacenar credenciales públicas para iniciar sesión con huella o rostro.
 - **IA externa:** la moderación y el asistente actuales usan reglas locales. El módulo de integraciones deja el punto preparado para un proveedor de IA, pero no envía datos fuera de VIGIA.
 - **F12:** se bloquean algunos atajos como medida visual, pero esto no es seguridad real. La protección efectiva está en autenticación, autorización, validación del backend, Helmet, bitácora y aislamiento por residencial.

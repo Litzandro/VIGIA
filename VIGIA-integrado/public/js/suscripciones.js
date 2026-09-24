@@ -40,7 +40,7 @@
       const pn=new Map(plans.map(x=>[String(x.id),x]));
       const rn=new Map(residentials.map(x=>[String(x.id),x]));
 
-      document.getElementById('planGrid').innerHTML=plans.map(x=>`<article class="module-card"><i class="bi bi-shield-check"></i><h3>${escapeHtml(x.nombre)}</h3><p>${escapeHtml(x.descripcion||'')}</p><strong style="font-size:1.45rem">${money(x.precio_mensual)}<small>/mes</small></strong><div style="margin-top:.7rem"><span class="badge ${x.incluye_camaras?'ok':'neutral'}">Cámaras ${x.incluye_camaras?'sí':'no'}</span> <span class="badge ${x.incluye_trancas?'ok':'neutral'}">Trancas ${x.incluye_trancas?'sí':'no'}</span></div></article>`).join('');
+      document.getElementById('planGrid').innerHTML=plans.map(x=>`<article class="module-card"><i class="bi bi-shield-check"></i><h3>${escapeHtml(x.nombre)}</h3><p>${escapeHtml(x.descripcion||'')}</p><strong style="font-size:1.45rem">${money(x.precio_mensual)}<small>/mes</small></strong><div style="margin-top:.7rem"><span class="badge ${x.incluye_camaras?'ok':'neutral'}">Cámaras ${x.incluye_camaras?'sí':'no'}</span></div></article>`).join('');
       document.getElementById('suPlan').innerHTML=plans.map(x=>`<option value="${x.id}" data-price="${x.precio_mensual}">${escapeHtml(x.nombre)}</option>`).join('');
       document.getElementById('suResidential').innerHTML=residentials.map(x=>`<option value="${x.id}">${escapeHtml(x.nombre)}</option>`).join('');
       if(!idInput || !idInput.value) document.getElementById('suPrice').value=plans[0]&&plans[0].precio_mensual||'';
