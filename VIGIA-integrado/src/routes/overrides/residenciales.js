@@ -106,4 +106,105 @@ module.exports = function residencialesOverride({ router, model, handlers, pkPat
   router.put(`/${pkPath}`, actualizar);
   router.patch(`/${pkPath}`, actualizar);
   router.delete(`/${pkPath}`, handlers.remove);
+
+  // ---------- BORRADO PERMANENTE (residencial + todo lo que contiene) ----------
+  // El DELETE de arriba (handlers.remove, del CRUD generico) es un
+  // borrado LOGICO: como "residenciales" tiene columna "activo", solo
+  // apaga esa bandera -- la fila y todo lo demas se queda intacto en la
+  // base de datos. Esto es aparte: borra la residencial de verdad, junto
+  // con TODO lo que le pertenece (usuarios, guardias, turnos,
+  // incidencias, accesos, camaras, viviendas, conversaciones... todo).
+  // No hay forma de deshacer esto.
+  //
+  // El esquema (database/vigia_schema.sql) ya tiene "ON DELETE CASCADE"
+  // en la enorme mayoria de tablas que dependen de residencial_id, asi
+  // que en teoria borrar la fila de "residenciales" alcanzaria solo. El
+  // problema es que unas pocas columnas se dejaron a proposito en
+  // "ON DELETE RESTRICT" (para nunca perder de vista quien reporto una
+  // incidencia o quien recibio un acceso, aunque ese usuario ya no
+  // exista) -- y la mas importante, usuarios.residencial_id, es
+  // TAMBIEN restrict: mientras exista un solo usuario de esta
+  // residencial, MySQL se niega a borrar la fila de "residenciales".
+  // Por eso este borrado va en un orden especifico: primero las tablas
+  // que RESTRINGEN el borrado de un usuario (evidencias_acceso, accesos,
+  // incidencias, paquetes, vetos_acceso, turnos_guardia -- todas con su
+  // propia columna residencial_id) y las 2 que ni siquiera tienen
+  // residencial_id propio (incidencias_seguimiento y sanciones_usuarios,
+  // ligadas solo a un usuario_id) -- despues los usuarios -- y al final
+  // la residencial misma, momento en el que MySQL cascadea solo el
+  // resto (guardias, viviendas, camaras, conversaciones, plantillas de
+  // turno, suscripciones, etc.).
+  router.delete(`/${pkPath}/permanente`, async (req, res, next) => {
+    if (req.user.rol_codigo !== 'superadmin') {
+      return res.status(403).json({ error: 'Solo superadministración puede borrar una residencial permanentemente.' });
+    }
+    const transaction = await db.sequelize.transaction();
+    try {
+      const residencial = await model.findByPk(req.params.id, { transaction });
+      if (!residencial) {
+        await transaction.rollback();
+        return res.status(404).json({ error: 'Residencial no encontrada.' });
+      }
+
+      // Confirmacion server-side: no basta con un confirm() del
+      // navegador -- el body tiene que traer el nombre EXACTO de la
+      // residencial (como ya esta guardado, sin importar mayusculas ni
+      // espacios de mas). Evita un borrado accidental por un clic de
+      // mas o una llamada automatizada sin intencion real.
+      const confirmacion = String(req.body.confirmar || '').trim().toLowerCase();
+      if (confirmacion !== residencial.nombre.trim().toLowerCase()) {
+        await transaction.rollback();
+        return res.status(400).json({ error: `Para confirmar, "confirmar" debe ser exactamente el nombre de la residencial: "${residencial.nombre}".` });
+      }
+
+      const usuarios = await db.Usuarios.findAll({ where: { residencial_id: residencial.id }, attributes: ['id'], transaction });
+      const usuarioIds = usuarios.map((u) => u.id);
+
+      // 1) Tablas con su propia residencial_id que RESTRINGEN usuarios.
+      const TABLAS_RESTRICT_POR_RESIDENCIAL = [
+        'evidencias_acceso', 'accesos', 'incidencias', 'paquetes', 'vetos_acceso', 'turnos_guardia',
+      ];
+      for (const tabla of TABLAS_RESTRICT_POR_RESIDENCIAL) {
+        await db.sequelize.query(`DELETE FROM ${tabla} WHERE residencial_id = :id`, {
+          replacements: { id: residencial.id },
+          transaction,
+        });
+      }
+
+      // 2) Tablas que restringen usuarios pero NO tienen residencial_id
+      // propia (solo se llega a ellas a traves del usuario). Redundante
+      // con el cascade de "incidencias" de arriba en el caso normal,
+      // pero se deja explicito por si alguna vez existiera una fila
+      // huerfana (usuario de esta residencial, incidencia de otra).
+      if (usuarioIds.length) {
+        await db.sequelize.query('DELETE FROM incidencias_seguimiento WHERE usuario_id IN (:ids)', { replacements: { ids: usuarioIds }, transaction });
+        await db.sequelize.query('DELETE FROM sanciones_usuarios WHERE usuario_id IN (:ids) OR aplicado_por IN (:ids)', { replacements: { ids: usuarioIds }, transaction });
+      }
+
+      // 3) Ahora si, los usuarios de esta residencial (guardias,
+      // admins, residentes...). El resto de sus datos personales
+      // (sesiones, notificaciones, mensajes, preferencias, etc.) tiene
+      // CASCADE directo desde usuarios, asi que se van solos.
+      await db.sequelize.query('DELETE FROM usuarios WHERE residencial_id = :id', { replacements: { id: residencial.id }, transaction });
+
+      // 4) La residencial misma: cascadea automaticamente todo lo demas
+      // que le pertenece (guardias, viviendas, puntos de acceso,
+      // camaras, visitantes frecuentes, invitaciones, vehiculos,
+      // alertas de panico, conversaciones y mensajes, reportes,
+      // configuracion, personas autorizadas, conflictos de permisos,
+      // plantillas de turno, cola de acceso, suscripciones, contactos
+      // de emergencia, publicaciones de comunidad, tipos de incidencia).
+      const nombreBorrado = residencial.nombre;
+      await residencial.destroy({ transaction });
+
+      await transaction.commit();
+      res.json({
+        mensaje: `Residencial "${nombreBorrado}" y todos sus datos fueron eliminados permanentemente.`,
+        usuarios_eliminados: usuarioIds.length,
+      });
+    } catch (err) {
+      if (!transaction.finished) await transaction.rollback();
+      next(err);
+    }
+  });
 };
