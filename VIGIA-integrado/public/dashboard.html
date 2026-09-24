@@ -4063,11 +4063,31 @@ function renderizarProximaVisita(
     visita.fecha_inicio;
 
 
-  const fecha =
-    new Date(
-      fechaValor
-    );
+  let fecha = new Date(fechaValor);
 
+  // Para invitaciones recurrentes, la tarjeta debe mostrar la PROXIMA
+  // ocurrencia real, no la fecha original en que se creó la recurrencia.
+  const notasRecurrencia = String(visita.notas || '');
+  const matchFrecuencia = notasRecurrencia.match(/Frecuencia:\s*(Diario|Semanal|Mensual)/i);
+  if (matchFrecuencia && !Number.isNaN(fecha.getTime())) {
+    const limite = new Date(visita.fecha_valida_hasta || fechaValor);
+    const ahoraFecha = new Date();
+    const freq = matchFrecuencia[1].toLowerCase();
+    let proxima = new Date(fecha);
+    if (freq === 'diario') {
+      proxima = new Date(ahoraFecha.getFullYear(), ahoraFecha.getMonth(), ahoraFecha.getDate(), fecha.getHours(), fecha.getMinutes(), 0, 0);
+      if (proxima.getTime() < ahoraFecha.getTime()) proxima.setDate(proxima.getDate() + 1);
+    } else if (freq === 'semanal') {
+      proxima = new Date(ahoraFecha.getFullYear(), ahoraFecha.getMonth(), ahoraFecha.getDate(), fecha.getHours(), fecha.getMinutes(), 0, 0);
+      const diff = (fecha.getDay() - proxima.getDay() + 7) % 7;
+      proxima.setDate(proxima.getDate() + diff);
+      if (proxima.getTime() < ahoraFecha.getTime()) proxima.setDate(proxima.getDate() + 7);
+    } else if (freq === 'mensual') {
+      proxima = new Date(ahoraFecha.getFullYear(), ahoraFecha.getMonth(), fecha.getDate(), fecha.getHours(), fecha.getMinutes(), 0, 0);
+      if (proxima.getTime() < ahoraFecha.getTime()) proxima = new Date(ahoraFecha.getFullYear(), ahoraFecha.getMonth()+1, fecha.getDate(), fecha.getHours(), fecha.getMinutes(), 0, 0);
+    }
+    if (Number.isNaN(limite.getTime()) || proxima <= limite) fecha = proxima;
+  }
 
   const fechaTexto =
 

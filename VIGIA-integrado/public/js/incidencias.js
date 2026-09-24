@@ -84,7 +84,7 @@
     }
   }
   function close(){modal.classList.remove('open')}
-  document.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open);document.getElementById('reportCancel').onclick=close;modal.onclick=e=>{if(e.target===modal)close()};
+  document.querySelectorAll('[data-open-report]').forEach(x=>x.onclick=open);document.getElementById('reportCancel').onclick=close;
   desc.addEventListener('keydown',e=>{if(e.key==='Enter'&&(desc.value.match(/\n/g)||[]).length>=3)e.preventDefault()});
   desc.addEventListener('input',()=>{
     desc.value=desc.value.replace(/\n{3,}/g,'\n\n');count.textContent=`${desc.value.length}/350`;
@@ -118,6 +118,15 @@
       document.getElementById('reportPhotoPreviewWrap').style.display='none';
       showToast('No se pudo leer esa imagen. Prueba con otra foto.','bi-exclamation-triangle-fill');
     }
+  };
+  const photoRemove=document.getElementById('reportPhotoRemove');
+  if(photoRemove)photoRemove.onclick=()=>{
+    photoData='';
+    const file=document.getElementById('reportPhoto');
+    const preview=document.getElementById('reportPhotoPreview');
+    if(file)file.value='';
+    if(preview)preview.removeAttribute('src');
+    document.getElementById('reportPhotoPreviewWrap').style.display='none';
   };
   const stateLabel={reportada:'Abierta',en_revision:'En progreso',resuelta:'Resuelta',cerrada:'Historial'};
   // Antes la tarjeta mostraba la VISIBILIDAD ("comunidad"/"privada")
@@ -172,11 +181,16 @@
       if(evidencias.length){
         evWrap.style.display='block';
         evBox.innerHTML=evidencias.map(ev=>ev.tipo_archivo==='imagen'&&ev.url_archivo
-          ? `<img src="${ev.url_archivo}" alt="Evidencia" style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">`
+          ? `<img src="${ev.url_archivo}" alt="Evidencia — tocar para ampliar" class="incident-evidence-thumb" style="width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;">`
           : `<div class="badge neutral"><i class="bi bi-paperclip"></i> ${escapeHtml(ev.tipo_archivo||'archivo')}</div>`).join('');
       }else{
         evWrap.style.display='none';
       }
+      evBox.querySelectorAll('.incident-evidence-thumb').forEach(img=>img.addEventListener('click',()=>{
+        let lb=document.getElementById('incidentImageLightbox');
+        if(!lb){lb=document.createElement('div');lb.id='incidentImageLightbox';lb.className='incident-image-lightbox';const full=document.createElement('img');full.alt='Evidencia ampliada';lb.appendChild(full);lb.addEventListener('click',()=>lb.classList.remove('open'));document.body.appendChild(lb);}
+        lb.querySelector('img').src=img.src;lb.classList.add('open');
+      }));
 
       idEnRevision=inc.id;
       const revisionWrap=document.getElementById('detailRevisionWrap');
@@ -190,7 +204,6 @@
     }catch(err){showToast(err.message,'bi-exclamation-triangle-fill');}
   }
   document.getElementById('detailClose').onclick=()=>detailModal.classList.remove('open');
-  detailModal.onclick=e=>{if(e.target===detailModal)detailModal.classList.remove('open');};
 
   // Aprobar/rechazar (y, para admin/superadmin, sancionar) solo lo ve
   // guardia/admin/superadmin, y solo mientras el reporte este

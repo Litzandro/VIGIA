@@ -85,7 +85,6 @@
         finish({guardia_relevo_id:Number(guardiaId),motivo:document.getElementById('opRelevoMotivo').value.trim()||'Relevo de jornada'});
       };
       document.getElementById('opRelevoCancel').onclick=()=>finish(null);
-      relevoModal.onclick=e=>{if(e.target===relevoModal)finish(null)};
     });
   }
 

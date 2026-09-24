@@ -257,17 +257,60 @@ module.exports = function mensajesOverride({ router, model, handlers, pkPath }) 
         order: [['id', 'DESC']],
         limit: 100,
       });
-      const data = [];
-      for (const conversation of conversations) {
-        const participants = await participantNames(conversation.id);
-        const last = await model.findOne({ where: { conversacion_id: conversation.id }, order: [['fecha_hora', 'DESC']] });
-        data.push({
+      // Antes se hacían 3-4 consultas por cada conversación (N+1): con
+      // 50 hilos la bandeja podía necesitar cientos de queries antes de
+      // dejar de mostrar "Cargando…". Ahora participantes, usuarios,
+      // roles y últimos mensajes se obtienen en lotes.
+      const conversationIds = conversations.map((c) => c.id);
+      if (!conversationIds.length) return res.json({ data: [] });
+      const [links, messageRows] = await Promise.all([
+        db.ConversacionesParticipantes.findAll({
+          where: { conversacion_id: { [Op.in]: conversationIds } },
+          order: [['fecha_union', 'ASC']],
+        }),
+        model.findAll({
+          where: { conversacion_id: { [Op.in]: conversationIds } },
+          order: [['fecha_hora', 'DESC']],
+        }),
+      ]);
+      const userIds = [...new Set(links.map((x) => x.usuario_id))];
+      const users = userIds.length ? await db.Usuarios.findAll({
+        where: { id: { [Op.in]: userIds } },
+        attributes: ['id', 'nombre', 'apellido', 'foto_url', 'rol_id'],
+      }) : [];
+      const roleIds = [...new Set(users.map((x) => x.rol_id))];
+      const roles = roleIds.length ? await db.Roles.findAll({
+        where: { id: { [Op.in]: roleIds } }, attributes: ['id', 'codigo'],
+      }) : [];
+      const userMap = new Map(users.map((u) => [String(u.id), u]));
+      const roleMap = new Map(roles.map((r) => [String(r.id), r.codigo]));
+      const linksByConversation = new Map();
+      links.forEach((link) => {
+        const key = String(link.conversacion_id);
+        if (!linksByConversation.has(key)) linksByConversation.set(key, []);
+        const u = userMap.get(String(link.usuario_id));
+        if (u) linksByConversation.get(key).push({
+          id: u.id,
+          nombre_completo: `${u.nombre} ${u.apellido}`.trim(),
+          foto_url: u.foto_url,
+          rol_codigo: roleMap.get(String(u.rol_id)) || null,
+        });
+      });
+      const lastByConversation = new Map();
+      messageRows.forEach((m) => {
+        const key = String(m.conversacion_id);
+        if (!lastByConversation.has(key)) lastByConversation.set(key, m);
+      });
+      const data = conversations.map((conversation) => {
+        const key = String(conversation.id);
+        const last = lastByConversation.get(key);
+        return {
           ...conversation.toJSON(),
-          participantes: participants,
+          participantes: linksByConversation.get(key) || [],
           ultimo_mensaje: last ? last.contenido : null,
           ultima_fecha: last ? last.fecha_hora : conversation.fecha_creacion,
-        });
-      }
+        };
+      });
       res.json({ data });
     } catch (err) { next(err); }
   });

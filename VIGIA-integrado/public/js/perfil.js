@@ -39,7 +39,9 @@
   }
 
   async function cargarStats(rolCodigo){
-    if(rolCodigo!=='residente')return; // los contadores solo aplican a residentes
+    const stats=document.querySelector('.profile-stats');
+    if(rolCodigo!=='residente'){if(stats)stats.style.display='none';return;} // los contadores solo aplican a residentes
+    if(stats)stats.style.display='flex';
     const metas=[
       ['pfStatVisitas','/invitaciones?limit=1'],
       ['pfStatAccesos','/accesos?limit=1'],

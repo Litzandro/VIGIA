@@ -340,7 +340,6 @@
   function cerrarReporte(){modal.classList.remove('open');form.reset();photoData='';$('igRPhotoWrap').hidden=true;$('igRCount').textContent='0/350'}
   $('igNew').onclick=()=>abrirReporte();
   $('igRCancel').onclick=cerrarReporte;
-  modal.onclick=e=>{if(e.target===modal)cerrarReporte()};
   desc.addEventListener('input',()=>{$('igRCount').textContent=desc.value.length+'/350'});
   $('igRPhoto').onchange=async e=>{
     try{photoData=await comprimir(e.target.files[0]);$('igRPhotoImg').src=photoData;$('igRPhotoWrap').hidden=!photoData}

@@ -2,10 +2,10 @@
   const form=document.getElementById('vetoForm');if(!form)return;
   const reason=document.getElementById('veReason');
   const counter=document.getElementById('veCounter');
-  const photoInput=document.getElementById('veEvidence');
+  const photoInput=document.getElementById('vePhoto');
   let evidence='';
 
-  reason.addEventListener('input',()=>{counter.textContent=`${reason.value.length}/255`});
+  reason.addEventListener('input',()=>{if(reason.value.length>255)reason.value=reason.value.slice(0,255);counter.textContent=`${reason.value.length}/255`});
   photoInput.onchange=async e=>{
     try{
       const file=e.target.files[0];

@@ -24,6 +24,27 @@
   const toggleBtn=document.getElementById('toggleRegPassword');
   const submitBtn=document.getElementById('registerSubmitBtn');
 
+  async function cargarResidenciales(){
+    if(!coloniaInput)return;
+    try{
+      const r=await VigiaAPI.request('/auth/residenciales-publicas',{offline:false});
+      const rows=(r.data||[]).filter(x=>x&&x.nombre);
+      coloniaInput.replaceChildren();
+      const placeholder=document.createElement('option');
+      placeholder.value='';placeholder.textContent=rows.length?'Selecciona tu residencial':'No hay residenciales disponibles';
+      placeholder.disabled=true;placeholder.selected=true;
+      coloniaInput.appendChild(placeholder);
+      rows.forEach(x=>{const o=document.createElement('option');o.value=x.nombre;o.textContent=x.nombre;coloniaInput.appendChild(o)});
+      coloniaInput.disabled=!rows.length;
+    }catch(e){
+      coloniaInput.replaceChildren();
+      const o=document.createElement('option');o.value='';o.textContent='No se pudieron cargar las residenciales';o.disabled=true;o.selected=true;coloniaInput.appendChild(o);
+      coloniaInput.disabled=true;
+      showError('No se pudieron cargar las residenciales. Recarga la página e inténtalo de nuevo.');
+    }
+  }
+  cargarResidenciales();
+
   function showError(msg){ errorBox.querySelector('span').textContent=msg; errorBox.classList.add('show'); }
   function hideError(){ errorBox.classList.remove('show'); }
 

@@ -62,7 +62,7 @@
  
           <!-- Hilo activo -->
           <section class="panel chat-panel">
-            <div class="chat-header">
+            <div class="chat-header"><button type="button" class="icon-btn staff-chat-back" id="staffChatBack" aria-label="Volver a conversaciones"><i class="bi bi-arrow-left"></i></button>
               <div class="post-av" id="staffThreadAvatar">VG</div>
               <div class="post-who">
                 <b id="staffThreadName">Selecciona una conversación</b>
@@ -89,6 +89,6 @@
 </div>
  
 <script src="js/common.js"></script>
-<script src="js/mensajeria.js"></script>
+<script src="js/mensajeria.js"></script><script>document.getElementById("staffChatBack")?.addEventListener("click",()=>document.body.classList.remove("staff-thread-open"));</script>
 </body>
 </html>

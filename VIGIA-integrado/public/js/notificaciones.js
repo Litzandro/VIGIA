@@ -139,7 +139,7 @@
       const hadUnread=rows.some((r)=>!r.leida);
       if(!hadUnread){ showToast('Ya estás al día'); return; }
       try{
-        await VigiaAPI.request('/notificaciones/marcar-todas',{method:'PATCH'});
+        await Promise.all(rows.filter(r=>!r.leida).map(r=>VigiaAPI.request(`/notificaciones/${r.id}`,{method:'PATCH',body:JSON.stringify({leida:true})})));
         rows.forEach((r)=>{r.leida=true});
         render();
         window.dispatchEvent(new CustomEvent('vigia:notifs-changed'));

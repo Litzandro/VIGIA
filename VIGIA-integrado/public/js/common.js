@@ -394,6 +394,7 @@ function attachTelefonoHNMask(input){
   if(!input)return;
   input.setAttribute('placeholder','9999-0000');
   input.setAttribute('inputmode','numeric');
+  input.setAttribute('maxlength','9');
   input.addEventListener('keydown',(e)=>{
     if(e.ctrlKey||e.metaKey||e.altKey)return; // deja pasar atajos (copiar, pegar, seleccionar todo...)
     const allowed=['Backspace','Delete','Tab','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'];
@@ -832,7 +833,6 @@ setInterval(tickClock,1000);tickClock();
     // Configuracion, ej. alguien que no puede ver la pantalla), el boton
     // flotante todavia no existia en esta pagina -- se crea aca mismo en
     // vez de esperar a la siguiente carga de pagina.
-    if(activo&&!botonLectura)crearBotonLectura();
     actualizarBotonLectura();
     if(activo){
       anunciar('Lectura de pantalla activada.');
@@ -885,13 +885,8 @@ setInterval(tickClock,1000);tickClock();
   // funcionando siempre, sin depender de que este boton exista, para no
   // quitarle a alguien que no puede ver la pantalla una forma de
   // activarlo si de verdad lo necesita.
-  if(prefs.readAloud){
-    if(document.readyState==='loading'){
-      document.addEventListener('DOMContentLoaded',crearBotonLectura);
-    }else{
-      crearBotonLectura();
-    }
-  }
+  // La lectura asistida sigue disponible desde Configuracion y con Alt+L,
+  // pero no se muestra un boton flotante sobre la interfaz.
 
   // Si la preferencia ya estaba activada en una pagina anterior, lee la
   // pagina nueva automaticamente al terminar de cargar -- esto es lo que
@@ -1015,6 +1010,8 @@ document.addEventListener('contextmenu',e=>{if(document.body.dataset.protectDemo
 
   panel.append(head,messages,suggestions,form);
   document.body.append(btn,panel);
+  const syncFabWithModal=()=>{const open=Boolean(document.querySelector('.modal-overlay.open'));btn.style.display=open?'none':'';if(open)panel.classList.remove('open');};
+  new MutationObserver(syncFabWithModal).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});syncFabWithModal();
 
   function answer(q){
     const t=q.toLowerCase();

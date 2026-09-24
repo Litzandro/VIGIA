@@ -127,8 +127,9 @@
       <div class="form-group">
         <label for="reportPhoto">Evidencia fotográfica (opcional)</label>
         <input type="file" class="form-control" id="reportPhoto" accept="image/*" capture="environment">
-        <div id="reportPhotoPreviewWrap" style="display:none;margin-top:.7rem;">
+        <div id="reportPhotoPreviewWrap" class="report-photo-preview" style="display:none;margin-top:.7rem;">
           <img id="reportPhotoPreview" alt="Vista previa de la evidencia" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">
+          <button type="button" id="reportPhotoRemove" class="photo-remove-btn" aria-label="Quitar imagen" title="Quitar imagen"><i class="bi bi-x-lg"></i></button>
         </div>
       </div>
       <div class="modal-actions">

@@ -1,51 +1,117 @@
-# VIGIA — Aumento de precio de planes (+45%)
+# VIGIA — Revisión de Hilary (24 sep, ronda "CORREGIDO-4")
 
-## ⚠️ Paso en la base de datos (obligatorio)
+Revisé el zip completo (`VIGIA-main (3)-CORREGIDO-4.zip`) contra el código que ya
+está en GitHub (con todo lo subido ayer/hoy). Extraje solo los **21 archivos
+que de verdad cambiaron** — el resto del zip es idéntico a lo que ya tienen.
+Verifiqué cada cambio uno por uno (no solo confié en su resumen en PDF),
+revisé sintaxis, hice arrancar el servidor completo en un clon limpio con
+estos archivos encima, y until ahí no encontré ningún problema. Todo lo de
+abajo está listo para subir.
 
-Suban el código a GitHub y luego corran, contra la base de datos de
-Railway, el archivo:
+## No requiere ningún paso en la base de datos
 
-**`database/11_subir_precios_planes_45.sql`**
+Ninguno de estos 21 archivos toca la base de datos. Solo se sube el código.
 
-Es seguro correrlo más de una vez.
+## Qué cambia, por tema
 
-## Qué cambió
+**Incidencias**
+- El formulario de reporte ya no se cierra si tocas fuera de él por
+  accidente (antes perdías todo lo escrito).
+- Puedes quitar la foto que adjuntaste antes de enviar el reporte.
+- La evidencia fotográfica de una incidencia ahora se puede tocar para
+  verla en grande.
 
-Se subió un 45% el precio de lista de los 3 planes:
+**Visitas y calendario**
+- El Dashboard ahora calcula la **próxima** fecha real de una visita
+  recurrente (diaria, semanal o mensual) en vez de mostrar la fecha en que
+  se creó la recurrencia — esto corrige la fecha vieja/incorrecta que
+  vieron en las capturas.
+- Se agregó soporte para recurrencia **diaria** (antes solo semanal/mensual
+  se reconocía).
+- Ajustes de calendario en móvil para que use mejor el ancho de pantalla.
 
-| Plan | Precio anterior | Precio nuevo |
-|---|---|---|
-| VIGIA Esencial | L 2,500.00 | **L 3,625.00** |
-| VIGIA Seguro | L 5,500.00 | **L 7,975.00** |
-| VIGIA Integral | L 9,500.00 | **L 13,775.00** |
+**Mis accesos y diseño móvil**
+- Se arregló el desbordamiento horizontal en teléfonos.
+- Los campos de contraseña del registro quedan alineados.
 
-Todos los precios que se muestran en la app (Suscripciones, Mi
-suscripción) salen en vivo de la base de datos — no hay ningún precio
-escrito a mano en el código, así que no hace falta tocar ninguna
-pantalla. Con solo correr la migración, el precio nuevo aparece en todos
-lados automáticamente.
+**Registro — la lista de residenciales ahora es real**
+- Antes el selector "Colonia / Residencial" del registro tenía una sola
+  opción fija escrita a mano (`Altavista Residencial`). Se agregó un
+  endpoint público nuevo (`GET /api/auth/residenciales-publicas`, sin
+  necesidad de sesión, porque el registro es antes de iniciar sesión) que
+  devuelve solo el nombre de las residenciales activas, y el formulario
+  ahora las carga de ahí.
 
-## Importante: esto NO les sube el precio a los clientes que ya están activos
+**Mensajería**
+- La bandeja del guardia hacía hasta 3-4 consultas a la base de datos por
+  cada conversación (con 50 hilos, cientos de consultas) — por eso tardaba
+  en cargar. Se reescribió para traer todo en lotes; debería sentirse
+  notablemente más rápido.
+- En móvil, al abrir una conversación aparece un botón "Volver" para
+  regresar a la lista.
 
-El precio nuevo aplica automáticamente a cualquier residencial que se
-suscriba de ahora en adelante. Pero los que ya están pagando hoy tienen
-su propio precio guardado aparte (`precio_acordado`, fijado el día que se
-suscribieron) — ese no cambia solo. Si también quieren subírselo a los
-clientes actuales, dejé el `UPDATE` listo (comentado) al final del mismo
-archivo SQL, para correrlo aparte cuando lo decidan — normalmente
-conviene avisarles antes con tiempo.
+**Vetos — corrigió un bug real que ya existía**
+- El formulario de Vetos tenía el campo de evidencia con el id `vePhoto`
+  en el HTML, pero el JS buscaba `veEvidence` — es decir, **subir una foto
+  de evidencia en una solicitud de veto nunca había funcionado**. Ahora
+  coinciden los ids y sí funciona. También el contador de caracteres del
+  motivo ahora bloquea de verdad pasar de 255 (antes solo avisaba).
+
+**Perfil**
+- Los contadores de estadísticas (visitas, accesos, etc.) solo aplican a
+  residentes — ahora se ocultan completamente para guardia/admin en vez de
+  dejar un espacio vacío sin datos.
+
+**Notificaciones**
+- "Marcar todo como leído" llamaba a una ruta que no existe en el backend
+  (`/notificaciones/marcar-todas`) — por eso no hacía nada. Se cambió para
+  marcar cada notificación individualmente con la ruta que sí existe.
+
+**Modo claro y accesibilidad**
+- El botón flotante amarillo de lectura/altavoz que tapaba el menú lateral
+  se quitó — la función de lectura sigue disponible desde Configuración.
+- Corregidos botones y tarjetas del panel de guardia que en modo claro se
+  veían con colores de modo oscuro.
+- Los formularios/modales ahora ocultan el botón flotante del asistente
+  mientras están abiertos, para que no se sobreponga.
+
+**Teléfonos**
+- Los números de Honduras ahora se limitan de verdad a 8 dígitos (antes se
+  podía escribir más).
+
+## Un archivo de backend nuevo, revisado con cuidado
+
+`src/routes/auth.js` agrega una sola ruta pública nueva:
+`GET /api/auth/residenciales-publicas`, que solo devuelve `id` y `nombre`
+de las residenciales activas — no expone nada sensible, y es necesaria
+para que el registro funcione (ver arriba). No toca login ni ninguna otra
+ruta existente.
 
 ## Verificación hecha antes de entregar
 
-- Clon limpio del repo de GitHub + estos archivos encima (igual a como
-  los suben ustedes) + `npm install` + arranque completo del servidor:
-  sin errores.
+- Comparé el zip completo contra un clon limpio de GitHub — de los ~220
+  archivos, solo 21 cambiaron de verdad.
+- `node --check` en los 14 `.js` tocados: sin errores.
+- Balance de `<div>`/`</div>` en los 6 HTML tocados: correcto.
+- Clon limpio del repo + estos 21 archivos encima (igual a como los suben
+  ustedes) + `npm install` + arranque completo del servidor: sin errores.
+- Confirmé que el fix de esta mañana en `incidencias-gestion.js` (botones
+  rápidos para resolver/cerrar) sigue intacto — Hilary trabajó encima de
+  la versión más reciente, no de una vieja.
 
-## Archivos
+## Cómo subir esto
 
-- `database/vigia_schema.sql` — precio de fábrica actualizado (para
-  instalaciones nuevas desde cero).
-- `database/02_retroalimentacion_vigia.sql` — mismo ajuste, en el
-  segundo script que también define los planes.
-- `database/11_subir_precios_planes_45.sql` (nuevo) — la migración para
-  aplicar el cambio a la base de datos que ya está corriendo en Railway.
+Sube estos 21 archivos a GitHub respetando las mismas rutas — todos
+sobrescriben archivos que ya existen:
+
+`public/css/style.css`, `public/dashboard.html`, `public/emergencias.html`,
+`public/incidencias.html`, `public/mensajeria.html`, `public/register.html`,
+`public/vetos.html`, `public/js/common.js`, `public/js/comunidad.js`,
+`public/js/emergencias.js`, `public/js/incidencias-gestion.js`,
+`public/js/incidencias.js`, `public/js/mensajeria.js`,
+`public/js/notificaciones.js`, `public/js/operaciones.js`,
+`public/js/perfil.js`, `public/js/register.js`, `public/js/vetos.js`,
+`public/js/visitas.js`, `src/routes/auth.js`,
+`src/routes/overrides/mensajes.js`.
+
+No hace falta correr nada en la base de datos.

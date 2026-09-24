@@ -862,9 +862,8 @@
       'click',
       event => {
 
-        if (event.target === modal) {
-          closeModal();
-        }
+        // No cerrar al tocar fuera: evita perder datos del formulario por accidente.
+        if (event.target === modal) { event.preventDefault(); }
 
       }
     );
@@ -1606,7 +1605,7 @@
   // el mismo dia de la semana en que se creo, mensual repite el mismo
   // dia del mes.
   function frecuenciaDeVisita(inv) {
-    const m = String(inv.notas || '').match(/Frecuencia:\s*(Semanal|Mensual)/i);
+    const m = String(inv.notas || '').match(/Frecuencia:\s*(Diario|Semanal|Mensual)/i);
     return m ? m[1].toLowerCase() : null;
   }
 
@@ -1618,6 +1617,7 @@
     const hastaSoloFecha = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
     if (dia < desdeSoloFecha || dia > hastaSoloFecha) return false;
     const frecuencia = frecuenciaDeVisita(inv);
+    if (frecuencia === 'diario') return true;
     if (frecuencia === 'semanal') return dia.getDay() === desde.getDay();
     if (frecuencia === 'mensual') return dia.getDate() === desde.getDate();
     // Frecuencia desconocida (dato viejo sin la etiqueta): se mantiene
@@ -2121,10 +2121,12 @@
       });
     }
     if (vista === 'calendario') {
+      document.body.classList.add('visitas-calendar-active');
       if (listaView) listaView.hidden = true;
       if (calendarioView) calendarioView.hidden = false;
       renderMonthCalendar();
     } else {
+      document.body.classList.remove('visitas-calendar-active');
       if (listaView) listaView.hidden = false;
       if (calendarioView) calendarioView.hidden = true;
       cerrarPopover();

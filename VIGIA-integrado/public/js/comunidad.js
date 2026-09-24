@@ -103,7 +103,6 @@
   function openReport(id){editingId=id;reportModal.classList.add('open')}
   if(reportModal){
     document.getElementById('reportPostCancel').onclick=()=>reportModal.classList.remove('open');
-    reportModal.onclick=e=>{if(e.target===reportModal)reportModal.classList.remove('open')};
     reportForm.onsubmit=async e=>{
       e.preventDefault();
       try{

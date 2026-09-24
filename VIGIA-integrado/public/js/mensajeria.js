@@ -72,7 +72,7 @@
   async function openThread(id,force){
     const switching=String(id)!==String(currentId);
     if(switching)lastSignature='';
-    currentId=id;renderInbox();
+    currentId=id;renderInbox();document.body.classList.add('staff-thread-open');
     try{
       const r=await VigiaAPI.request(`/mensajes/conversacion/${id}`),d=r.data||{};
       const other=counterpart(d);
