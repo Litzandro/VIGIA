@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 
 -- =====================================================================
 -- 12B. AMPLIACIONES DE RETROALIMENTACION (VIGIA 2.0)

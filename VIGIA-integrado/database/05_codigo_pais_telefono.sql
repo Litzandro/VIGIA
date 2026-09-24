@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- =====================================================================
 -- 05. CODIGO DE PAIS EN TELEFONOS EXISTENTES
 -- Rol: Base de datos -- Ronaldo Alfaro

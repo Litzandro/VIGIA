@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- =====================================================================
 -- 06. CATALOGO DE TIPOS DE INCIDENCIA (por defecto, retroactivo)
 -- Rol: Base de datos -- Ronaldo Alfaro

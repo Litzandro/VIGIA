@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- =====================================================================
 -- 09. Guardia puede gestionar cámaras (no solo verlas)
 --

@@ -4,6 +4,7 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const db = require('../src/models');
+const { sembrarTiposIncidenciaDefecto } = require('../src/utils/catalogoTiposIncidencia');
 
 async function upsertUser({ email, password, nombre, apellido, rolCodigo, residencialId = null, telefono = null }) {
   const rol = await db.Roles.findOne({ where: { codigo: rolCodigo } });
@@ -63,6 +64,12 @@ async function main() {
     where: { residencial_id: residencial.id },
     defaults: { zona_horaria: 'America/Tegucigalpa', tiempo_objetivo_acceso_seg: 90, limite_cola_alerta: 5 },
   });
+
+  // Sin tipos de incidencia propios de la residencial, el residente no
+  // puede reportar NINGUNA incidencia (el API filtra por residencial y
+  // los tipos "globales" con residencial_id NULL no le aparecen).
+  // Idempotente: solo agrega los que falten.
+  await sembrarTiposIncidenciaDefecto(db, residencial.id);
 
   const [vivienda] = await db.Viviendas.findOrCreate({
     where: { residencial_id: residencial.id, numero: '402' },

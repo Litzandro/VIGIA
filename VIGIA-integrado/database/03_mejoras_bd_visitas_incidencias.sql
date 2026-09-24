@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 -- =====================================================================
 -- 03. MEJORAS DE BASE DE DATOS -- MODULOS VISITAS (invitaciones) E
 --     INCIDENCIAS

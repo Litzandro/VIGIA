@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 
 -- =====================================================================
 -- 04. RECUPERACION DE CONTRASEÑA OLVIDADA
